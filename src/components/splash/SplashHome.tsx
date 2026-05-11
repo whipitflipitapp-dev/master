@@ -45,7 +45,7 @@ export function SplashHome() {
       />
 
       <header className="relative z-10 flex items-start justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
-        <div className="flex flex-col gap-1 leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)]">
+        <div className="ml-12 flex flex-col gap-1 leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)] sm:ml-14">
           <span className="text-2xl" aria-hidden>
             👨‍🍳
           </span>

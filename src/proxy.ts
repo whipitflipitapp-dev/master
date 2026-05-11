@@ -14,7 +14,21 @@ const PROTECTED_PREFIXES = [
   "/admin",
   "/api/admin",
   "/ai-chef",
+  "/onboarding",
 ];
+
+function isOnboardingExempt(pathname: string): boolean {
+  return (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/upgrade") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/learn") ||
+    pathname.startsWith("/_next")
+  );
+}
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
@@ -53,6 +67,17 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname, search } = request.nextUrl;
+
+  if (user && !isOnboardingExempt(pathname)) {
+    const { data: ob, error: obErr } = await supabase
+      .from("profiles")
+      .select("onboarding_completed_at")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (!obErr && ob?.onboarding_completed_at == null) {
+      return NextResponse.redirect(new URL("/onboarding", request.url));
+    }
+  }
 
   if (isProtectedPath(pathname)) {
     if (!user) {

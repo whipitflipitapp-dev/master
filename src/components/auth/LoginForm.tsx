@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { useTranslation } from "react-i18next";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -23,9 +24,15 @@ function resolveBrowserSiteUrl(): string {
 type LoginFormProps = {
   defaultNext: string;
   initialError: string | null;
+  mode?: "signin" | "signup";
 };
 
-export function LoginForm({ defaultNext, initialError }: LoginFormProps) {
+export function LoginForm({
+  defaultNext,
+  initialError,
+  mode = "signin",
+}: LoginFormProps) {
+  const { t } = useTranslation("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -103,10 +110,14 @@ export function LoginForm({ defaultNext, initialError }: LoginFormProps) {
     <div className="flex w-full flex-col gap-6">
       <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]">
         <p className="text-sm font-semibold text-[var(--text)]">
-          Sign in with email
+          {mode === "signup"
+            ? t("login_title_signup")
+            : t("login_title_signin")}
         </p>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          We will email you a magic link — no password to remember.
+          {mode === "signup"
+            ? t("login_email_blurb_signup")
+            : t("login_email_blurb_signin")}
         </p>
 
         {sent ? (
@@ -147,7 +158,11 @@ export function LoginForm({ defaultNext, initialError }: LoginFormProps) {
             disabled={pending}
             className="min-h-[48px] rounded-[var(--radius-card)] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--primary-hover)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.99] disabled:opacity-60"
           >
-            {pending ? "Sending…" : "Email me a magic link"}
+            {pending
+              ? "Sending…"
+              : mode === "signup"
+                ? t("login_magic_cta_signup")
+                : t("login_magic_cta_signin")}
           </button>
         </form>
       </div>
@@ -177,12 +192,29 @@ export function LoginForm({ defaultNext, initialError }: LoginFormProps) {
         </p>
       </div>
 
-      <Link
-        href="/"
-        className="text-center text-sm font-medium text-[var(--muted)] underline-offset-4 hover:text-[var(--text)] hover:underline"
-      >
-        Back to home
-      </Link>
+      <div className="flex flex-col gap-2 text-center">
+        {mode === "signin" ? (
+          <Link
+            href={`/signup?next=${encodeURIComponent(nextPath)}`}
+            className="text-sm font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+          >
+            {t("login_link_signup")}
+          </Link>
+        ) : (
+          <Link
+            href={`/login?next=${encodeURIComponent(nextPath)}`}
+            className="text-sm font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+          >
+            {t("signup_link_login")}
+          </Link>
+        )}
+        <Link
+          href="/"
+          className="text-sm font-medium text-[var(--muted)] underline-offset-4 hover:text-[var(--text)] hover:underline"
+        >
+          Back to home
+        </Link>
+      </div>
     </div>
   );
 }

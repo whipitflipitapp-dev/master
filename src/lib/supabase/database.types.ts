@@ -23,6 +23,7 @@ export interface Database {
           created_at: string;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
+          onboarding_completed_at: string | null;
         };
         Insert: {
           id: string;
@@ -34,6 +35,7 @@ export interface Database {
           created_at?: string;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          onboarding_completed_at?: string | null;
         };
         Update: {
           display_name?: string | null;
@@ -43,6 +45,7 @@ export interface Database {
           is_admin?: boolean;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          onboarding_completed_at?: string | null;
         };
       };
       recipes: {

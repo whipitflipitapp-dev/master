@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { saveUserAllergies } from "@/app/actions/profile";
 import type { AllergyMode } from "@/lib/profile";
@@ -9,18 +9,32 @@ export function ProfileAllergiesForm({
   allergens,
   selectedIds,
   defaultAllergyMode,
+  onSaved,
+  submitLabel = "Save allergies",
+  submitPendingLabel = "Saving…",
 }: {
   allergens: { id: string; name: string }[];
   selectedIds: string[];
   defaultAllergyMode: AllergyMode;
+  onSaved?: () => void;
+  submitLabel?: string;
+  submitPendingLabel?: string;
 }) {
   const selectedSet = new Set(selectedIds);
+  const prevPending = useRef(false);
 
   const [state, formAction, pending] = useActionState(
     async (_prev: { error: string | null }, formData: FormData) =>
       saveUserAllergies(formData),
     { error: null as string | null },
   );
+
+  useEffect(() => {
+    if (prevPending.current && !pending && !state.error) {
+      onSaved?.();
+    }
+    prevPending.current = pending;
+  }, [pending, state.error, onSaved]);
 
   return (
     <form className="mt-4 flex flex-col gap-4" action={formAction}>
@@ -95,7 +109,7 @@ export function ProfileAllergiesForm({
         disabled={pending}
         className="rounded-[var(--radius-card)] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--primary-hover)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.99] disabled:opacity-60"
       >
-        {pending ? "Saving…" : "Save allergies"}
+        {pending ? submitPendingLabel : submitLabel}
       </button>
     </form>
   );
