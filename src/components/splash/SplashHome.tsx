@@ -32,9 +32,19 @@ export function SplashHome() {
         />
       </div>
 
-      {/* Readability: dark bottom wash + subtle top fade (reference-style cinematic) */}
+      {/* Readability: dark bottom wash + subtle top fade — softer on mobile so more hero shows */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 sm:hidden"
+        style={{
+          background: `
+            linear-gradient(180deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.02) 30%, rgba(0,0,0,0.18) 52%, rgba(0,0,0,0.58) 100%),
+            radial-gradient(90% 55% at 50% 0%, rgba(0,0,0,0.18), transparent 58%)
+          `,
+        }}
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 hidden sm:block"
         style={{
           background: `
             linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 28%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.88) 100%),
@@ -44,14 +54,14 @@ export function SplashHome() {
         aria-hidden
       />
 
-      {/* Hero art includes baked-in headline/tagline; hide that raster copy below `sm` only (DOM uses max-sm:hidden separately). */}
+      {/* Hero art includes baked-in headline/tagline; lighter bottom band on mobile only (desktop/tablet unchanged). */}
       <div
-        className="pointer-events-none absolute inset-0 z-[1] block bg-gradient-to-t from-neutral-950 from-[32%] via-neutral-950/95 to-transparent sm:hidden"
+        className="pointer-events-none absolute inset-0 z-[1] block bg-gradient-to-t from-neutral-950/70 from-[48%] via-neutral-950/45 via-[72%] to-transparent sm:hidden"
         aria-hidden
       />
 
-      <header className="relative z-10 flex items-start justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
-        <div className="ml-12 flex flex-col gap-1 leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)] sm:ml-14">
+      <header className="relative z-10 flex items-start justify-between max-sm:justify-end px-5 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="max-sm:hidden ml-12 flex flex-col gap-1 leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)] sm:ml-14">
           <span className="text-2xl" aria-hidden>
             👨‍🍳
           </span>
