@@ -44,6 +44,12 @@ export function SplashHome() {
         aria-hidden
       />
 
+      {/* Hero art includes baked-in headline/tagline; hide that raster copy below `sm` only (DOM uses max-sm:hidden separately). */}
+      <div
+        className="pointer-events-none absolute inset-0 z-[1] block bg-gradient-to-t from-neutral-950 from-[32%] via-neutral-950/95 to-transparent sm:hidden"
+        aria-hidden
+      />
+
       <header className="relative z-10 flex items-start justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="ml-12 flex flex-col gap-1 leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)] sm:ml-14">
           <span className="text-2xl" aria-hidden>
@@ -91,13 +97,13 @@ export function SplashHome() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 mt-auto flex flex-1 flex-col justify-end px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
       >
-        <p className="mb-2 text-center text-xs font-semibold uppercase tracking-[0.2em] text-white/90 drop-shadow-md">
+        <p className="mb-2 max-sm:hidden text-center text-xs font-semibold uppercase tracking-[0.2em] text-white/90 drop-shadow-md sm:block">
           {t("splash_kicker")}
         </p>
-        <h1 className="text-center text-3xl font-extrabold uppercase leading-tight tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl">
+        <h1 className="max-sm:hidden text-center text-3xl font-extrabold uppercase leading-tight tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:block sm:text-4xl">
           {t("splash_title")}
         </h1>
-        <p className="mx-auto mt-2 max-w-md text-center font-serif text-lg italic text-[#fb923c] drop-shadow-md sm:text-xl">
+        <p className="mx-auto mt-2 max-sm:hidden max-w-md text-center font-serif text-lg italic text-[#fb923c] drop-shadow-md sm:block sm:text-xl">
           {t("splash_tagline_script")}
         </p>
         <p className="mx-auto mt-3 max-w-md text-center text-sm leading-relaxed text-white/85 drop-shadow">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { AiChefWorkbench } from "@/components/ai-chef/AiChefWorkbench";
+import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import type { PlanType } from "@/lib/plan";
 import { getCurrentProfile } from "@/lib/profile";
@@ -65,6 +66,7 @@ export default async function AiChefPage() {
   }
 
   return (
+    <ContentPageBackdrop pageKey="/ai-chef">
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-5 py-8">
       <header className="border-b border-[var(--border)] pb-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -90,5 +92,6 @@ export default async function AiChefPage() {
         suggestedAllergyNotes={suggestedAllergyNotes}
       />
     </main>
+    </ContentPageBackdrop>
   );
 }

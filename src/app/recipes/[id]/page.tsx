@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
+import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { isAmazonAffiliateProductUrl } from "@/lib/amazon-affiliate-url";
@@ -291,6 +292,7 @@ export default async function RecipeDetailPage(props: Props) {
     .join(" · ");
 
   return (
+    <ContentPageBackdrop pageKey={`/recipes/detail|${id}`}>
     <article className="mx-auto w-full max-w-2xl flex-1 px-5 pb-12 pt-8">
       <RecipeDetailHero
         title={recipe.title}
@@ -526,5 +528,6 @@ export default async function RecipeDetailPage(props: Props) {
         </Link>
       </footer>
     </article>
+    </ContentPageBackdrop>
   );
 }

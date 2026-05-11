@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { AddRecipeForm } from "@/app/add/add-recipe-form";
+import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -48,6 +49,7 @@ export default async function AddRecipePage({
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return (
+      <ContentPageBackdrop pageKey="/add">
       <main className="mx-auto max-w-lg flex-1 px-5 py-12">
         <h1 className="text-2xl font-bold text-[var(--text)]">
           {dictText(dict, "add_supabase_title")}
@@ -62,6 +64,7 @@ export default async function AddRecipePage({
           {dictText(dict, "add_back_home")}
         </Link>
       </main>
+      </ContentPageBackdrop>
     );
   }
 
@@ -70,6 +73,7 @@ export default async function AddRecipePage({
   } = await supabase.auth.getUser();
   if (!user) {
     return (
+      <ContentPageBackdrop pageKey="/add">
       <main className="mx-auto max-w-lg flex-1 px-5 py-12 text-center">
         <h1 className="text-2xl font-bold text-[var(--text)]">
           {dictText(dict, "add_sign_in_required_title")}
@@ -84,12 +88,14 @@ export default async function AddRecipePage({
           {dictText(dict, "add_back_home")}
         </Link>
       </main>
+      </ContentPageBackdrop>
     );
   }
 
   const allergens = await loadAllergens();
 
   return (
+    <ContentPageBackdrop pageKey="/add">
     <main className="mx-auto w-full max-w-lg flex-1 px-5 py-8 pb-14">
       <header className="border-b border-[var(--border)] pb-6">
         <p className="text-[length:var(--text-caption)] font-semibold uppercase tracking-[0.08em] text-[var(--primary)]">
@@ -109,5 +115,6 @@ export default async function AddRecipePage({
         {dictText(dict, "add_footer_note")}
       </p>
     </main>
+    </ContentPageBackdrop>
   );
 }

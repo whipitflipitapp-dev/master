@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -40,6 +41,7 @@ export default async function SavedPage() {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return (
+      <ContentPageBackdrop pageKey="/saved">
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-8">
         <header className="border-b border-[var(--border)] pb-6">
           <h1 className="text-[1.625rem] font-bold tracking-tight text-[var(--text)] sm:text-3xl">
@@ -53,6 +55,7 @@ export default async function SavedPage() {
           {dictText(dict, "recipes_supabase_env_hint")}
         </p>
       </main>
+      </ContentPageBackdrop>
     );
   }
 
@@ -86,6 +89,7 @@ export default async function SavedPage() {
 
   if (favErr) {
     return (
+      <ContentPageBackdrop pageKey="/saved">
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-8">
         <header className="border-b border-[var(--border)] pb-6">
           <h1 className="text-[1.625rem] font-bold tracking-tight text-[var(--text)] sm:text-3xl">
@@ -96,6 +100,7 @@ export default async function SavedPage() {
           {favErr.message}
         </p>
       </main>
+      </ContentPageBackdrop>
     );
   }
 
@@ -125,6 +130,7 @@ export default async function SavedPage() {
   }
 
   return (
+    <ContentPageBackdrop pageKey="/saved">
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-8">
       <header className="border-b border-[var(--border)] pb-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -211,5 +217,6 @@ export default async function SavedPage() {
         </ul>
       )}
     </main>
+    </ContentPageBackdrop>
   );
 }

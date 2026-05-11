@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { listRecipes } from "@/app/actions/recipes";
+import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import type { AllergyMode } from "@/lib/profile";
@@ -97,7 +98,10 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
   paramsSafeOnly.set("safe", "1");
   const hrefSafeOn = `/recipes?${paramsSafeOnly.toString()}`;
 
+  const backdropKey = `/recipes|q=${qRaw?.trim() ?? ""}|safe=${useSafeFilter ? "1" : "0"}`;
+
   return (
+    <ContentPageBackdrop pageKey={backdropKey}>
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-8">
       <header className="border-b border-[var(--border)] pb-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -261,5 +265,6 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
         </ul>
       )}
     </main>
+    </ContentPageBackdrop>
   );
 }

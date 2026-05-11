@@ -4,6 +4,7 @@ import Link from "next/link";
 import { listPantry } from "@/app/actions/pantry";
 import { matchRecipesForPantry } from "@/app/actions/recipes";
 import { HelpMeCookPantry } from "@/components/help-me-cook/HelpMeCookPantry";
+import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { mergeIngredientTokens, parseIngredientInput } from "@/lib/ingredients";
@@ -108,8 +109,10 @@ export default async function HelpMeCookPage({
     !qProvided;
 
   const formResetKey = `${qRaw}:${pantryOnlyChecked ? "1" : "0"}:${pantryItems.join("|")}`;
+  const backdropKey = `/help-me-cook|q=${qRaw}|pantry_only=${pantryOnlyChecked ? "1" : "0"}`;
 
   return (
+    <ContentPageBackdrop pageKey={backdropKey}>
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-5 py-8">
       <header className="border-b border-[var(--border)] pb-5">
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">
@@ -234,5 +237,6 @@ export default async function HelpMeCookPage({
         ) : null}
       </HelpMeCookPantry>
     </main>
+    </ContentPageBackdrop>
   );
 }

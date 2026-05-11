@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { CookbooksDashboardManager } from "@/components/cookbooks/CookbooksDashboardManager";
+import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -17,12 +18,14 @@ export default async function DashboardCookbooksPage() {
 
   if (!supabase) {
     return (
+      <ContentPageBackdrop pageKey="/dashboard/cookbooks">
       <main className="mx-auto flex max-w-lg flex-1 flex-col gap-4 px-5 py-8">
         <h1 className="text-2xl font-bold tracking-tight">Cookbooks</h1>
         <p className="text-sm text-[var(--muted)]">
           Configure Supabase environment variables to manage cookbook links.
         </p>
       </main>
+      </ContentPageBackdrop>
     );
   }
 
@@ -42,16 +45,19 @@ export default async function DashboardCookbooksPage() {
 
   if (error) {
     return (
+      <ContentPageBackdrop pageKey="/dashboard/cookbooks">
       <main className="mx-auto flex max-w-lg flex-1 flex-col gap-4 px-5 py-8">
         <h1 className="text-2xl font-bold tracking-tight">Cookbooks</h1>
         <p className="text-sm text-[var(--danger)]" role="alert">
           {error.message}
         </p>
       </main>
+      </ContentPageBackdrop>
     );
   }
 
   return (
+    <ContentPageBackdrop pageKey="/dashboard/cookbooks">
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-5 py-8">
       <header>
         <p className="text-sm font-semibold text-[var(--muted)]">
@@ -83,5 +89,6 @@ export default async function DashboardCookbooksPage() {
 
       <CookbooksDashboardManager cookbooks={rows ?? []} />
     </main>
+    </ContentPageBackdrop>
   );
 }

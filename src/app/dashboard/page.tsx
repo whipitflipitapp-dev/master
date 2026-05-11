@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -23,6 +24,7 @@ export default async function DashboardPage() {
 
   if (!supabase) {
     return (
+      <ContentPageBackdrop pageKey="/dashboard">
       <main className="mx-auto flex max-w-lg flex-1 flex-col gap-4 px-5 py-8">
         <h1 className="text-2xl font-bold tracking-tight">
           {dictText(dict, "dashboard_title")}
@@ -31,6 +33,7 @@ export default async function DashboardPage() {
           {dictText(dict, "dashboard_env_hint")}
         </p>
       </main>
+      </ContentPageBackdrop>
     );
   }
 
@@ -52,6 +55,7 @@ export default async function DashboardPage() {
 
   if (favCountRes.error) {
     return (
+      <ContentPageBackdrop pageKey="/dashboard">
       <main className="mx-auto flex max-w-lg flex-1 flex-col gap-4 px-5 py-8">
         <h1 className="text-2xl font-bold tracking-tight">
           {dictText(dict, "dashboard_title")}
@@ -60,11 +64,13 @@ export default async function DashboardPage() {
           {favCountRes.error.message}
         </p>
       </main>
+      </ContentPageBackdrop>
     );
   }
 
   if (authoredRes.error) {
     return (
+      <ContentPageBackdrop pageKey="/dashboard">
       <main className="mx-auto flex max-w-lg flex-1 flex-col gap-4 px-5 py-8">
         <h1 className="text-2xl font-bold tracking-tight">
           {dictText(dict, "dashboard_title")}
@@ -73,6 +79,7 @@ export default async function DashboardPage() {
           {authoredRes.error.message}
         </p>
       </main>
+      </ContentPageBackdrop>
     );
   }
 
@@ -88,6 +95,7 @@ export default async function DashboardPage() {
   }
 
   return (
+    <ContentPageBackdrop pageKey="/dashboard">
     <main className="mx-auto flex max-w-lg flex-1 flex-col gap-6 px-5 py-8">
       <header>
         <h1 className="text-2xl font-bold tracking-tight">
@@ -138,5 +146,6 @@ export default async function DashboardPage() {
         </Link>
       </nav>
     </main>
+    </ContentPageBackdrop>
   );
 }

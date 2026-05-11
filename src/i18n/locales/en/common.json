@@ -81,7 +81,7 @@
   "help_cook_allergy_strict": "Strict: recipes with your allergens are excluded from these results.",
   "help_cook_allergy_warn": "Warn: recipes stay listed; those with your allergens show a warning badge.",
   "help_cook_sign_in_allergies": "Sign in and save allergies on your profile to auto-filter recipes.",
-  "help_cook_ingredients_label": "Ingredients",
+  "help_cook_ingredients_label": "Enter the Ingredients you have",
   "help_cook_ingredients_placeholder": "e.g. chicken, garlic, olive oil, tomatoes",
   "help_cook_pantry_only_hint": "Use only my saved pantry (plus shared link ingredients). Uncheck to add more ingredients for this search without saving them.",
   "help_cook_find_pending": "Finding…",

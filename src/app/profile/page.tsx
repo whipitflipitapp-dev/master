@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { signOut } from "@/app/actions/auth";
+import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { ProfileAllergiesForm } from "@/components/profile/ProfileAllergiesForm";
 import { ProfileDisplayNameForm } from "@/components/profile/ProfileDisplayNameForm";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
@@ -96,6 +97,7 @@ export default async function ProfilePage() {
     !!user && plan === "ai_chef";
 
   return (
+    <ContentPageBackdrop pageKey="/profile">
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 py-8">
       <header className="border-b border-[var(--border)] pb-5">
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">
@@ -230,5 +232,6 @@ export default async function ProfilePage() {
         </Link>
       </div>
     </main>
+    </ContentPageBackdrop>
   );
 }
