@@ -1,0 +1,113 @@
+import Link from "next/link";
+import type { Metadata } from "next";
+
+import { AddRecipeForm } from "@/app/add/add-recipe-form";
+import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveAppLocale();
+  const dict = await getDictionary(locale);
+  return {
+    title: dictText(dict, "add_meta_title", { brand: dict.brand }),
+    description: dictText(dict, "add_meta_desc"),
+  };
+}
+
+async function loadAllergens(): Promise<{ id: string; name: string }[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("allergens")
+    .select("id,name")
+    .order("name");
+  return (data ?? []) as { id: string; name: string }[];
+}
+
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+export default async function AddRecipePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const locale = await resolveAppLocale();
+  const dict = await getDictionary(locale);
+  const { error: errorRaw } = await searchParams;
+  const decodedError =
+    typeof errorRaw === "string" && errorRaw.trim().length > 0
+      ? safeDecodeURIComponent(errorRaw.trim())
+      : null;
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return (
+      <main className="mx-auto max-w-lg flex-1 px-5 py-12">
+        <h1 className="text-2xl font-bold text-[var(--text)]">
+          {dictText(dict, "add_supabase_title")}
+        </h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          {dictText(dict, "add_supabase_body")}
+        </p>
+        <Link
+          href="/"
+          className="mt-6 inline-block text-sm font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+        >
+          {dictText(dict, "add_back_home")}
+        </Link>
+      </main>
+    );
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return (
+      <main className="mx-auto max-w-lg flex-1 px-5 py-12 text-center">
+        <h1 className="text-2xl font-bold text-[var(--text)]">
+          {dictText(dict, "add_sign_in_required_title")}
+        </h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          {dictText(dict, "add_sign_in_required_body")}
+        </p>
+        <Link
+          href="/"
+          className="mt-6 inline-block text-sm font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+        >
+          {dictText(dict, "add_back_home")}
+        </Link>
+      </main>
+    );
+  }
+
+  const allergens = await loadAllergens();
+
+  return (
+    <main className="mx-auto w-full max-w-lg flex-1 px-5 py-8 pb-14">
+      <header className="border-b border-[var(--border)] pb-6">
+        <p className="text-[length:var(--text-caption)] font-semibold uppercase tracking-[0.08em] text-[var(--primary)]">
+          {dictText(dict, "add_kicker")}
+        </p>
+        <h1 className="mt-2 text-[1.625rem] font-bold leading-snug tracking-tight text-[var(--text)]">
+          {dictText(dict, "add_title")}
+        </h1>
+        <p className="mt-2 max-w-xl text-[length:var(--text-meta)] text-[var(--muted)]">
+          {dictText(dict, "add_subtitle")}
+        </p>
+      </header>
+
+      <AddRecipeForm allergens={allergens} initialError={decodedError} />
+
+      <p className="mt-8 border-t border-dashed border-[var(--border)] pt-6 text-[length:var(--text-caption)] text-[var(--muted)]">
+        {dictText(dict, "add_footer_note")}
+      </p>
+    </main>
+  );
+}

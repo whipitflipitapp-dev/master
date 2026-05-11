@@ -1,0 +1,102 @@
+"use client";
+
+import { useActionState } from "react";
+
+import { saveUserAllergies } from "@/app/actions/profile";
+import type { AllergyMode } from "@/lib/profile";
+
+export function ProfileAllergiesForm({
+  allergens,
+  selectedIds,
+  defaultAllergyMode,
+}: {
+  allergens: { id: string; name: string }[];
+  selectedIds: string[];
+  defaultAllergyMode: AllergyMode;
+}) {
+  const selectedSet = new Set(selectedIds);
+
+  const [state, formAction, pending] = useActionState(
+    async (_prev: { error: string | null }, formData: FormData) =>
+      saveUserAllergies(formData),
+    { error: null as string | null },
+  );
+
+  return (
+    <form className="mt-4 flex flex-col gap-4" action={formAction}>
+      <fieldset className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]">
+        <legend className="px-1 text-sm font-medium text-[var(--text)]">
+          When recipes match your allergens
+        </legend>
+        <p className="mb-3 text-[length:var(--text-caption)] text-[var(--muted)]">
+          Strict hides those recipes in Help Me Cook (and recipe browse when the safe filter is on).
+          Warn still lists them with a visible warning.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+          <label className="flex cursor-pointer items-start gap-2 text-sm text-[var(--text)]">
+            <input
+              type="radio"
+              name="allergy_mode"
+              value="strict"
+              defaultChecked={defaultAllergyMode === "strict"}
+            />
+            <span>
+              <span className="font-medium">Strict</span>
+              <span className="block text-[length:var(--text-caption)] text-[var(--muted)]">
+                Exclude from matched lists
+              </span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-2 text-sm text-[var(--text)]">
+            <input
+              type="radio"
+              name="allergy_mode"
+              value="warn"
+              defaultChecked={defaultAllergyMode === "warn"}
+            />
+            <span>
+              <span className="font-medium">Warn</span>
+              <span className="block text-[length:var(--text-caption)] text-[var(--muted)]">
+                Show matches with a warning badge
+              </span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)] sm:grid-cols-2">
+        {allergens.map((a) => (
+          <label
+            key={a.id}
+            className="flex items-center gap-2 text-sm text-[var(--text)]"
+          >
+            <input
+              type="checkbox"
+              name="allergen_id"
+              value={a.id}
+              defaultChecked={selectedSet.has(a.id)}
+            />
+            <span>{a.name}</span>
+          </label>
+        ))}
+      </div>
+
+      {state.error ? (
+        <p
+          className="rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--danger)_40%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--danger)]"
+          role="alert"
+        >
+          {state.error}
+        </p>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-[var(--radius-card)] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--primary-hover)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.99] disabled:opacity-60"
+      >
+        {pending ? "Saving…" : "Save allergies"}
+      </button>
+    </form>
+  );
+}
