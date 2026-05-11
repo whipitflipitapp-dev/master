@@ -19,7 +19,7 @@ export function SplashHome() {
   const [localePending, startLocale] = useTransition();
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-neutral-950">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-neutral-950">
       {/* Full-bleed hero (mobile-first); asset lives at /public/splash-hero.png */}
       <div className="absolute inset-0" aria-hidden>
         <Image
@@ -60,7 +60,7 @@ export function SplashHome() {
         aria-hidden
       />
 
-      <header className="relative z-10 flex items-start justify-between max-sm:justify-end px-5 pt-[max(1rem,env(safe-area-inset-top))]">
+      <header className="relative z-10 flex items-start justify-between max-sm:justify-end px-5 pt-4">
         <div className="max-sm:hidden ml-12 flex flex-col gap-1 leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)] sm:ml-14">
           <span className="text-2xl" aria-hidden>
             👨‍🍳

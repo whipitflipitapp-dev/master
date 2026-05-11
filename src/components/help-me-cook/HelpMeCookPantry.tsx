@@ -17,6 +17,8 @@ export type HelpMeCookPantryProps = {
   initialPantryOnly: boolean;
   matchError?: string | null;
   allergyNote?: string | null;
+  /** Rendered after the Find Matches submit control (e.g. upsell). */
+  afterFindMatches?: ReactNode;
   children?: ReactNode;
 };
 
@@ -34,6 +36,7 @@ export function HelpMeCookPantry(props: HelpMeCookPantryProps) {
     initialPantryOnly,
     matchError,
     allergyNote,
+    afterFindMatches = null,
     children = null,
   } = props;
 
@@ -125,6 +128,8 @@ export function HelpMeCookPantry(props: HelpMeCookPantryProps) {
           {pending ? t("help_cook_find_pending") : t("help_cook_find_matches")}
         </button>
       </form>
+
+      {afterFindMatches}
 
       {loggedIn ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

@@ -125,39 +125,6 @@ export default async function HelpMeCookPage({
         </p>
       </header>
 
-      <section
-        className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]"
-        aria-label={dictText(dict, "help_cook_ai_card_title")}
-      >
-        <p className="text-sm font-semibold text-[var(--text)]">
-          {dictText(dict, "help_cook_ai_card_title")}
-        </p>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          {loggedIn && planIsAiChef
-            ? dictText(dict, "help_cook_ai_signed_tier")
-            : loggedIn
-              ? dictText(dict, "help_cook_ai_signed_free")
-              : dictText(dict, "help_cook_ai_anon")}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {loggedIn && planIsAiChef ? (
-            <Link
-              href="/ai-chef"
-              className="inline-flex min-h-[44px] items-center rounded-[var(--radius-card)] bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,transform] hover:bg-[var(--primary-hover)] active:scale-[0.99]"
-            >
-              {dictText(dict, "help_cook_open_ai_chef")}
-            </Link>
-          ) : (
-            <Link
-              href="/upgrade"
-              className="inline-flex min-h-[44px] items-center rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] shadow-[var(--shadow-card)] transition-colors hover:bg-[color-mix(in_srgb,var(--card)_88%,var(--text))] active:scale-[0.99]"
-            >
-              {dictText(dict, "help_cook_upgrade_ai_chef")}
-            </Link>
-          )}
-        </div>
-      </section>
-
       {pantryError ? (
         <p className="text-sm text-[var(--danger)]" role="alert">
           {pantryError}
@@ -173,6 +140,40 @@ export default async function HelpMeCookPage({
         initialPantryOnly={pantryOnlyChecked}
         matchError={matchError}
         allergyNote={allergyNote}
+        afterFindMatches={
+          <section
+            className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]"
+            aria-label={dictText(dict, "help_cook_ai_card_title")}
+          >
+            <p className="text-sm font-semibold text-[var(--text)]">
+              {dictText(dict, "help_cook_ai_card_title")}
+            </p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {loggedIn && planIsAiChef
+                ? dictText(dict, "help_cook_ai_signed_tier")
+                : loggedIn
+                  ? dictText(dict, "help_cook_ai_signed_free")
+                  : dictText(dict, "help_cook_ai_anon")}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {loggedIn && planIsAiChef ? (
+                <Link
+                  href="/ai-chef"
+                  className="inline-flex min-h-[44px] items-center rounded-[var(--radius-card)] bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,transform] hover:bg-[var(--primary-hover)] active:scale-[0.99]"
+                >
+                  {dictText(dict, "help_cook_open_ai_chef")}
+                </Link>
+              ) : (
+                <Link
+                  href="/upgrade"
+                  className="inline-flex min-h-[44px] items-center rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] shadow-[var(--shadow-card)] transition-colors hover:bg-[color-mix(in_srgb,var(--card)_88%,var(--text))] active:scale-[0.99]"
+                >
+                  {dictText(dict, "help_cook_upgrade_ai_chef")}
+                </Link>
+              )}
+            </div>
+          </section>
+        }
       >
         {pantryEmptyLoggedIn ? (
           <section className="mt-2 rounded-[var(--radius-card)] border border-dashed border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--muted)]">
