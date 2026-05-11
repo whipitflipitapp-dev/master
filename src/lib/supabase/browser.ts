@@ -1,9 +1,13 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
+
 /** Browser Supabase client (anon key + user session cookies). Safe for Storage uploads post-login. */
 export function createSupabaseBrowserClient(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = normalizeSupabaseProjectUrl(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  );
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
     throw new Error(

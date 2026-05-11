@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { normalizeIngredientToken, parseIngredientInput } from "@/lib/ingredients";
 import { PANTRY_MATCH_MIN_PERCENT } from "@/lib/pantry";
@@ -23,6 +24,76 @@ export type RecipeListItem = {
   creator_display_name: string | null;
 };
 
+type RecipeBrowseRow = Omit<RecipeListItem, "creator_display_name">;
+
+/**
+ * Used when `list_recipes_for_browse` errors or is not deployed. Loads recipes in
+ * small pages (no huge `.in`/`.not` filter URLs). Allergen exclusion: load matching
+ * `recipe_allergens` rows (`.in` on allergen ids only), then skip blocked recipe ids
+ * while paginating `recipes`.
+ */
+async function listRecipesBrowseFallback(
+  supabase: SupabaseClient,
+  limit: number,
+  term: string | null,
+  excludeIds: string[],
+): Promise<{ rows: RecipeBrowseRow[] | null; errorMessage: string | null }> {
+  const ilikePattern = term ? `%${term}%` : null;
+
+  let blocked: Set<string> | null = null;
+  if (excludeIds.length > 0) {
+    const { data: ra, error: raErr } = await supabase
+      .from("recipe_allergens")
+      .select("recipe_id")
+      .in("allergen_id", excludeIds);
+
+    if (raErr) {
+      return { rows: null, errorMessage: raErr.message };
+    }
+    blocked = new Set(
+      (ra ?? []).map((r: { recipe_id: string }) => r.recipe_id),
+    );
+  }
+
+  const rows: RecipeBrowseRow[] = [];
+  const PAGE = 80;
+  const MAX_SCAN = 4000;
+  let offset = 0;
+
+  while (rows.length < limit && offset < MAX_SCAN) {
+    let q = supabase
+      .from("recipes")
+      .select(
+        "id,title,image_url,favorites_count,difficulty,cook_time_minutes,created_at",
+      )
+      .order("created_at", { ascending: false });
+
+    if (ilikePattern) {
+      q = q.ilike("title", ilikePattern);
+    }
+
+    const { data, error } = await q.range(offset, offset + PAGE - 1);
+
+    if (error) {
+      return { rows: null, errorMessage: error.message };
+    }
+
+    const batch = (data ?? []) as RecipeBrowseRow[];
+    if (batch.length === 0) break;
+
+    for (const r of batch) {
+      if (blocked?.has(r.id)) continue;
+      rows.push(r);
+      if (rows.length >= limit) break;
+    }
+
+    offset += batch.length;
+    if (batch.length < PAGE) break;
+  }
+
+  return { rows, errorMessage: null };
+}
+
 function sanitizeRecipeSearch(raw: string | undefined): string | null {
   const q = raw?.trim() ?? "";
   if (!q) return null;
@@ -39,7 +110,7 @@ export async function listRecipes(
   },
 ): Promise<{
   recipes: RecipeListItem[];
-  error: string | null | "missing_env";
+  error: string | null | "missing_env" | "browse_unavailable";
 }> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
@@ -49,25 +120,38 @@ export async function listRecipes(
   const term = sanitizeRecipeSearch(options?.query);
   const excludeIds = options?.excludeAllergenIds?.filter(Boolean) ?? [];
 
-  const { data, error } = await supabase.rpc("list_recipes_for_browse", {
-    p_limit: limit,
-    p_title_search: term,
-    p_exclude_allergen_ids:
-      excludeIds.length > 0 ? excludeIds : null,
-  });
+  const { data, error: rpcError } = await supabase.rpc(
+    "list_recipes_for_browse",
+    {
+      p_limit: limit,
+      p_title_search: term,
+      p_exclude_allergen_ids:
+        excludeIds.length > 0 ? excludeIds : null,
+    },
+  );
 
-  if (error) {
-    return { recipes: [], error: error.message };
+  let rows: RecipeBrowseRow[];
+  if (!rpcError && Array.isArray(data)) {
+    rows = data as RecipeBrowseRow[];
+  } else {
+    const fb = await listRecipesBrowseFallback(
+      supabase,
+      limit,
+      term,
+      excludeIds,
+    );
+    if (fb.errorMessage || !fb.rows) {
+      return { recipes: [], error: "browse_unavailable" as const };
+    }
+    rows = fb.rows;
   }
-
-  const rows = data ?? [];
 
   const creatorByRecipeId = new Map<string, string | null>();
   if (rows.length > 0) {
     type CreatorRow = { recipe_id: string; creator_name: string | null };
     const { data: creators, error: creatorErr } = await supabase.rpc(
       "recipe_creator_names_for",
-      { recipe_ids: rows.map((r: { id: string }) => r.id) },
+      { recipe_ids: rows.map((r) => r.id) },
     );
 
     if (!creatorErr && Array.isArray(creators)) {
@@ -77,9 +161,7 @@ export async function listRecipes(
     }
   }
 
-  type ListRow = Omit<RecipeListItem, "creator_display_name">;
-
-  const recipes: RecipeListItem[] = (rows as ListRow[]).map((r) => ({
+  const recipes: RecipeListItem[] = rows.map((r) => ({
     ...r,
     creator_display_name: creatorByRecipeId.get(r.id) ?? null,
   }));

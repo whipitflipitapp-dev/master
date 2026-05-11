@@ -30,6 +30,7 @@
   "recipes_allergen_banner_showing_all": "Affichage de toutes les recettes.",
   "recipes_link_hide_allergen_recipes": "Masquer les recettes avec vos allergènes",
   "recipes_supabase_env_hint": "Définissez NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY (voir .env.example).",
+  "recipes_browse_unavailable": "Les recettes sont temporairement indisponibles. Réessayez dans un instant. Si le problème continue, vérifiez que l’URL Supabase est bien l’origine du projet (ex. https://votre-ref.supabase.co) et appliquez les migrations en attente.",
   "recipes_empty_search_title": "Aucune recette ne correspond à cette recherche.",
   "recipes_empty_default_title": "Pas encore de recettes.",
   "recipes_empty_search_sub": "Essayez un mot-clé plus court ou parcourez toutes les recettes sans filtre.",

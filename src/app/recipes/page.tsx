@@ -184,6 +184,10 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
         <p className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--muted)] shadow-[var(--shadow-card)]">
           {dictText(dict, "recipes_supabase_env_hint")}
         </p>
+      ) : error === "browse_unavailable" ? (
+        <p className="text-sm text-[var(--danger)]" role="alert">
+          {dictText(dict, "recipes_browse_unavailable")}
+        </p>
       ) : error ? (
         <p className="text-sm text-[var(--danger)]" role="alert">
           {error}
