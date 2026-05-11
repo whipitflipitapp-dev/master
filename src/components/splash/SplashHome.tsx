@@ -116,7 +116,7 @@ export function SplashHome() {
         <p className="mx-auto mt-2 max-sm:hidden max-w-md text-center font-serif text-lg italic text-[#fb923c] drop-shadow-md sm:block sm:text-xl">
           {t("splash_tagline_script")}
         </p>
-        <p className="mx-auto mt-3 max-w-md text-center text-sm leading-relaxed text-white/85 drop-shadow">
+        <p className="mx-auto mt-3 max-w-md max-sm:-translate-y-[30px] text-center text-sm leading-relaxed text-white/85 drop-shadow">
           {t("splash_sub")}
         </p>
 
