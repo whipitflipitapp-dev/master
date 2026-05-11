@@ -21,21 +21,24 @@ export function ContentPageBackdrop({
   return (
     <div
       className={[
-        "relative flex flex-1 flex-col overflow-x-hidden",
+        "relative isolate flex min-h-0 flex-1 flex-col overflow-x-hidden",
         className ?? "",
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      >
         <div className="absolute inset-0 bg-[var(--bg)]" />
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.13] saturate-[1.06] sm:opacity-[0.17]"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.28] saturate-[1.06] sm:opacity-[0.34]"
           style={{ backgroundImage: `url(${src})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_94%,transparent)] via-[color-mix(in_srgb,var(--bg)_86%,transparent)] to-[var(--bg)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_72%,transparent)] via-[color-mix(in_srgb,var(--bg)_56%,transparent)] to-[var(--bg)]" />
       </div>
-      {children}
+      <div className="relative z-[1] flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }
