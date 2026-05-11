@@ -59,7 +59,9 @@ export async function listRecipes(
     }
     blockedRecipeIds = [
       ...new Set(
-        (blockedRows ?? []).map((b: { recipe_id: string }) => b.recipe_id),
+        (blockedRows ?? [])
+          .map((b: { recipe_id: string | null }) => b.recipe_id)
+          .filter((id): id is string => Boolean(id)),
       ),
     ];
   }
@@ -73,7 +75,7 @@ export async function listRecipes(
     .limit(limit);
 
   if (blockedRecipeIds.length > 0) {
-    q = q.not("id", "in", `(${blockedRecipeIds.join(",")})`);
+    q = q.notIn("id", blockedRecipeIds);
   }
 
   if (term) {
