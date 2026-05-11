@@ -48,41 +48,13 @@ export async function listRecipes(
 
   const term = sanitizeRecipeSearch(options?.query);
   const excludeIds = options?.excludeAllergenIds?.filter(Boolean) ?? [];
-  let blockedRecipeIds: string[] = [];
-  if (excludeIds.length > 0) {
-    const { data: blockedRows, error: blockedErr } = await supabase
-      .from("recipe_allergens")
-      .select("recipe_id")
-      .in("allergen_id", excludeIds);
-    if (blockedErr) {
-      return { recipes: [], error: blockedErr.message };
-    }
-    blockedRecipeIds = [
-      ...new Set(
-        (blockedRows ?? [])
-          .map((b: { recipe_id: string | null }) => b.recipe_id)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    ];
-  }
 
-  let q = supabase
-    .from("recipes")
-    .select(
-      "id,title,image_url,favorites_count,difficulty,cook_time_minutes,created_at",
-    )
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (blockedRecipeIds.length > 0) {
-    q = q.notIn("id", blockedRecipeIds);
-  }
-
-  if (term) {
-    q = q.ilike("title", `%${term}%`);
-  }
-
-  const { data, error } = await q;
+  const { data, error } = await supabase.rpc("list_recipes_for_browse", {
+    p_limit: limit,
+    p_title_search: term,
+    p_exclude_allergen_ids:
+      excludeIds.length > 0 ? excludeIds : null,
+  });
 
   if (error) {
     return { recipes: [], error: error.message };
@@ -227,11 +199,14 @@ export async function matchRecipesForPantry(
         (r) => r.ingredient_id,
       ),
     ),
-  ];
-  const { data: namesRows } = await supabase
-    .from("ingredients")
-    .select("id,name")
-    .in("id", allIngredientIds);
+  ].filter((id): id is string => Boolean(id));
+  const { data: namesRows } =
+    allIngredientIds.length > 0
+      ? await supabase
+          .from("ingredients")
+          .select("id,name")
+          .in("id", allIngredientIds)
+      : { data: [] as { id: string; name: string }[] | null };
 
   const ingName = new Map<string, string>(
     (namesRows ?? []).map((n: { id: string; name: string }) => [n.id, n.name]),

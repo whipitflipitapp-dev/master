@@ -249,6 +249,8 @@
   "login_email_blurb_signup": "Inserisci l’email — ti inviamo un link per creare l’account.",
   "login_magic_cta_signin": "Inviami un magic link",
   "login_magic_cta_signup": "Inviami un link di registrazione",
+  "login_google_cta": "Continua con Google",
+  "login_google_hint": "Completa l’accesso con Google nella stessa pagina.",
   "onboarding_meta_title": "Benvenuto | {{brand}}",
   "onboarding_step1_title": "Benvenuto su Whip It Flip It",
   "onboarding_step1_body": "Imposta allergie e modalità, poi scegli un piano. Puoi saltare e completare dal profilo.",

@@ -262,6 +262,22 @@ export interface Database {
         Args: { p_user_id: string };
         Returns: { display_name: string | null; avatar_url: string | null }[];
       };
+      list_recipes_for_browse: {
+        Args: {
+          p_limit: number;
+          p_title_search: string | null;
+          p_exclude_allergen_ids: string[] | null;
+        };
+        Returns: {
+          id: string;
+          title: string;
+          image_url: string | null;
+          favorites_count: number;
+          difficulty: string | null;
+          cook_time_minutes: number | null;
+          created_at: string;
+        }[];
+      };
     };
   };
 }

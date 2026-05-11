@@ -249,6 +249,8 @@
   "login_email_blurb_signup": "Enter your email — we will send a magic link to create your account.",
   "login_magic_cta_signin": "Email me a magic link",
   "login_magic_cta_signup": "Email me a sign-up link",
+  "login_google_cta": "Continue with Google",
+  "login_google_hint": "Complete Google Sign In (same page)",
   "onboarding_meta_title": "Welcome | {{brand}}",
   "onboarding_step1_title": "Welcome to Whip It Flip It",
   "onboarding_step1_body": "Set your food safety preferences, then pick a plan. You can skip and finish later from your profile.",

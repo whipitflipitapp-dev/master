@@ -185,10 +185,10 @@ export function LoginForm({
           <span aria-hidden className="text-lg">
             G
           </span>
-          Continue with Google
+          {t("login_google_cta")}
         </button>
         <p className="mt-3 text-xs text-[var(--muted)]">
-          Redirects through Supabase to complete Google sign-in (same tab).
+          {t("login_google_hint")}
         </p>
       </div>
 
