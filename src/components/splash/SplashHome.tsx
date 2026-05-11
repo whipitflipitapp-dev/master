@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { useTransition } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,38 +19,47 @@ export function SplashHome() {
   const [localePending, startLocale] = useTransition();
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden">
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-neutral-950">
+      {/* Full-bleed hero (mobile-first); asset lives at /public/splash-hero.png */}
+      <div className="absolute inset-0" aria-hidden>
+        <Image
+          src="/splash-hero.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+      </div>
+
+      {/* Readability: dark bottom wash + subtle top fade (reference-style cinematic) */}
       <div
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0"
         style={{
-          backgroundImage: `
-            linear-gradient(
-              180deg,
-              rgba(255,255,255,0.75) 0%,
-              rgba(250,248,245,0.92) 42%,
-              var(--bg) 100%
-            ),
-            radial-gradient(120% 75% at 50% 12%, color-mix(in srgb, var(--primary) 24%, transparent), transparent 58%),
-            linear-gradient(135deg, #fff7ed 0%, var(--bg) 48%, #fffbeb 100%)
+          background: `
+            linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 28%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.88) 100%),
+            radial-gradient(90% 60% at 50% 0%, rgba(0,0,0,0.35), transparent 55%)
           `,
         }}
         aria-hidden
       />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-multiply"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E\")",
-        }}
-      />
 
-      <header className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
-        <div className="flex flex-col leading-none">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--muted)]">
-            {t("brand")}
+      <header className="relative z-10 flex items-start justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="flex flex-col gap-1 leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)]">
+          <span className="text-2xl" aria-hidden>
+            👨‍🍳
           </span>
+          <div className="flex flex-col">
+            <span className="text-xl font-black uppercase tracking-tight text-white sm:text-2xl">
+              Whip It
+            </span>
+            <span className="text-xl font-black uppercase tracking-tight text-[#ea580c] sm:text-2xl">
+              Flip It
+            </span>
+            <span className="mt-1 h-1 w-16 rounded-full bg-[#ea580c]" aria-hidden />
+          </div>
         </div>
-        <div className="flex gap-1 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_88%,transparent)] p-1 text-xs font-semibold shadow-[var(--shadow-card)] backdrop-blur-sm">
+        <div className="flex gap-1 rounded-full border border-white/20 bg-black/35 p-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
           {LOCALES.map(({ code, label }) => (
             <button
               key={code}
@@ -65,8 +75,8 @@ export function SplashHome() {
               }
               className={`rounded-full px-2.5 py-1 transition-colors ${
                 i18n.language.startsWith(code)
-                  ? "bg-[var(--primary)] text-white shadow-sm"
-                  : "text-[var(--muted)] hover:text-[var(--text)]"
+                  ? "bg-[#ea580c] text-white shadow-sm"
+                  : "text-white/80 hover:bg-white/10 hover:text-white"
               } disabled:opacity-60`}
             >
               {label}
@@ -81,34 +91,37 @@ export function SplashHome() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 mt-auto flex flex-1 flex-col justify-end px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
       >
-        <p className="mb-3 text-center text-sm font-medium text-[var(--primary)]">
+        <p className="mb-2 text-center text-xs font-semibold uppercase tracking-[0.2em] text-white/90 drop-shadow-md">
           {t("splash_kicker")}
         </p>
-        <h1 className="text-center text-3xl font-bold leading-tight tracking-tight text-[var(--text)] sm:text-4xl">
+        <h1 className="text-center text-3xl font-extrabold uppercase leading-tight tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl">
           {t("splash_title")}
         </h1>
-        <p className="mx-auto mt-3 max-w-md text-center text-base text-[var(--muted)]">
+        <p className="mx-auto mt-2 max-w-md text-center font-serif text-lg italic text-[#fb923c] drop-shadow-md sm:text-xl">
+          {t("splash_tagline_script")}
+        </p>
+        <p className="mx-auto mt-3 max-w-md text-center text-sm leading-relaxed text-white/85 drop-shadow">
           {t("splash_sub")}
         </p>
 
         <div className="mx-auto mt-8 flex w-full max-w-md flex-col gap-3">
           <Link
             href="/recipes"
-            className="flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-[var(--primary)] px-6 text-base font-semibold text-white shadow-[var(--shadow-card-hover)] transition-[transform,background-color,box-shadow] duration-200 hover:bg-[var(--primary-hover)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.99]"
+            className="flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[#ea580c] px-6 text-base font-bold uppercase tracking-wide text-white shadow-[0_12px_40px_rgba(234,88,12,0.35)] transition-[transform,background-color,box-shadow] duration-200 hover:bg-[#c2410c] active:scale-[0.99]"
           >
-            <span aria-hidden>🍳</span>
+            <span aria-hidden>👨‍🍳</span>
             {t("cta_start")}
           </Link>
           <Link
             href="/help-me-cook"
-            className="flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-6 text-base font-semibold text-[var(--text)] shadow-[var(--shadow-card)] transition-[background-color,border-color,box-shadow] duration-200 hover:border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] hover:bg-[color-mix(in_srgb,var(--card)_88%,var(--primary))] hover:shadow-[var(--shadow-card-hover)]"
+            className="flex min-h-[52px] items-center justify-center gap-2 rounded-full border-2 border-[#ea580c] bg-black/45 px-6 text-base font-bold uppercase tracking-wide text-white shadow-lg backdrop-blur-sm transition-[transform,background-color,border-color] duration-200 hover:bg-black/55 active:scale-[0.99]"
           >
             <span aria-hidden>✨</span>
             {t("cta_help")}
           </Link>
           <Link
             href="/recipes"
-            className="py-2 text-center text-sm font-semibold uppercase tracking-wide text-[var(--primary)] underline-offset-4 hover:underline"
+            className="py-2 text-center text-sm font-semibold uppercase tracking-wide text-white underline-offset-4 hover:underline"
           >
             {t("cta_browse")} ›
           </Link>
