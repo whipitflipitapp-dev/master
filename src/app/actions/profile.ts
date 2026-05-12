@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { sanitizeOtherAllergenInput } from "@/lib/allergy-other";
 import { LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n/locale";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -98,6 +99,26 @@ export async function saveUserAllergies(
 
   const allergenIds = formData.getAll("allergen_id").map(String).filter(Boolean);
 
+  const hasOtherSection = formData.get("allergy_other_section") === "1";
+  let allergy_other: string | null | undefined;
+  if (hasOtherSection) {
+    const otherChecked = formData.get("allergy_other_check") === "1";
+    if (otherChecked) {
+      const cleaned = sanitizeOtherAllergenInput(
+        formData.get("allergy_other"),
+      );
+      if (!cleaned) {
+        return {
+          error:
+            "Enter your other allergens, or uncheck Other.",
+        };
+      }
+      allergy_other = cleaned;
+    } else {
+      allergy_other = null;
+    }
+  }
+
   const { error: delErr } = await supabase
     .from("user_allergies")
     .delete()
@@ -121,9 +142,15 @@ export async function saveUserAllergies(
 
   const modeRaw = String(formData.get("allergy_mode") ?? "strict").toLowerCase();
   const allergy_mode = modeRaw === "warn" ? "warn" : "strict";
+  const profilePatch: { allergy_mode: "strict" | "warn"; allergy_other?: string | null } =
+    { allergy_mode };
+  if (allergy_other !== undefined) {
+    profilePatch.allergy_other = allergy_other;
+  }
+
   const { error: profErr } = await supabase
     .from("profiles")
-    .update({ allergy_mode })
+    .update(profilePatch)
     .eq("id", user.id);
 
   if (profErr) {

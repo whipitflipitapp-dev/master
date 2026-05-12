@@ -13,6 +13,10 @@ import { getCurrentUserPlanType } from "@/lib/profile";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import {
+  matchedOtherAllergenTokens,
+  parseOtherAllergenTokens,
+} from "@/lib/allergy-other";
 import { resolvePantryUserIngredientIds } from "@/lib/pantry-ingredient-resolve";
 import { parseYoutubeVideoId } from "@/lib/youtube";
 
@@ -147,6 +151,16 @@ async function loadRecipe(
   }
 
   if (user) {
+    const { data: profRow } = await supabase
+      .from("profiles")
+      .select("allergy_mode, allergy_other")
+      .eq("id", user.id)
+      .maybeSingle();
+    const variant =
+      profRow?.allergy_mode === "warn" ? "warn" : "strict";
+
+    const overlapNames: string[] = [];
+
     const { data: raRows } = await supabase
       .from("recipe_allergens")
       .select("allergen_id")
@@ -170,18 +184,25 @@ async function loadRecipe(
           .from("allergens")
           .select("name")
           .in("id", overlapIds);
-        const names = (nameRows ?? [])
-          .map((n: { name: string }) => n.name)
-          .sort((a, b) => a.localeCompare(b));
-        const { data: profRow } = await supabase
-          .from("profiles")
-          .select("allergy_mode")
-          .eq("id", user.id)
-          .maybeSingle();
-        const variant =
-          profRow?.allergy_mode === "warn" ? "warn" : "strict";
-        allergyBanner = { variant, names };
+        overlapNames.push(
+          ...(nameRows ?? []).map((n: { name: string }) => n.name),
+        );
       }
+    }
+
+    const otherToks = parseOtherAllergenTokens(profRow?.allergy_other);
+    const ingredientNames = ingredientsList.map((x) => x.name);
+    if (otherToks.length > 0 && ingredientNames.length > 0) {
+      overlapNames.push(
+        ...matchedOtherAllergenTokens(ingredientNames, otherToks),
+      );
+    }
+
+    const names = [...new Set(overlapNames)].sort((a, b) =>
+      a.localeCompare(b),
+    );
+    if (names.length > 0) {
+      allergyBanner = { variant, names };
     }
   }
 

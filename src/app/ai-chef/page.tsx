@@ -70,7 +70,18 @@ export default async function AiChefPage() {
     const names = (rows ?? [])
       .map((r) => allergenNameFromJoinedRow(r))
       .filter((n): n is string => Boolean(n));
-    suggestedAllergyNotes = names.join(", ");
+    const { data: profRow } = await supabase
+      .from("profiles")
+      .select("allergy_other")
+      .eq("id", ctx.user.id)
+      .maybeSingle();
+    const other =
+      typeof profRow?.allergy_other === "string"
+        ? profRow.allergy_other.trim()
+        : "";
+    const parts = [...names];
+    if (other) parts.push(other);
+    suggestedAllergyNotes = parts.join(", ");
   }
 
   return (

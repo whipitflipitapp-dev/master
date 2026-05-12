@@ -29,6 +29,7 @@ async function loadProfileContent() {
       selected: [] as string[],
       allergyMode: "strict" as const,
       firstName: null as string | null,
+      allergyOther: null as string | null,
     };
   }
 
@@ -47,6 +48,7 @@ async function loadProfileContent() {
       selected: [],
       allergyMode: "strict" as const,
       firstName: null,
+      allergyOther: null,
     };
   }
 
@@ -59,9 +61,15 @@ async function loadProfileContent() {
 
   const { data: nameRow } = await supabase
     .from("profiles")
-    .select("first_name")
+    .select("first_name, allergy_other")
     .eq("id", user.id)
     .maybeSingle();
+
+  const allergyOtherRaw = nameRow?.allergy_other;
+  const allergyOther =
+    typeof allergyOtherRaw === "string" && allergyOtherRaw.trim()
+      ? allergyOtherRaw
+      : null;
 
   return {
     supabaseConfigured: true as const,
@@ -73,6 +81,7 @@ async function loadProfileContent() {
       typeof nameRow?.first_name === "string" && nameRow.first_name.trim()
         ? nameRow.first_name.trim()
         : null,
+    allergyOther,
   };
 }
 
@@ -101,6 +110,7 @@ export default async function ProfilePage() {
     selected,
     allergyMode,
     firstName,
+    allergyOther,
   } = await loadProfileContent();
 
   const user = session?.user ?? null;
@@ -233,6 +243,14 @@ export default async function ProfilePage() {
             allergens={allergens}
             selectedIds={selected}
             defaultAllergyMode={allergyMode}
+            otherSection={{
+              defaultText: allergyOther ?? "",
+              legend: dictText(dict, "profile_allergy_other_legend"),
+              checkboxLabel: dictText(dict, "profile_allergy_other_checkbox"),
+              placeholder: dictText(dict, "profile_allergy_other_placeholder"),
+              disclaimerTitle: dictText(dict, "profile_allergies_disclaimer_title"),
+              disclaimerBody: dictText(dict, "profile_allergies_disclaimer_body"),
+            }}
           />
         ) : (
           <p className="mt-3 text-sm text-[var(--muted)]">

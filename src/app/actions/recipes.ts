@@ -14,6 +14,10 @@ import {
   PANTRY_PARTIAL_INGREDIENT_MIN_LEN,
 } from "@/lib/pantry";
 import {
+  matchedOtherAllergenTokens,
+  parseOtherAllergenTokens,
+} from "@/lib/allergy-other";
+import {
   DEMO_RECIPE_IDS_ORDERED,
   resolveRecipeDisplayImageUrl,
 } from "@/lib/demo-recipe-cover-images";
@@ -193,6 +197,50 @@ async function listRecipesBrowseFallback(
   return { rows, errorMessage: null };
 }
 
+async function recipeIdsBlockedByOtherAllergens(
+  supabase: SupabaseClient,
+  recipeIds: string[],
+  tokens: string[],
+): Promise<Set<string>> {
+  const blocked = new Set<string>();
+  if (recipeIds.length === 0 || tokens.length === 0) return blocked;
+
+  const { data: ri, error } = await supabase
+    .from("recipe_ingredients")
+    .select("recipe_id, ingredient_id")
+    .in("recipe_id", recipeIds);
+
+  if (error || !ri?.length) return blocked;
+
+  const ingIds = [
+    ...new Set(
+      (ri as { ingredient_id: string }[]).map((r) => r.ingredient_id),
+    ),
+  ].filter(Boolean);
+
+  const { data: namesRows } =
+    ingIds.length > 0
+      ? await supabase.from("ingredients").select("id,name").in("id", ingIds)
+      : { data: [] as { id: string; name: string }[] | null };
+
+  const nameById = new Map(
+    (namesRows ?? []).map((n: { id: string; name: string }) => [
+      n.id,
+      n.name,
+    ]),
+  );
+
+  for (const row of ri as { recipe_id: string; ingredient_id: string }[]) {
+    const nm = nameById.get(row.ingredient_id);
+    if (!nm) continue;
+    if (matchedOtherAllergenTokens([nm], tokens).length > 0) {
+      blocked.add(row.recipe_id);
+    }
+  }
+
+  return blocked;
+}
+
 function sanitizeRecipeSearch(raw: string | undefined): string | null {
   const q = raw?.trim() ?? "";
   if (!q) return null;
@@ -206,6 +254,9 @@ export async function listRecipes(
     query?: string | undefined;
     /** When set, excludes recipes tagged with any of these allergens. */
     excludeAllergenIds?: string[] | undefined;
+    /** Free-text profile allergens — strict mode excludes when ingredient names match. */
+    allergyOtherRaw?: string | null;
+    allergyMode?: "strict" | "warn";
   },
 ): Promise<{
   recipes: RecipeListItem[];
@@ -247,6 +298,19 @@ export async function listRecipes(
     rows = fb.rows
       .map((row) => coerceRecipeBrowseRow(row))
       .filter((x): x is RecipeBrowseRow => x != null);
+  }
+
+  const otherToks = parseOtherAllergenTokens(options?.allergyOtherRaw);
+  if (
+    otherToks.length > 0 &&
+    (options?.allergyMode ?? "strict") === "strict"
+  ) {
+    const blockedOther = await recipeIdsBlockedByOtherAllergens(
+      supabase,
+      rows.map((r) => r.id),
+      otherToks,
+    );
+    rows = rows.filter((r) => !blockedOther.has(r.id));
   }
 
   rows = rows.map((r) => ({
@@ -297,6 +361,8 @@ export async function matchRecipesForPantry(
     excludeAllergenIds?: string[];
     /** Defaults to strict when excluded IDs are present. */
     allergyMode?: "strict" | "warn";
+    /** Profile free-text allergens (`profiles.allergy_other`). */
+    allergyOtherRaw?: string | null;
   },
 ): Promise<{
   matches: RecipeMatchResult[];
@@ -359,6 +425,7 @@ export async function matchRecipesForPantry(
 
   const excludeIds = options?.excludeAllergenIds?.filter(Boolean) ?? [];
   const allergyMode = options?.allergyMode ?? "strict";
+  const otherTokens = parseOtherAllergenTokens(options?.allergyOtherRaw);
   if (excludeIds.length > 0 && allergyMode === "strict") {
     const { data: blockedRows } = await supabase
       .from("recipe_allergens")
@@ -368,6 +435,15 @@ export async function matchRecipesForPantry(
       (blockedRows ?? []).map((b: { recipe_id: string }) => b.recipe_id),
     );
     candidateIds = candidateIds.filter((id) => !blocked.has(id));
+  }
+
+  if (otherTokens.length > 0 && allergyMode === "strict") {
+    const blockedOther = await recipeIdsBlockedByOtherAllergens(
+      supabase,
+      candidateIds,
+      otherTokens,
+    );
+    candidateIds = candidateIds.filter((id) => !blockedOther.has(id));
   }
 
   if (candidateIds.length === 0) {
@@ -526,6 +602,23 @@ export async function matchRecipesForPantry(
       if (names?.length) {
         m.allergyOverlapNames = [...new Set(names)].sort((a, b) =>
           a.localeCompare(b),
+        );
+      }
+    }
+  }
+
+  if (otherTokens.length > 0 && filtered.length > 0) {
+    for (const m of filtered) {
+      const ids = recipeIngredientIds.get(m.recipeId);
+      if (!ids?.size) continue;
+      const names = [...ids]
+        .map((id) => ingName.get(id))
+        .filter((n): n is string => Boolean(n));
+      const matchedTok = matchedOtherAllergenTokens(names, otherTokens);
+      if (matchedTok.length) {
+        const prev = m.allergyOverlapNames ?? [];
+        m.allergyOverlapNames = [...new Set([...prev, ...matchedTok])].sort(
+          (a, b) => a.localeCompare(b),
         );
       }
     }

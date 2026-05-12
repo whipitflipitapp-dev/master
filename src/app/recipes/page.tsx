@@ -5,6 +5,7 @@ import { listRecipes } from "@/app/actions/recipes";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { profileHasAllergenSelections } from "@/lib/allergy-other";
 import type { AllergyMode } from "@/lib/profile";
 import { getCurrentProfile } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -59,6 +60,7 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
   const supabase = await createSupabaseServerClient();
   let isLoggedIn = false;
   let excludeAllergenIds: string[] = [];
+  let allergyOtherRaw: string | null = null;
   let allergyMode: AllergyMode = "strict";
   if (supabase) {
     const ctx = await getCurrentProfile(supabase);
@@ -72,13 +74,25 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
       excludeAllergenIds = (ua ?? []).map(
         (r: { allergen_id: string }) => r.allergen_id,
       );
+      const { data: profExtra } = await supabase
+        .from("profiles")
+        .select("allergy_other")
+        .eq("id", ctx.user.id)
+        .maybeSingle();
+      allergyOtherRaw =
+        typeof profExtra?.allergy_other === "string"
+          ? profExtra.allergy_other
+          : null;
     }
   }
 
   const explicitSafe = safeRaw === "1" || safeRaw === "true";
   const explicitUnsafe = safeRaw === "0" || safeRaw === "false";
-  const defaultSafe =
-    allergyMode === "strict" && excludeAllergenIds.length > 0;
+  const hasAllergens = profileHasAllergenSelections(
+    excludeAllergenIds,
+    allergyOtherRaw,
+  );
+  const defaultSafe = allergyMode === "strict" && hasAllergens;
   const useSafeFilter = explicitUnsafe
     ? false
     : explicitSafe || defaultSafe;
@@ -86,6 +100,8 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
   const { recipes, error } = await listRecipes(48, {
     query: qRaw,
     excludeAllergenIds: useSafeFilter ? excludeAllergenIds : undefined,
+    allergyOtherRaw: useSafeFilter ? allergyOtherRaw : undefined,
+    allergyMode,
   });
 
   const paramsShowAll = new URLSearchParams();
@@ -149,7 +165,7 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
           </button>
         </form>
 
-        {isLoggedIn && excludeAllergenIds.length > 0 ? (
+        {isLoggedIn && hasAllergens ? (
           <p className="mt-3 max-w-xl text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
             {useSafeFilter ? (
               <>

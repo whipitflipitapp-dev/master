@@ -11,6 +11,7 @@ import {
 } from "@/components/help-me-cook/MatchResultsCarousel";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { mergeIngredientTokens, parseIngredientInput } from "@/lib/ingredients";
+import { profileHasAllergenSelections } from "@/lib/allergy-other";
 import { PANTRY_MATCH_MIN_PERCENT } from "@/lib/pantry";
 import { isAiChef } from "@/lib/plan";
 import { getCurrentProfile } from "@/lib/profile";
@@ -42,6 +43,7 @@ export default async function HelpMeCookPage({
 
   const supabase = await createSupabaseServerClient();
   let excludeAllergenIds: string[] = [];
+  let allergyOtherRaw: string | null = null;
   let allergyNote: string | null = null;
   let loggedIn = false;
   let userId: string | null = null;
@@ -62,7 +64,19 @@ export default async function HelpMeCookPage({
       excludeAllergenIds = (rows ?? []).map(
         (r: { allergen_id: string }) => r.allergen_id,
       );
-      allergyNote = !excludeAllergenIds.length
+      const { data: profExtra } = await supabase
+        .from("profiles")
+        .select("allergy_other")
+        .eq("id", ctx.user.id)
+        .maybeSingle();
+      allergyOtherRaw =
+        typeof profExtra?.allergy_other === "string"
+          ? profExtra.allergy_other
+          : null;
+      allergyNote = !profileHasAllergenSelections(
+        excludeAllergenIds,
+        allergyOtherRaw,
+      )
         ? dictText(dict, "help_cook_allergy_none_profile")
         : allergyMode === "strict"
           ? dictText(dict, "help_cook_allergy_strict")
@@ -89,6 +103,7 @@ export default async function HelpMeCookPage({
     ? await matchRecipesForPantry(effectiveMatchText, {
         excludeAllergenIds,
         allergyMode,
+        allergyOtherRaw,
       })
     : { matches: [], error: null, unmatchedTokens: undefined };
 
