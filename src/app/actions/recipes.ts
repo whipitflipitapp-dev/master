@@ -26,6 +26,7 @@ import {
   validateStoredRecipeImageUrl,
 } from "@/lib/recipe-image";
 import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
+import { checkMonthlyRecipeUploadAllowed } from "@/lib/recipe-upload-limit";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -631,7 +632,14 @@ export async function matchRecipesForPantry(
   };
 }
 
-export async function createRecipe(formData: FormData) {
+export type CreateRecipeResult = {
+  error: string | null;
+  recipeId: string | null;
+  /** Set when a free-tier user has reached the monthly recipe creation cap. */
+  code?: "monthly_recipe_limit";
+};
+
+export async function createRecipe(formData: FormData): Promise<CreateRecipeResult> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return { error: "Supabase is not configured.", recipeId: null as string | null };
@@ -642,6 +650,14 @@ export async function createRecipe(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) {
     return { error: "Sign in required to add a recipe.", recipeId: null };
+  }
+
+  const gate = await checkMonthlyRecipeUploadAllowed(supabase, user.id);
+  if (!gate.allowed) {
+    if (gate.reason === "monthly_limit") {
+      return { error: null, recipeId: null, code: "monthly_recipe_limit" };
+    }
+    return { error: gate.message, recipeId: null };
   }
 
   for (const value of formData.values()) {
@@ -916,6 +932,9 @@ export async function toggleFavorite(recipeId: string): Promise<{
 
 export async function createRecipeFromForm(formData: FormData) {
   const result = await createRecipe(formData);
+  if (result.code === "monthly_recipe_limit") {
+    redirect("/add?recipeLimit=1");
+  }
   if (result.error) {
     redirect(`/add?error=${encodeURIComponent(result.error)}`);
   }

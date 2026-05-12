@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { AddRecipeForm } from "@/app/add/add-recipe-form";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { getRecipeUploadLimitStateForUi } from "@/lib/recipe-upload-limit";
+import { isProOrAbove } from "@/lib/plan";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -36,11 +38,11 @@ function safeDecodeURIComponent(value: string): string {
 export default async function AddRecipePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; recipeLimit?: string }>;
 }) {
   const locale = await resolveAppLocale();
   const dict = await getDictionary(locale);
-  const { error: errorRaw } = await searchParams;
+  const { error: errorRaw, recipeLimit: recipeLimitRaw } = await searchParams;
   const decodedError =
     typeof errorRaw === "string" && errorRaw.trim().length > 0
       ? safeDecodeURIComponent(errorRaw.trim())
@@ -94,6 +96,16 @@ export default async function AddRecipePage({
 
   const allergens = await loadAllergens();
 
+  const limitState = await getRecipeUploadLimitStateForUi(supabase, user.id);
+  const fromQuery =
+    typeof recipeLimitRaw === "string" &&
+    (recipeLimitRaw === "1" || recipeLimitRaw.toLowerCase() === "true");
+  const atLimit =
+    limitState.atLimit ||
+    (fromQuery && !isProOrAbove(limitState.plan));
+  const limitNotice = dictText(dict, "add_recipe_monthly_limit_notice");
+  const submitBlockedLabel = dictText(dict, "add_recipe_submit_blocked_limit");
+
   return (
     <ContentPageBackdrop pageKey="/add">
     <main className="mx-auto w-full max-w-lg flex-1 px-5 py-8 pb-14">
@@ -109,7 +121,14 @@ export default async function AddRecipePage({
         </p>
       </header>
 
-      <AddRecipeForm allergens={allergens} initialError={decodedError} />
+      <AddRecipeForm
+        allergens={allergens}
+        initialError={decodedError}
+        atLimit={atLimit}
+        limitNotice={limitNotice}
+        submitBlockedLabel={submitBlockedLabel}
+        planForPitch={limitState.plan}
+      />
 
       <p className="mt-8 border-t border-dashed border-[var(--border)] pt-6 text-[length:var(--text-caption)] text-[var(--muted)]">
         {dictText(dict, "add_footer_note")}

@@ -5,7 +5,9 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { useEffect, useMemo, useState } from "react";
 
 import { createRecipeFromForm } from "@/app/actions/recipes";
+import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { suggestAllergenIdsFromText } from "@/lib/allergen-detect";
+import type { PlanType } from "@/lib/plan";
 import {
   RECIPE_IMAGE_ACCEPT,
   RECIPE_IMAGE_BUCKET,
@@ -20,10 +22,21 @@ type Allergen = { id: string; name: string };
 export function AddRecipeForm({
   allergens,
   initialError,
+  atLimit,
+  limitNotice,
+  submitBlockedLabel,
+  planForPitch,
 }: {
   allergens: Allergen[];
   /** Already decoded route error query (if present). */
   initialError: string | null;
+  /** Free tier reached monthly recipe cap (server); disables submit. */
+  atLimit?: boolean;
+  /** Localized notice when `atLimit`. */
+  limitNotice?: string;
+  submitBlockedLabel?: string;
+  /** Plan for upgrade pitch (typically `free` when capped). */
+  planForPitch?: PlanType;
 }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [file, setFile] = useState<File | null>(null);
@@ -45,6 +58,8 @@ export function AddRecipeForm({
   }, [suggestionIds, allergens]);
 
   const busy = submitting;
+  const capped = Boolean(atLimit);
+  const pitchPlan = planForPitch ?? "free";
 
   useEffect(() => {
     return () => {
@@ -87,7 +102,7 @@ export function AddRecipeForm({
 
   async function handleSubmit(ev: React.FormEvent<HTMLFormElement>) {
     ev.preventDefault();
-    if (busy) return;
+    if (capped || busy) return;
     setLocalError(null);
     setSubmitting(true);
 
@@ -168,6 +183,16 @@ export function AddRecipeForm({
         </p>
       ) : null}
 
+      {capped ? (
+        <div className="flex flex-col gap-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]">
+          <p className="text-sm leading-relaxed text-[var(--text)]">
+            {limitNotice ??
+              "You've reached this month's recipe limit on the Free plan. Upgrade for unlimited uploads."}
+          </p>
+          <UpgradePitch currentPlan={pitchPlan} compact showLogo={false} />
+        </div>
+      ) : null}
+
       <section className="flex flex-col gap-2 rounded-[var(--radius-card)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-[length:var(--text-meta)] font-semibold text-[var(--text)]">
@@ -186,6 +211,7 @@ export function AddRecipeForm({
               type="file"
               accept={RECIPE_IMAGE_ACCEPT}
               className="sr-only"
+              disabled={capped}
               onChange={handleFileChange}
             />
             <span className="text-sm font-semibold text-[var(--primary)]">
@@ -209,7 +235,8 @@ export function AddRecipeForm({
               <button
                 type="button"
                 aria-label="Remove selected recipe photo"
-                className="absolute right-2 top-2 rounded-lg bg-black/55 px-2 py-1 text-[length:var(--text-caption)] font-medium text-white"
+                disabled={capped}
+                className="absolute right-2 top-2 rounded-lg bg-black/55 px-2 py-1 text-[length:var(--text-caption)] font-medium text-white disabled:opacity-50"
                 onClick={() => {
                   setFile(null);
                   setPreview((prev) => {
@@ -238,7 +265,7 @@ export function AddRecipeForm({
           id="title"
           name="title"
           required
-          disabled={busy}
+          disabled={busy || capped}
           className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/30 focus:ring-2"
         />
       </div>
@@ -251,7 +278,7 @@ export function AddRecipeForm({
           id="ingredients"
           name="ingredients"
           required
-          disabled={busy}
+          disabled={busy || capped}
           rows={6}
           value={ingredientDraft}
           onChange={(e) => setIngredientDraft(e.target.value)}
@@ -271,7 +298,7 @@ export function AddRecipeForm({
           id="instructions"
           name="instructions"
           required
-          disabled={busy}
+          disabled={busy || capped}
           rows={8}
           placeholder="Explain each step plainly — timings and heat matter."
           className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/30 focus:ring-2"
@@ -289,7 +316,7 @@ export function AddRecipeForm({
           id="video_url"
           name="video_url"
           type="url"
-          disabled={busy}
+          disabled={busy || capped}
           placeholder="https://www.youtube.com/watch?v=..."
           className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/30 focus:ring-2"
         />
@@ -302,7 +329,7 @@ export function AddRecipeForm({
         <input
           id="tags"
           name="tags"
-          disabled={busy}
+          disabled={busy || capped}
           placeholder="weeknight, vegetarian"
           className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/30 focus:ring-2"
         />
@@ -324,7 +351,7 @@ export function AddRecipeForm({
             </span>
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || capped}
               onClick={() => {
                 setAllergenSelected((prev) => {
                   const next = new Set(prev);
@@ -345,7 +372,7 @@ export function AddRecipeForm({
                 type="checkbox"
                 name="allergen_id"
                 value={a.id}
-                disabled={busy}
+                disabled={busy || capped}
                 checked={allergenSelected.has(a.id)}
                 onChange={(e) => {
                   setAllergenSelected((prev) => {
@@ -364,10 +391,14 @@ export function AddRecipeForm({
 
       <button
         type="submit"
-        disabled={busy}
+        disabled={busy || capped}
         className="rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {busy ? "Saving recipe…" : "Save recipe"}
+        {capped
+          ? (submitBlockedLabel ?? "Monthly limit reached")
+          : busy
+            ? "Saving recipe…"
+            : "Save recipe"}
       </button>
     </form>
   );
