@@ -148,19 +148,14 @@ export function HelpMeCookMatchResultsSection({
           </div>
 
           {matches.length > 1 ? (
-            <div
+            <nav
               className="mt-3 flex flex-wrap justify-center gap-2"
-              role="tablist"
               aria-label={t("help_cook_carousel_dots_label")}
             >
               {matches.map((recipe, i) => (
                 <button
                   key={recipe.recipeId}
                   type="button"
-                  role="tab"
-                  aria-selected={i === currentIndex}
-                  aria-controls={carouselId}
-                  tabIndex={i === currentIndex ? 0 : -1}
                   onClick={() => setCurrentIndex(i)}
                   className={`h-2.5 rounded-full transition-[width,background-color] ${
                     i === currentIndex
@@ -171,9 +166,10 @@ export function HelpMeCookMatchResultsSection({
                     n: i + 1,
                     title: recipe.title,
                   })}
+                  aria-current={i === currentIndex ? "true" : undefined}
                 />
               ))}
-            </div>
+            </nav>
           ) : null}
 
           {!reduceMotion ? (

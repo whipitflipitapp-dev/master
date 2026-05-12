@@ -5,7 +5,10 @@ import { listPantry } from "@/app/actions/pantry";
 import { matchRecipesForPantry } from "@/app/actions/recipes";
 import { HelpMeCookPantry } from "@/components/help-me-cook/HelpMeCookPantry";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
-import { MatchResultsCarousel } from "@/components/help-me-cook/MatchResultsCarousel";
+import {
+  MatchResultsCarousel,
+  type HelpMeCookMatchFavoriteSnapshot,
+} from "@/components/help-me-cook/MatchResultsCarousel";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { mergeIngredientTokens, parseIngredientInput } from "@/lib/ingredients";
 import { PANTRY_MATCH_MIN_PERCENT } from "@/lib/pantry";
@@ -89,11 +92,7 @@ export default async function HelpMeCookPage({
       })
     : { matches: [], error: null, unmatchedTokens: undefined };
 
-  type MatchFavoriteSnapshot = {
-    favoritesCount: number;
-    favoredByUser: boolean;
-  };
-  let favoriteByRecipeId: Record<string, MatchFavoriteSnapshot> = {};
+  let favoriteByRecipeId: Record<string, HelpMeCookMatchFavoriteSnapshot> = {};
 
   if (
     supabase &&
