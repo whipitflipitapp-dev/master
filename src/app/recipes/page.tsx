@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { listRecipes } from "@/app/actions/recipes";
+import { listRecipes, type RecipesBrowseSort } from "@/app/actions/recipes";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
+import { RecipesBrowseSortSelect } from "@/components/recipe/RecipesBrowseSortSelect";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { profileHasAllergenSelections } from "@/lib/allergy-other";
 import type { AllergyMode } from "@/lib/profile";
@@ -15,6 +16,7 @@ type RecipesPageProps = {
   searchParams?: Promise<{
     q?: string | string[] | undefined;
     safe?: string | string[] | undefined;
+    sort?: string | string[] | undefined;
   }>;
 };
 
@@ -22,6 +24,11 @@ function firstQuery(q: string | string[] | undefined): string | undefined {
   if (typeof q === "string") return q;
   if (Array.isArray(q) && q.length > 0) return q[0];
   return undefined;
+}
+
+function parseSort(raw: string | undefined): RecipesBrowseSort {
+  if (raw === "cook_asc" || raw === "cook_desc") return raw;
+  return "newest";
 }
 
 export async function generateMetadata({
@@ -57,6 +64,7 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
   const sp = await searchParams;
   const qRaw = firstQuery(sp?.q);
   const safeRaw = firstQuery(sp?.safe);
+  const sort = parseSort(firstQuery(sp?.sort));
 
   const supabase = await createSupabaseServerClient();
   let isLoggedIn = false;
@@ -105,6 +113,7 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
     excludeAllergenIds: useSafeFilter ? excludeAllergenIds : undefined,
     allergyOtherRaw: useSafeFilter ? allergyOtherRaw : undefined,
     allergyMode,
+    sort,
   });
 
   const favoriteIds = new Set<string>();
@@ -134,14 +143,16 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
   const paramsShowAll = new URLSearchParams();
   if (qRaw?.trim()) paramsShowAll.set("q", qRaw.trim());
   paramsShowAll.set("safe", "0");
+  if (sort !== "newest") paramsShowAll.set("sort", sort);
   const hrefShowAll = `/recipes?${paramsShowAll.toString()}`;
 
   const paramsSafeOnly = new URLSearchParams();
   if (qRaw?.trim()) paramsSafeOnly.set("q", qRaw.trim());
   paramsSafeOnly.set("safe", "1");
+  if (sort !== "newest") paramsSafeOnly.set("sort", sort);
   const hrefSafeOn = `/recipes?${paramsSafeOnly.toString()}`;
 
-  const backdropKey = `/recipes|q=${qRaw?.trim() ?? ""}|safe=${useSafeFilter ? "1" : "0"}`;
+  const backdropKey = `/recipes|q=${qRaw?.trim() ?? ""}|safe=${useSafeFilter ? "1" : "0"}|sort=${sort}`;
 
   return (
     <ContentPageBackdrop pageKey={backdropKey}>
@@ -157,9 +168,26 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
             </p>
           </div>
           {error !== "missing_env" && recipes.length > 0 ? (
-            <p className="text-[length:var(--text-caption)] font-medium uppercase tracking-wide text-[var(--muted-light)]">
-              {dictText(dict, "recipes_sorted_newest")}
-            </p>
+            <RecipesBrowseSortSelect
+              current={sort}
+              label={dictText(dict, "recipes_sort_label")}
+              query={qRaw?.trim() ? qRaw.trim() : undefined}
+              safe={useSafeFilter ? "1" : undefined}
+              options={[
+                {
+                  value: "newest",
+                  label: dictText(dict, "recipes_sort_newest"),
+                },
+                {
+                  value: "cook_asc",
+                  label: dictText(dict, "recipes_sort_cook_asc"),
+                },
+                {
+                  value: "cook_desc",
+                  label: dictText(dict, "recipes_sort_cook_desc"),
+                },
+              ]}
+            />
           ) : null}
         </div>
 
@@ -171,6 +199,9 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
         >
           {useSafeFilter ? (
             <input type="hidden" name="safe" value="1" />
+          ) : null}
+          {sort !== "newest" ? (
+            <input type="hidden" name="sort" value={sort} />
           ) : null}
           <label htmlFor="recipe-search" className="sr-only">
             {dictText(dict, "recipes_search_aria")}
