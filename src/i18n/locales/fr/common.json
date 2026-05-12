@@ -74,6 +74,8 @@
   "help_cook_pantry_empty_hint": "Votre garde-manger est vide. Ajoutez des ingrédients ci-dessus, touchez Enregistrer le garde-manger, puis utilisez Trouver des correspondances (ou recherchez d’abord puis enregistrez).",
   "help_cook_save_pantry_label": "Enregistrer le garde-manger",
   "help_cook_results_title": "Résultats",
+  "help_cook_results_region_roledescription": "Résultats de correspondance de recettes",
+  "help_cook_results_carousel_label": "Correspondances de recettes — faire défiler horizontalement (tactile, pavé tactile ou Maj+défilement)",
   "help_cook_no_matches": "Pas encore de correspondance — aucun de ces ingrédients ne correspond aux recettes du catalogue, le score est sous {{percent}} % ou les noms doivent être ajustés pour correspondre aux ingrédients des recettes.",
   "help_cook_match_percent": "{{percent}} % de correspondance",
   "help_cook_missing_prefix": "Manquant :",

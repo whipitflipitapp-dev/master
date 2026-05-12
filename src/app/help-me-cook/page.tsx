@@ -5,7 +5,7 @@ import { listPantry } from "@/app/actions/pantry";
 import { matchRecipesForPantry } from "@/app/actions/recipes";
 import { HelpMeCookPantry } from "@/components/help-me-cook/HelpMeCookPantry";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
-import { RecipeListCard } from "@/components/recipe/RecipeListCard";
+import { MatchResultsCarousel } from "@/components/help-me-cook/MatchResultsCarousel";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { mergeIngredientTokens, parseIngredientInput } from "@/lib/ingredients";
 import { PANTRY_MATCH_MIN_PERCENT } from "@/lib/pantry";
@@ -182,59 +182,10 @@ export default async function HelpMeCookPage({
         ) : null}
 
         {effectiveMatchText && !matchError && !pantryError ? (
-          <section aria-live="polite" className="mt-4">
-            <h2 className="text-lg font-semibold text-[var(--text)]">
-              {dictText(dict, "help_cook_results_title")}
-            </h2>
-            {matches.length === 0 ? (
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                {dictText(dict, "help_cook_no_matches", {
-                  percent: PANTRY_MATCH_MIN_PERCENT,
-                })}
-              </p>
-            ) : (
-              <ul className="mt-4 flex flex-col gap-4">
-                {matches.map((m) => (
-                  <li key={m.recipeId}>
-                    <RecipeListCard
-                      href={`/recipes/${m.recipeId}`}
-                      title={m.title}
-                      imageUrl={m.image_url}
-                      trailing={
-                        <span className="flex max-w-[min(100%,12rem)] flex-col items-end gap-1 text-right">
-                          {m.allergyOverlapNames?.length ? (
-                            <span
-                              className="inline-block rounded-full border border-[color-mix(in_srgb,var(--danger)_38%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-2 py-0.5 text-[length:var(--text-caption)] font-semibold leading-tight text-[var(--danger)]"
-                              title={`Contains allergens you track: ${m.allergyOverlapNames.join(", ")}`}
-                            >
-                              {m.allergyOverlapNames.join(", ")}
-                            </span>
-                          ) : null}
-                          <span className="inline-block rounded-full bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2 py-0.5 text-xs font-semibold text-[var(--primary)]">
-                            {dictText(dict, "help_cook_match_percent", {
-                              percent: m.matchPercent,
-                            })}
-                          </span>
-                        </span>
-                      }
-                      footer={
-                        m.missingIngredients.length > 0 ? (
-                          <>
-                            {dictText(dict, "help_cook_missing_prefix")}{" "}
-                            {m.missingIngredients.join(", ")}
-                          </>
-                        ) : (
-                          <span className="text-[var(--success)]">
-                            {dictText(dict, "help_cook_have_all_ingredients")}
-                          </span>
-                        )
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <MatchResultsCarousel
+            searchKey={effectiveMatchText}
+            matches={matches}
+          />
         ) : null}
       </HelpMeCookPantry>
     </main>

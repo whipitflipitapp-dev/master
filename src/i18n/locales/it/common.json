@@ -74,6 +74,8 @@
   "help_cook_pantry_empty_hint": "La tua dispensa è vuota. Aggiungi ingredienti sopra, tocca Salva dispensa, poi usa Trova corrispondenze (oppure cerca prima e salva dopo).",
   "help_cook_save_pantry_label": "Salva dispensa",
   "help_cook_results_title": "Risultati",
+  "help_cook_results_region_roledescription": "Risultati di corrispondenza ricette",
+  "help_cook_results_carousel_label": "Corrispondenze — scorrere orizzontalmente (touch, trackpad o Maiusc+rotellina)",
   "help_cook_no_matches": "Nessuna corrispondenza — quegli ingredienti non sono mappati alle ricette del catalogo, il match è sotto {{percent}}% o i nomi vanno adattati agli ingredienti delle ricette.",
   "help_cook_match_percent": "{{percent}}% di match",
   "help_cook_missing_prefix": "Mancano:",

@@ -74,6 +74,8 @@
   "help_cook_pantry_empty_hint": "Your pantry is empty. Add ingredients above, tap Save pantry, then use Find matches (or search first and save afterward).",
   "help_cook_save_pantry_label": "Save pantry",
   "help_cook_results_title": "Results",
+  "help_cook_results_region_roledescription": "Recipe match results",
+  "help_cook_results_carousel_label": "Recipe matches — scroll sideways with touch, trackpad, or Shift+scroll",
   "help_cook_no_matches": "No matches yet — none of those ingredients mapped to recipes known in the catalog, matched below {{percent}}% overlap, or names need adjusting to match recipe ingredients exactly.",
   "help_cook_match_percent": "{{percent}}% match",
   "help_cook_missing_prefix": "Missing:",
