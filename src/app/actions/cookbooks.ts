@@ -7,6 +7,9 @@ import {
   isAmazonAffiliateProductUrl,
   isHttpsUrl,
 } from "@/lib/amazon-affiliate-url";
+import { COOKBOOK_PLAN_REQUIRED_ERROR } from "@/lib/cookbooks-plan-gate";
+import { getCurrentProfile } from "@/lib/profile";
+import { isProOrAbove } from "@/lib/plan";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const TITLE_MAX = 200;
@@ -63,12 +66,14 @@ export async function createCookbook(
     return { error: "Supabase is not configured." };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const ctx = await getCurrentProfile(supabase);
+  if (!ctx) {
     redirect("/login?next=/dashboard/cookbooks");
   }
+  if (!isProOrAbove(ctx.profile.plan_type)) {
+    return { error: COOKBOOK_PLAN_REQUIRED_ERROR };
+  }
+  const user = ctx.user;
 
   const title = (trimOrNull(formData.get("title")) ?? "").slice(0, TITLE_MAX);
   const affiliateUrl = (
@@ -122,12 +127,14 @@ export async function updateCookbook(
     return { error: "Supabase is not configured." };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const ctx = await getCurrentProfile(supabase);
+  if (!ctx) {
     redirect("/login?next=/dashboard/cookbooks");
   }
+  if (!isProOrAbove(ctx.profile.plan_type)) {
+    return { error: COOKBOOK_PLAN_REQUIRED_ERROR };
+  }
+  const user = ctx.user;
 
   const idRaw = trimOrNull(formData.get("id"));
   const id = idRaw ?? "";

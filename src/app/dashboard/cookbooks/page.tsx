@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { CookbooksDashboardManager } from "@/components/cookbooks/CookbooksDashboardManager";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
+import { getCurrentProfile } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -36,6 +37,9 @@ export default async function DashboardCookbooksPage() {
   if (!user) {
     redirect("/login?next=/dashboard/cookbooks");
   }
+
+  const profileCtx = await getCurrentProfile(supabase);
+  const planType = profileCtx?.profile.plan_type ?? "free";
 
   const { data: rows, error } = await supabase
     .from("cookbooks")
@@ -87,7 +91,7 @@ export default async function DashboardCookbooksPage() {
         </p>
       </header>
 
-      <CookbooksDashboardManager cookbooks={rows ?? []} />
+      <CookbooksDashboardManager cookbooks={rows ?? []} planType={planType} />
     </main>
     </ContentPageBackdrop>
   );

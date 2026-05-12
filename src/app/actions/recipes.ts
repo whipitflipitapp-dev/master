@@ -249,6 +249,8 @@ function sanitizeRecipeSearch(raw: string | undefined): string | null {
   return stripped.length > 0 ? stripped : null;
 }
 
+export type RecipesBrowseSort = "newest" | "cook_asc" | "cook_desc";
+
 export async function listRecipes(
   limit = 24,
   options?: {
@@ -258,6 +260,8 @@ export async function listRecipes(
     /** Free-text profile allergens — strict mode excludes when ingredient names match. */
     allergyOtherRaw?: string | null;
     allergyMode?: "strict" | "warn";
+    /** Defaults to "newest" — uses the RPC's existing order. Other values post-sort the page slice. */
+    sort?: RecipesBrowseSort;
   },
 ): Promise<{
   recipes: RecipeListItem[];
@@ -338,6 +342,21 @@ export async function listRecipes(
     ...r,
     creator_display_name: creatorByRecipeId.get(r.id) ?? null,
   }));
+
+  const sort = options?.sort ?? "newest";
+  if (sort === "cook_asc" || sort === "cook_desc") {
+    const dir = sort === "cook_asc" ? 1 : -1;
+    recipes.sort((a, b) => {
+      const aNull = a.cook_time_minutes == null;
+      const bNull = b.cook_time_minutes == null;
+      if (aNull && bNull) return a.title.localeCompare(b.title);
+      if (aNull) return 1;
+      if (bNull) return -1;
+      const diff =
+        (a.cook_time_minutes! - b.cook_time_minutes!) * dir;
+      return diff !== 0 ? diff : a.title.localeCompare(b.title);
+    });
+  }
 
   return { recipes, error: null };
 }
