@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
+import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -197,7 +198,10 @@ export default async function SavedPage() {
                 <RecipeListCard
                   href={`/recipes/${recipe.id}`}
                   title={recipe.title}
-                  imageUrl={recipe.image_url}
+                  imageUrl={resolveRecipeDisplayImageUrl(
+                    recipe.id,
+                    recipe.image_url,
+                  )}
                   meta={
                     <>
                       {recipe.difficulty ? (
