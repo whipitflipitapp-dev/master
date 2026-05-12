@@ -41,12 +41,14 @@ export default async function HelpMeCookPage({
   let excludeAllergenIds: string[] = [];
   let allergyNote: string | null = null;
   let loggedIn = false;
+  let userId: string | null = null;
   let allergyMode: "strict" | "warn" = "strict";
 
   let planIsAiChef = false;
   if (supabase) {
     const ctx = await getCurrentProfile(supabase);
     loggedIn = Boolean(ctx?.user);
+    userId = ctx?.user?.id ?? null;
     planIsAiChef = Boolean(ctx?.user && isAiChef(ctx.profile.plan_type));
     if (ctx?.user) {
       allergyMode = ctx.profile.allergy_mode;
@@ -87,6 +89,57 @@ export default async function HelpMeCookPage({
       })
     : { matches: [], error: null, unmatchedTokens: undefined };
 
+  type MatchFavoriteSnapshot = {
+    favoritesCount: number;
+    favoredByUser: boolean;
+  };
+  let favoriteByRecipeId: Record<string, MatchFavoriteSnapshot> = {};
+
+  if (
+    supabase &&
+    effectiveMatchText &&
+    !matchError &&
+    !pantryError &&
+    matches.length > 0
+  ) {
+    const ids = matches.map((m) => m.recipeId);
+    for (const id of ids) {
+      favoriteByRecipeId[id] = { favoritesCount: 0, favoredByUser: false };
+    }
+    const { data: countRows } = await supabase
+      .from("recipes")
+      .select("id,favorites_count")
+      .in("id", ids);
+    for (const r of countRows ?? []) {
+      const row = r as { id: string; favorites_count: number | null };
+      const raw = row.favorites_count;
+      const favoritesCount =
+        typeof raw === "number" && Number.isFinite(raw) ? raw : 0;
+      if (favoriteByRecipeId[row.id]) {
+        favoriteByRecipeId[row.id] = {
+          ...favoriteByRecipeId[row.id],
+          favoritesCount,
+        };
+      }
+    }
+    if (userId) {
+      const { data: favRows } = await supabase
+        .from("favorites")
+        .select("recipe_id")
+        .eq("user_id", userId)
+        .in("recipe_id", ids);
+      const favored = new Set(
+        (favRows ?? []).map((f: { recipe_id: string }) => f.recipe_id),
+      );
+      for (const id of ids) {
+        favoriteByRecipeId[id] = {
+          ...favoriteByRecipeId[id],
+          favoredByUser: favored.has(id),
+        };
+      }
+    }
+  }
+
   if (
     supabase &&
     loggedIn &&
@@ -110,6 +163,13 @@ export default async function HelpMeCookPage({
 
   const formResetKey = `${qRaw}:${pantryOnlyChecked ? "1" : "0"}:${pantryItems.join("|")}`;
   const backdropKey = `/help-me-cook|q=${qRaw}|pantry_only=${pantryOnlyChecked ? "1" : "0"}`;
+  const loginQs = new URLSearchParams();
+  if (qRaw) loginQs.set("q", qRaw);
+  if (pantryOnlyChecked) loginQs.set("pantry_only", "1");
+  const helpCookLoginNext =
+    loginQs.size > 0
+      ? `/help-me-cook?${loginQs.toString()}`
+      : "/help-me-cook";
 
   return (
     <ContentPageBackdrop pageKey={backdropKey}>
@@ -186,6 +246,9 @@ export default async function HelpMeCookPage({
           <MatchResultsCarousel
             searchKey={effectiveMatchText}
             matches={matches}
+            authenticated={loggedIn}
+            favoriteByRecipeId={favoriteByRecipeId}
+            loginNextPath={helpCookLoginNext}
           />
         ) : null}
       </HelpMeCookPantry>
