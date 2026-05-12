@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { normalizeRecipeCoverImgSrc } from "@/lib/demo-recipe-cover-images";
+
 type RecipeListCardProps = {
   href: string;
   title: string;
@@ -20,7 +22,7 @@ export function RecipeListCard({
 }: RecipeListCardProps) {
   const resolvedImage =
     typeof imageUrl === "string" && imageUrl.trim().length > 0
-      ? imageUrl.trim()
+      ? normalizeRecipeCoverImgSrc(imageUrl)
       : null;
 
   return (

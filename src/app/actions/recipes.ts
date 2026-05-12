@@ -16,6 +16,10 @@ import {
   PANTRY_PARTIAL_INGREDIENT_MIN_LEN,
 } from "@/lib/pantry";
 import {
+  DEMO_RECIPE_IDS_ORDERED,
+  resolveRecipeDisplayImageUrl,
+} from "@/lib/demo-recipe-cover-images";
+import {
   validateRecipeImageUploadMeta,
   validateStoredRecipeImageUrl,
 } from "@/lib/recipe-image";
@@ -88,13 +92,6 @@ function coerceRecipeBrowseRow(row: unknown): RecipeBrowseRow | null {
   };
 }
 
-/** Fixed IDs from `20260511140000_seed_demo_recipes.sql` — surfaced first in browse fallback. */
-const DEMO_RECIPE_IDS = [
-  "e2a7c0d1-5b3e-4a11-8f00-000000000001",
-  "e2a7c0d1-5b3e-4a11-8f00-000000000002",
-  "e2a7c0d1-5b3e-4a11-8f00-000000000003",
-] as const;
-
 /**
  * Used when `list_recipes_for_browse` errors or is not deployed. Loads recipes in
  * small pages (no huge `.in`/`.not` filter URLs). Allergen exclusion: load matching
@@ -132,7 +129,7 @@ async function listRecipesBrowseFallback(
     .select(
       "id,title,image_url,favorites_count,difficulty,cook_time_minutes,created_at",
     )
-    .in("id", [...DEMO_RECIPE_IDS]);
+    .in("id", [...DEMO_RECIPE_IDS_ORDERED]);
 
   if (ilikePattern) {
     demoQ = demoQ.ilike("title", ilikePattern);
@@ -147,7 +144,7 @@ async function listRecipesBrowseFallback(
   const demoById = new Map(
     ((demoData ?? []) as RecipeBrowseRow[]).map((r) => [r.id, r]),
   );
-  for (const id of DEMO_RECIPE_IDS) {
+  for (const id of DEMO_RECIPE_IDS_ORDERED) {
     const r = demoById.get(id);
     if (!r || blocked?.has(r.id)) continue;
     rows.push(r);
@@ -252,6 +249,11 @@ export async function listRecipes(
       .map((row) => coerceRecipeBrowseRow(row))
       .filter((x): x is RecipeBrowseRow => x != null);
   }
+
+  rows = rows.map((r) => ({
+    ...r,
+    image_url: resolveRecipeDisplayImageUrl(r.id, r.image_url),
+  }));
 
   const creatorByRecipeId = new Map<string, string | null>();
   if (rows.length > 0) {
@@ -458,7 +460,10 @@ export async function matchRecipesForPantry(
     matches.push({
       recipeId: r.id,
       title: r.title,
-      image_url: trimRecipeImageUrl(r.image_url),
+      image_url: resolveRecipeDisplayImageUrl(
+        r.id,
+        r.image_url,
+      ),
       matchPercent,
       missingIngredients,
     });

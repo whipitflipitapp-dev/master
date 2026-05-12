@@ -6,6 +6,7 @@ import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundL
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
+import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import { isAmazonAffiliateProductUrl } from "@/lib/amazon-affiliate-url";
 import { winePairingsUnlockedForPlan } from "@/lib/plan";
 import { getCurrentUserPlanType } from "@/lib/profile";
@@ -209,9 +210,11 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       ? data.recipe.instructions
       : data.recipe.title,
   );
-  const ogImages = data.recipe.image_url
-    ? [{ url: data.recipe.image_url }]
-    : undefined;
+  const displayImageUrl = resolveRecipeDisplayImageUrl(
+    data.recipe.id,
+    data.recipe.image_url,
+  );
+  const ogImages = displayImageUrl ? [{ url: displayImageUrl }] : undefined;
 
   return {
     ...(metadataBase ? { metadataBase } : {}),
@@ -265,6 +268,10 @@ export default async function RecipeDetailPage(props: Props) {
     chefProfileHref,
     chefDisplayName,
   } = payload;
+  const displayImageUrl = resolveRecipeDisplayImageUrl(
+    recipe.id,
+    recipe.image_url,
+  );
   const yt = parseYoutubeVideoId(recipe.video_url);
   const wineUnlocked = planForWine
     ? winePairingsUnlockedForPlan(planForWine)
@@ -296,9 +303,9 @@ export default async function RecipeDetailPage(props: Props) {
     <article className="mx-auto w-full max-w-2xl flex-1 px-5 pb-12 pt-8">
       <RecipeDetailHero
         title={recipe.title}
-        imageUrl={recipe.image_url}
+        imageUrl={displayImageUrl}
         imageAlt={
-          recipe.image_url
+          displayImageUrl
             ? dictText(dict, "recipe_detail_photo_alt", { title: recipe.title })
             : ""
         }

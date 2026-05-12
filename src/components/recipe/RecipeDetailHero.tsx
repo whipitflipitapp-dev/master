@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { normalizeRecipeCoverImgSrc } from "@/lib/demo-recipe-cover-images";
+
 type RecipeDetailHeroProps = {
   title: string;
   imageUrl: string | null;
@@ -18,7 +20,7 @@ export function RecipeDetailHero({
 }: RecipeDetailHeroProps) {
   const resolvedImage =
     typeof imageUrl === "string" && imageUrl.trim().length > 0
-      ? imageUrl.trim()
+      ? normalizeRecipeCoverImgSrc(imageUrl)
       : null;
 
   return (
