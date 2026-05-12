@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
 import { signOut } from "@/app/actions/auth";
+import { parsePlanType, type PlanType } from "@/lib/plan";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -57,20 +58,21 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [firstName, setFirstName] = useState<string | null>(null);
+  const [planTier, setPlanTier] = useState<PlanType | null>(null);
 
   const hide =
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/auth/");
 
-  const loadFirstName = useCallback(async (userId: string) => {
+  const loadProfileForMenu = useCallback(async (userId: string) => {
     const supabase = createSupabaseBrowserClient();
     if (!supabase) {
       return;
     }
     const { data } = await supabase
       .from("profiles")
-      .select("first_name,display_name")
+      .select("first_name,display_name,plan_type")
       .eq("id", userId)
       .maybeSingle();
     const fromFirst =
@@ -82,6 +84,8 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
         ? data.display_name.trim().split(/\s+/)[0] ?? ""
         : "";
     setFirstName(fromFirst || fromDisplay || null);
+    const parsed = parsePlanType(data?.plan_type);
+    setPlanTier(parsed ?? "free");
   }, []);
 
   const refreshUser = useCallback(() => {
@@ -89,18 +93,20 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
     if (!supabase) {
       setUser(null);
       setFirstName(null);
+      setPlanTier(null);
       return;
     }
     void supabase.auth.getUser().then(({ data }) => {
       const u = data.user ?? null;
       setUser(u);
       if (u) {
-        void loadFirstName(u.id);
+        void loadProfileForMenu(u.id);
       } else {
         setFirstName(null);
+        setPlanTier(null);
       }
     });
-  }, [loadFirstName]);
+  }, [loadProfileForMenu]);
 
   useEffect(() => {
     refreshUser();
@@ -114,15 +120,16 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
-        void loadFirstName(u.id);
+        void loadProfileForMenu(u.id);
       } else {
         setFirstName(null);
+        setPlanTier(null);
       }
     });
     return () => {
       subscription.unsubscribe();
     };
-  }, [refreshUser, loadFirstName]);
+  }, [refreshUser, loadProfileForMenu]);
 
   useEffect(() => {
     if (open) {
@@ -217,9 +224,11 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
                 <Link href="/help-me-cook" className={linkClass} onClick={close}>
                   {t("menu_help_cook")}
                 </Link>
-                <Link href="/upgrade" className={linkClass} onClick={close}>
-                  {t("menu_upgrade")}
-                </Link>
+                {user && planTier === "ai_chef" ? null : (
+                  <Link href="/upgrade" className={linkClass} onClick={close}>
+                    {t("menu_upgrade")}
+                  </Link>
+                )}
                 <Link href="/learn/allergies" className={linkClass} onClick={close}>
                   {t("menu_learn_safety")}
                 </Link>

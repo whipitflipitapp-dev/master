@@ -45,3 +45,15 @@ export function isAiChef(plan: PlanType): boolean {
 export function hasTier(plan: PlanType, minimum: PlanType): boolean {
   return PLAN_ORDER[plan] >= PLAN_ORDER[minimum];
 }
+
+/** Next subscription tier for upgrade CTAs; `null` when already on the highest tier (`ai_chef`). */
+export function nextPlanType(plan: PlanType): PlanType | null {
+  switch (plan) {
+    case "free":
+      return "pro";
+    case "pro":
+      return "ai_chef";
+    case "ai_chef":
+      return null;
+  }
+}

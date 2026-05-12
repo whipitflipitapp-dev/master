@@ -3,12 +3,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
+import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import { isAmazonAffiliateProductUrl } from "@/lib/amazon-affiliate-url";
-import { winePairingsUnlockedForPlan } from "@/lib/plan";
+import { winePairingsUnlockedForPlan, type PlanType } from "@/lib/plan";
 import { getCurrentUserPlanType } from "@/lib/profile";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -321,6 +322,7 @@ export default async function RecipeDetailPage(props: Props) {
   const wineUnlocked = planForWine
     ? winePairingsUnlockedForPlan(planForWine)
     : false;
+  const wineUpgradePlan: PlanType = planForWine ?? "free";
 
   const difficultyLabel =
     recipe.difficulty && recipe.difficulty.trim()
@@ -557,16 +559,15 @@ export default async function RecipeDetailPage(props: Props) {
               )}
             </ul>
             {!wineUnlocked ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[color-mix(in_srgb,var(--bg)_65%,transparent)] px-4 text-center backdrop-blur-[2px]">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-[color-mix(in_srgb,var(--bg)_65%,transparent)] px-4 py-4 text-center backdrop-blur-[2px]">
                 <p className="text-sm font-medium leading-relaxed text-[var(--text)]">
                   {dictText(dict, "recipe_detail_wine_unlock_prompt")}
                 </p>
-                <Link
-                  href="/upgrade"
-                  className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-hover)]"
-                >
-                  {dictText(dict, "recipe_detail_wine_view_plans")}
-                </Link>
+                <UpgradePitch
+                  currentPlan={wineUpgradePlan}
+                  compact
+                  className="max-w-sm"
+                />
               </div>
             ) : null}
           </div>

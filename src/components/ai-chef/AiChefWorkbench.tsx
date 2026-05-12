@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useTranslation } from "react-i18next";
 
+import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import type { RecipeGenerateShape } from "@/lib/ai/sanitize-output";
 import type { PlanType } from "@/lib/plan";
 import { isAiChef } from "@/lib/plan";
@@ -192,12 +192,9 @@ export function AiChefWorkbench(props: Props) {
           <p className="mt-2 text-sm text-[var(--muted)]">
             {t("ai_chef_unlock_body")}
           </p>
-          <Link
-            href="/upgrade"
-            className="mt-4 inline-flex min-h-[48px] items-center justify-center rounded-[var(--radius-card)] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--primary-hover)] active:scale-[0.99]"
-          >
-            {t("ai_chef_upgrade_pricing_cta")}
-          </Link>
+          <div className="mt-4">
+            <UpgradePitch currentPlan={planType} />
+          </div>
         </aside>
       ) : null}
 

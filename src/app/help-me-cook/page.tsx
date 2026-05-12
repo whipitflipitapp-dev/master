@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { listPantry } from "@/app/actions/pantry";
 import { matchRecipesForPantry } from "@/app/actions/recipes";
+import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { HelpMeCookPantry } from "@/components/help-me-cook/HelpMeCookPantry";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import {
@@ -13,7 +14,7 @@ import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { mergeIngredientTokens, parseIngredientInput } from "@/lib/ingredients";
 import { profileHasAllergenSelections } from "@/lib/allergy-other";
 import { PANTRY_MATCH_MIN_PERCENT } from "@/lib/pantry";
-import { isAiChef } from "@/lib/plan";
+import { isAiChef, type PlanType } from "@/lib/plan";
 import { getCurrentProfile } from "@/lib/profile";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -50,10 +51,14 @@ export default async function HelpMeCookPage({
   let allergyMode: "strict" | "warn" = "strict";
 
   let planIsAiChef = false;
+  let userPlan: PlanType = "free";
   if (supabase) {
     const ctx = await getCurrentProfile(supabase);
     loggedIn = Boolean(ctx?.user);
     userId = ctx?.user?.id ?? null;
+    if (ctx?.user) {
+      userPlan = ctx.profile.plan_type;
+    }
     planIsAiChef = Boolean(ctx?.user && isAiChef(ctx.profile.plan_type));
     if (ctx?.user) {
       allergyMode = ctx.profile.allergy_mode;
@@ -230,7 +235,7 @@ export default async function HelpMeCookPage({
                   ? dictText(dict, "help_cook_ai_signed_free")
                   : dictText(dict, "help_cook_ai_anon")}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-col gap-3">
               {loggedIn && planIsAiChef ? (
                 <Link
                   href="/ai-chef"
@@ -239,12 +244,10 @@ export default async function HelpMeCookPage({
                   {dictText(dict, "help_cook_open_ai_chef")}
                 </Link>
               ) : (
-                <Link
-                  href="/upgrade"
-                  className="inline-flex min-h-[44px] items-center rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] shadow-[var(--shadow-card)] transition-colors hover:bg-[color-mix(in_srgb,var(--card)_88%,var(--text))] active:scale-[0.99]"
-                >
-                  {dictText(dict, "help_cook_upgrade_ai_chef")}
-                </Link>
+                <UpgradePitch
+                  currentPlan={userPlan}
+                  buttonVariant="secondary"
+                />
               )}
             </div>
           </section>

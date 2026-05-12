@@ -6,6 +6,7 @@ import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { ProfileAllergiesForm } from "@/components/profile/ProfileAllergiesForm";
 import { ProfileDisplayNameForm } from "@/components/profile/ProfileDisplayNameForm";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { planTypeBadgeLabel, type PlanType } from "@/lib/plan";
 import { getCurrentProfile } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -121,8 +122,7 @@ export default async function ProfilePage() {
     user?.id ||
     "";
   const plan: PlanType = profile?.plan_type ?? "free";
-  const hideUpgradePromo =
-    !!user && plan === "ai_chef";
+  const showUpgradePitch = !!user && plan !== "ai_chef";
   const welcomeName =
     firstName ||
     (profile?.display_name?.trim() ? profile.display_name.trim().split(/\s+/)[0] ?? "" : "");
@@ -194,18 +194,6 @@ export default async function ProfilePage() {
             ) : null}
 
             <ProfileDisplayNameForm defaultName={profile?.display_name ?? ""} />
-
-            {!hideUpgradePromo ? (
-              <p className="mt-4 text-[length:var(--text-meta)] text-[var(--muted)]">
-                {dictText(dict, "profile_want_more")}{" "}
-                <Link
-                  href="/upgrade"
-                  className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
-                >
-                  {dictText(dict, "profile_upgrade_plan")}
-                </Link>
-              </p>
-            ) : null}
           </div>
 
           <form action={signOut}>
@@ -260,14 +248,7 @@ export default async function ProfilePage() {
       </section>
 
       <div className="mt-8 flex flex-col gap-3">
-        {!hideUpgradePromo ? (
-          <Link
-            href="/upgrade"
-            className="inline-flex items-center justify-center rounded-[var(--radius-card)] bg-[var(--primary)] px-4 py-3 text-center text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--primary-hover)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.99]"
-          >
-            {dictText(dict, "profile_upgrade_plan")}
-          </Link>
-        ) : null}
+        {showUpgradePitch ? <UpgradePitch currentPlan={plan} /> : null}
         <Link
           href="/"
           className="text-center text-sm font-medium text-[var(--muted)] underline-offset-4 hover:text-[var(--text)] hover:underline"
