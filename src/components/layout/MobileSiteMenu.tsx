@@ -35,7 +35,10 @@ function HamburgerIcon({ open }: { open: boolean }) {
 /** 2×2 grid trigger (not a hamburger). */
 function GridMenuIcon() {
   return (
-    <span className="grid h-5 w-5 grid-cols-2 gap-0.5 text-white" aria-hidden>
+    <span
+      className="grid h-5 w-5 grid-cols-2 gap-0.5 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]"
+      aria-hidden
+    >
       {[0, 1, 2, 3].map((i) => (
         <span key={i} className="block rounded-[2.5px] bg-current shadow-sm" />
       ))}
@@ -116,7 +119,7 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
       <motion.button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed right-[max(0.75rem,env(safe-area-inset-right))] ${fabBottomClass} z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-black/55 shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] md:h-[3.25rem] md:w-[3.25rem]`}
+        className={`fixed right-[max(0.75rem,env(safe-area-inset-right))] ${fabBottomClass} z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] md:h-[3.25rem] md:w-[3.25rem]`}
         aria-expanded={open}
         aria-controls="site-drawer"
         aria-label={t("menu_open")}
