@@ -26,17 +26,17 @@ export function RecipeListCard({
       : null;
 
   return (
-    <Link
-      href={href}
-      className="group block overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-200 hover:border-[color-mix(in_srgb,var(--primary)_35%,var(--border))] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.992] md:active:scale-100"
-    >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[color-mix(in_srgb,var(--muted)_12%,var(--card))]">
+    <div className="group/card overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-200 hover:border-[color-mix(in_srgb,var(--primary)_35%,var(--border))] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.992] md:active:scale-100">
+      <Link
+        href={href}
+        className="relative block aspect-[4/3] w-full overflow-hidden bg-[color-mix(in_srgb,var(--muted)_12%,var(--card))]"
+      >
         {resolvedImage ? (
           // eslint-disable-next-line @next/next/no-img-element -- Supabase URLs; avoids remotePatterns setup
           <img
             src={resolvedImage}
             alt=""
-            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:group-hover:scale-100"
+            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover/card:scale-[1.03] motion-reduce:group-hover/card:scale-100"
           />
         ) : (
           <div
@@ -54,12 +54,17 @@ export function RecipeListCard({
             ♡
           </span>
         ) : null}
-      </div>
+      </Link>
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-semibold leading-snug text-[var(--text)]">
-            {title}
-          </h3>
+          <Link
+            href={href}
+            className="min-w-0 flex-1 rounded-lg outline-none ring-[var(--primary)]/25 focus-visible:ring-2"
+          >
+            <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-semibold leading-snug text-[var(--text)]">
+              {title}
+            </h3>
+          </Link>
           {trailing ? (
             <div className="max-w-[42%] shrink-0 text-right">{trailing}</div>
           ) : null}
@@ -77,6 +82,6 @@ export function RecipeListCard({
           </div>
         ) : null}
       </div>
-    </Link>
+    </div>
   );
 }

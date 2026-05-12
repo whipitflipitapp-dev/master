@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { listRecipes } from "@/app/actions/recipes";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
+import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { profileHasAllergenSelections } from "@/lib/allergy-other";
@@ -59,12 +60,14 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
 
   const supabase = await createSupabaseServerClient();
   let isLoggedIn = false;
+  let currentUserId: string | null = null;
   let excludeAllergenIds: string[] = [];
   let allergyOtherRaw: string | null = null;
   let allergyMode: AllergyMode = "strict";
   if (supabase) {
     const ctx = await getCurrentProfile(supabase);
     isLoggedIn = Boolean(ctx?.user);
+    currentUserId = ctx?.user?.id ?? null;
     if (ctx?.user) {
       allergyMode = ctx.profile.allergy_mode;
       const { data: ua } = await supabase
@@ -103,6 +106,30 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
     allergyOtherRaw: useSafeFilter ? allergyOtherRaw : undefined,
     allergyMode,
   });
+
+  const favoriteIds = new Set<string>();
+  if (supabase && currentUserId && recipes.length > 0) {
+    const { data: favRows } = await supabase
+      .from("favorites")
+      .select("recipe_id")
+      .eq("user_id", currentUserId)
+      .in(
+        "recipe_id",
+        recipes.map((r) => r.id),
+      );
+    for (const row of favRows ?? []) {
+      const rid = (row as { recipe_id: string }).recipe_id;
+      if (rid) favoriteIds.add(rid);
+    }
+  }
+
+  const browseLoginParams = new URLSearchParams();
+  if (qRaw?.trim()) browseLoginParams.set("q", qRaw.trim());
+  if (useSafeFilter) browseLoginParams.set("safe", "1");
+  const recipesLoginNext =
+    browseLoginParams.toString().length > 0
+      ? `/recipes?${browseLoginParams.toString()}`
+      : "/recipes";
 
   const paramsShowAll = new URLSearchParams();
   if (qRaw?.trim()) paramsShowAll.set("q", qRaw.trim());
@@ -259,6 +286,15 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
                 href={`/recipes/${r.id}`}
                 title={r.title}
                 imageUrl={r.image_url}
+                trailing={
+                  <RecipeFavoriteButton
+                    recipeId={r.id}
+                    loginNextPath={recipesLoginNext}
+                    authenticated={isLoggedIn}
+                    initialFavored={favoriteIds.has(r.id)}
+                    initialCount={r.favorites_count}
+                  />
+                }
                 meta={
                   <>
                     {r.difficulty ? (

@@ -52,7 +52,9 @@ export function RecipeFavoriteButton({
     <button
       type="button"
       disabled={pending}
-      onClick={() => {
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
         startTransition(async () => {
           const prevFav = favored;
           const prevCount = count;
