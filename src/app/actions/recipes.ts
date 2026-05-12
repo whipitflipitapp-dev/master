@@ -26,6 +26,13 @@ export type RecipeListItem = {
 
 type RecipeBrowseRow = Omit<RecipeListItem, "creator_display_name">;
 
+/** Fixed IDs from `20260511140000_seed_demo_recipes.sql` — surfaced first in browse fallback. */
+const DEMO_RECIPE_IDS = [
+  "e2a7c0d1-5b3e-4a11-8f00-000000000001",
+  "e2a7c0d1-5b3e-4a11-8f00-000000000002",
+  "e2a7c0d1-5b3e-4a11-8f00-000000000003",
+] as const;
+
 /**
  * Used when `list_recipes_for_browse` errors or is not deployed. Loads recipes in
  * small pages (no huge `.in`/`.not` filter URLs). Allergen exclusion: load matching
@@ -56,6 +63,38 @@ async function listRecipesBrowseFallback(
   }
 
   const rows: RecipeBrowseRow[] = [];
+  const seen = new Set<string>();
+
+  let demoQ = supabase
+    .from("recipes")
+    .select(
+      "id,title,image_url,favorites_count,difficulty,cook_time_minutes,created_at",
+    )
+    .in("id", [...DEMO_RECIPE_IDS]);
+
+  if (ilikePattern) {
+    demoQ = demoQ.ilike("title", ilikePattern);
+  }
+
+  const { data: demoData, error: demoErr } = await demoQ;
+
+  if (demoErr) {
+    return { rows: null, errorMessage: demoErr.message };
+  }
+
+  const demoById = new Map(
+    ((demoData ?? []) as RecipeBrowseRow[]).map((r) => [r.id, r]),
+  );
+  for (const id of DEMO_RECIPE_IDS) {
+    const r = demoById.get(id);
+    if (!r || blocked?.has(r.id)) continue;
+    rows.push(r);
+    seen.add(r.id);
+    if (rows.length >= limit) {
+      return { rows, errorMessage: null };
+    }
+  }
+
   const PAGE = 80;
   const MAX_SCAN = 4000;
   let offset = 0;
@@ -82,7 +121,9 @@ async function listRecipesBrowseFallback(
     if (batch.length === 0) break;
 
     for (const r of batch) {
+      if (seen.has(r.id)) continue;
       if (blocked?.has(r.id)) continue;
+      seen.add(r.id);
       rows.push(r);
       if (rows.length >= limit) break;
     }
