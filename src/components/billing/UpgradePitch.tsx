@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 
@@ -22,6 +23,8 @@ export type UpgradePitchProps = {
   buttonVariant?: "primary" | "secondary";
   /** Tighter spacing for overlays and dense layouts */
   compact?: boolean;
+  /** Chef hat logo beside pitch copy; defaults on unless `compact` */
+  showLogo?: boolean;
   className?: string;
 };
 
@@ -29,6 +32,7 @@ export function UpgradePitch({
   currentPlan,
   buttonVariant = "primary",
   compact,
+  showLogo,
   className,
 }: UpgradePitchProps) {
   const { t } = useTranslation("common");
@@ -56,6 +60,11 @@ export function UpgradePitch({
     ? "mt-2 list-inside list-disc space-y-1 text-xs text-[var(--text)]/90"
     : "mt-2 list-inside list-disc space-y-1.5 text-sm text-[var(--text)]/90";
 
+  const displayLogo = showLogo ?? !compact;
+  const logoAlt = t("upgrade_pitch_logo_alt");
+  const logoMobileBox = compact ? "h-12 w-12" : "h-16 w-16";
+  const logoDesktopBox = compact ? "h-12 w-12" : "h-24 w-24";
+
   return (
     <div className={`flex w-full flex-col gap-3 ${className ?? ""}`}>
       <Link href="/upgrade" className={btnClass}>
@@ -64,16 +73,48 @@ export function UpgradePitch({
       <div
         className={`rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] ${cardPad} shadow-[var(--shadow-card)]`}
       >
-        <p
-          className={`font-semibold text-[var(--text)] ${compact ? "text-xs" : "text-sm"}`}
-        >
-          {t(titleKey)}
-        </p>
-        <ul className={bodyClass}>
-          {benefitKeys.map((key) => (
-            <li key={key}>{t(key)}</li>
-          ))}
-        </ul>
+        <div className="flex flex-col gap-2 md:flex-row md:items-start md:gap-4">
+          <div className="min-w-0 flex-1">
+            <p
+              className={`font-semibold text-[var(--text)] ${compact ? "text-xs" : "text-sm"}`}
+            >
+              {t(titleKey)}
+            </p>
+            {displayLogo ? (
+              <div
+                className={`relative mx-auto mt-2 shrink-0 md:hidden ${logoMobileBox}`}
+              >
+                <Image
+                  src="/images/upgrade-pitch-logo.png"
+                  alt={logoAlt}
+                  fill
+                  className="object-contain object-center"
+                  sizes={compact ? "48px" : "64px"}
+                  priority={false}
+                />
+              </div>
+            ) : null}
+            <ul className={bodyClass}>
+              {benefitKeys.map((key) => (
+                <li key={key}>{t(key)}</li>
+              ))}
+            </ul>
+          </div>
+          {displayLogo ? (
+            <div
+              className={`relative mt-1 hidden shrink-0 md:mt-0 md:block ${logoDesktopBox}`}
+            >
+              <Image
+                src="/images/upgrade-pitch-logo.png"
+                alt={logoAlt}
+                fill
+                className="object-contain object-center"
+                sizes={compact ? "48px" : "96px"}
+                priority={false}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

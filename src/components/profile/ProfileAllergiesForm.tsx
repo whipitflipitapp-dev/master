@@ -36,6 +36,7 @@ export function ProfileAllergiesForm({
   const selectedSet = new Set(selectedIds);
   const prevPending = useRef(false);
   const allergyModeLabelId = useId();
+  const otherAllergensLabelId = useId();
   const [otherAllergenOpen, setOtherAllergenOpen] = useState(
     () => Boolean(otherSection?.defaultText.trim()),
   );
@@ -121,10 +122,16 @@ export function ProfileAllergiesForm({
       {otherSection ? (
         <>
           <input type="hidden" name="allergy_other_section" value="1" />
-          <fieldset className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]">
-            <legend className="px-1 text-sm font-medium text-[var(--text)]">
+          <fieldset
+            className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]"
+            aria-labelledby={otherAllergensLabelId}
+          >
+            <p
+              id={otherAllergensLabelId}
+              className="mb-2 text-sm font-medium text-[var(--text)]"
+            >
               {otherSection.legend}
-            </legend>
+            </p>
             <label className="flex cursor-pointer items-start gap-2 text-sm text-[var(--text)]">
               <input
                 type="checkbox"
