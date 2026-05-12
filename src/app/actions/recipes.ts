@@ -5,11 +5,16 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  escapeIlikePercentPattern,
   normalizeIngredientToken,
   parseIngredientInput,
   parseIngredientLinesForRecipe,
 } from "@/lib/ingredients";
-import { PANTRY_MATCH_MIN_PERCENT } from "@/lib/pantry";
+import {
+  PANTRY_MATCH_MIN_PERCENT,
+  PANTRY_MATCH_SHORT_QUERY_MAX_TOKENS,
+  PANTRY_PARTIAL_INGREDIENT_MIN_LEN,
+} from "@/lib/pantry";
 import {
   validateRecipeImageUploadMeta,
   validateStoredRecipeImageUrl,
@@ -245,7 +250,7 @@ export async function matchRecipesForPantry(
     return { matches: [], error: null };
   }
 
-  const { data: ingRows, error: ingErr } = await supabase
+  const { data: exactRows, error: ingErr } = await supabase
     .from("ingredients")
     .select("id,name")
     .in("name", userTokens);
@@ -254,11 +259,36 @@ export async function matchRecipesForPantry(
     return { matches: [], error: ingErr.message };
   }
 
-  if (!ingRows?.length) {
+  type IngRow = { id: string; name: string };
+  const ingRows: IngRow[] = [...((exactRows ?? []) as IngRow[])];
+  const matchedExactNames = new Set(ingRows.map((r) => r.name));
+  const unmatchedTokens = userTokens.filter((t) => !matchedExactNames.has(t));
+
+  for (const token of unmatchedTokens) {
+    if (token.length < PANTRY_PARTIAL_INGREDIENT_MIN_LEN) continue;
+    const pattern = `%${escapeIlikePercentPattern(token)}%`;
+    const { data: partialRows, error: pErr } = await supabase
+      .from("ingredients")
+      .select("id,name")
+      .ilike("name", pattern)
+      .limit(80);
+
+    if (pErr) {
+      return { matches: [], error: pErr.message };
+    }
+    const seenIds = new Set(ingRows.map((r) => r.id));
+    for (const row of (partialRows ?? []) as IngRow[]) {
+      if (seenIds.has(row.id)) continue;
+      seenIds.add(row.id);
+      ingRows.push(row);
+    }
+  }
+
+  if (ingRows.length === 0) {
     return { matches: [], error: null };
   }
 
-  const userIngredientIds = new Set(ingRows.map((r: { id: string }) => r.id));
+  const userIngredientIds = new Set(ingRows.map((r) => r.id));
 
   const { data: riRows, error: riErr } = await supabase
     .from("recipe_ingredients")
@@ -339,17 +369,16 @@ export async function matchRecipesForPantry(
     (namesRows ?? []).map((n: { id: string; name: string }) => [n.id, n.name]),
   );
 
-  const recipeIngMap = new Map<string, Set<string>>();
+  const recipeIngredientIds = new Map<string, Set<string>>();
   for (const row of allRi as { recipe_id: string; ingredient_id: string }[]) {
     const nm = ingName.get(row.ingredient_id);
     if (!nm) continue;
-    if (!recipeIngMap.has(row.recipe_id)) {
-      recipeIngMap.set(row.recipe_id, new Set());
+    if (!recipeIngredientIds.has(row.recipe_id)) {
+      recipeIngredientIds.set(row.recipe_id, new Set());
     }
-    recipeIngMap.get(row.recipe_id)!.add(nm);
+    recipeIngredientIds.get(row.recipe_id)!.add(row.ingredient_id);
   }
 
-  const userSet = new Set(userTokens);
   const matches: RecipeMatchResult[] = [];
 
   for (const r of (recipes ?? []) as {
@@ -357,16 +386,17 @@ export async function matchRecipesForPantry(
     title: string;
     image_url: string | null;
   }[]) {
-    const set = recipeIngMap.get(r.id);
-    if (!set?.size) continue;
+    const ids = recipeIngredientIds.get(r.id);
+    if (!ids?.size) continue;
     let overlap = 0;
-    for (const n of set) {
-      if (userSet.has(n)) overlap += 1;
+    for (const ingId of ids) {
+      if (userIngredientIds.has(ingId)) overlap += 1;
     }
-    const denom = set.size;
+    const denom = ids.size;
     const matchPercent = Math.min(100, Math.round((overlap / denom) * 100));
-    const missingIngredients = [...set]
-      .filter((n) => !userSet.has(n))
+    const missingIngredients = [...ids]
+      .filter((id) => !userIngredientIds.has(id))
+      .map((id) => ingName.get(id)!)
       .sort((a, b) => a.localeCompare(b));
     matches.push({
       recipeId: r.id,
@@ -382,8 +412,13 @@ export async function matchRecipesForPantry(
       b.matchPercent - a.matchPercent || a.title.localeCompare(b.title),
   );
 
+  const shortQuery =
+    userTokens.length > 0 &&
+    userTokens.length <= PANTRY_MATCH_SHORT_QUERY_MAX_TOKENS;
   const filtered = matches.filter(
-    (m) => m.matchPercent >= PANTRY_MATCH_MIN_PERCENT,
+    (m) =>
+      m.matchPercent >= PANTRY_MATCH_MIN_PERCENT ||
+      (shortQuery && m.matchPercent > 0),
   );
 
   if (

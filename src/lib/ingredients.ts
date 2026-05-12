@@ -3,6 +3,14 @@ export function normalizeIngredientToken(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/** Escape `%`, `_`, and `\` for use inside PostgreSQL ILIKE patterns wrapped with `%`. */
+export function escapeIlikePercentPattern(token: string): string {
+  return token
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
+}
+
 /** Strip leading amounts/units so pantry tokens align with canonical `ingredients.name`. */
 export function stripIngredientQuantityPrefix(raw: string): string {
   let t = raw.trim();
