@@ -18,7 +18,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border)] bg-[var(--nav-bar)] shadow-[var(--shadow-nav)] backdrop-blur-md md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-[color-mix(in_srgb,var(--border)_70%,transparent)] bg-[color-mix(in_srgb,var(--bg)_58%,transparent)] shadow-[var(--shadow-nav)] backdrop-blur-lg backdrop-saturate-150 md:hidden"
       aria-label="Primary"
     >
       <div className="mx-auto flex max-w-lg items-stretch justify-between gap-0 px-1 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2">
@@ -57,7 +57,7 @@ function NavLink({
       className={`flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[13px] px-1 py-1 text-[10px] font-semibold leading-none tracking-tight transition-[color,background-color,box-shadow,transform] sm:text-[11px] ${
         active
           ? "bg-[var(--primary-muted)] text-[var(--primary)] ring-1 ring-[color-mix(in_srgb,var(--primary)_18%,transparent)]"
-          : "text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--card)_60%,transparent)] hover:text-[var(--text)] active:scale-[0.97]"
+          : "text-[var(--text)]/72 hover:bg-[color-mix(in_srgb,var(--card)_45%,transparent)] hover:text-[var(--text)] active:scale-[0.97]"
       }`}
     >
       <span
