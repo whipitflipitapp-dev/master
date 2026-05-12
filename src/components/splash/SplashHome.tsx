@@ -79,11 +79,12 @@ export function SplashHome() {
           <Image
             src="/whipitflipit-logo-lockup.png"
             alt="Whip It Flip It"
-            width={400}
-            height={120}
+            width={1024}
+            height={682}
             priority
             sizes="(min-width: 768px) 320px, 0px"
-            className="h-auto max-h-20 w-auto max-w-[min(50vw,20rem)] object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)]"
+            className="h-auto max-h-20 w-auto max-w-[min(50vw,20rem)] border-0 bg-transparent object-contain object-left outline-none ring-0"
+            style={{ background: "transparent" }}
           />
         </div>
         <div className="flex gap-1 rounded-full border border-white/20 bg-black/35 p-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
