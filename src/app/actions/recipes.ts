@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { normalizeIngredientToken, parseIngredientInput } from "@/lib/ingredients";
+import {
+  normalizeIngredientToken,
+  parseIngredientInput,
+  parseIngredientLinesForRecipe,
+} from "@/lib/ingredients";
 import { PANTRY_MATCH_MIN_PERCENT } from "@/lib/pantry";
 import {
   validateRecipeImageUploadMeta,
@@ -472,6 +476,11 @@ export async function createRecipe(formData: FormData) {
     return { error: "Title and instructions are required.", recipeId: null };
   }
 
+  const ingredientEntries = parseIngredientLinesForRecipe(ingredientBlock);
+  if (ingredientEntries.length === 0) {
+    return { error: "Add at least one ingredient.", recipeId: null };
+  }
+
   const projectOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!projectOrigin) {
     return { error: "Supabase is not configured.", recipeId: null };
@@ -486,13 +495,6 @@ export async function createRecipe(formData: FormData) {
   if (!imageCheck.ok) {
     return { error: imageCheck.message, recipeId: null };
   }
-
-  const lines = ingredientBlock
-    .split(/[\n]+/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  const seenNormalized = new Set<string>();
 
   const { data: recipe, error: recipeError } = await supabase
     .from("recipes")
@@ -516,16 +518,10 @@ export async function createRecipe(formData: FormData) {
   const recipeId = recipe.id;
   let sort = 0;
 
-  for (const line of lines) {
-    const normalized = normalizeIngredientToken(
-      line.replace(/^[\d./\s-]+/, "").trim() || line,
-    );
-    if (!normalized || seenNormalized.has(normalized)) continue;
-    seenNormalized.add(normalized);
-
+  for (const { canonical } of ingredientEntries) {
     const { data: ingRow, error: ingErr } = await supabase
       .from("ingredients")
-      .upsert({ name: normalized }, { onConflict: "name" })
+      .upsert({ name: canonical }, { onConflict: "name" })
       .select("id")
       .single();
 
@@ -589,7 +585,7 @@ export async function createRecipe(formData: FormData) {
     type: "recipe_created",
     metadata: {
       recipe_id: recipeId,
-      ingredient_count: seenNormalized.size,
+      ingredient_count: ingredientEntries.length,
       allergen_count: allergenIds.length,
       tag_count: tagNames.length,
     },
@@ -598,6 +594,7 @@ export async function createRecipe(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/recipes");
   revalidatePath("/add");
+  revalidatePath("/help-me-cook");
   return { error: null, recipeId };
 }
 
