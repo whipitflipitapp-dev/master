@@ -30,7 +30,7 @@
   "recipes_allergen_banner_showing_all": "Showing all recipes.",
   "recipes_link_hide_allergen_recipes": "Hide recipes with your allergens",
   "recipes_supabase_env_hint": "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (see .env.example).",
-  "recipes_browse_unavailable": "Recipes are temporarily unavailable. Please try again in a moment. If this persists, confirm Supabase env URLs use only the project origin (e.g. https://your-ref.supabase.co) and apply pending database migrations.",
+  "recipes_browse_unavailable": "We couldn't load recipes. Signing in is not required for this page — the problem is usually network, Supabase config, or the database. Retry shortly; if it persists, confirm env URLs use only the project origin (e.g. https://your-ref.supabase.co), then apply pending migrations (browse RPC `list_recipes_for_browse` and optional demo seed).",
   "recipes_empty_search_title": "No recipes match that search.",
   "recipes_empty_default_title": "No recipes yet.",
   "recipes_empty_search_sub": "Try a shorter keyword or browse all recipes without a filter.",

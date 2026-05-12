@@ -135,12 +135,6 @@ export function SplashHome() {
             <span aria-hidden>✨</span>
             {t("cta_help")}
           </Link>
-          <Link
-            href="/recipes"
-            className="py-2 text-center text-sm font-semibold uppercase tracking-wide text-white underline-offset-4 hover:underline"
-          >
-            {t("cta_browse")} ›
-          </Link>
         </div>
       </motion.main>
     </div>
