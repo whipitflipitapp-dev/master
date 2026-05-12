@@ -295,7 +295,12 @@ export async function matchRecipesForPantry(
     /** Defaults to strict when excluded IDs are present. */
     allergyMode?: "strict" | "warn";
   },
-): Promise<{ matches: RecipeMatchResult[]; error: string | null }> {
+): Promise<{
+  matches: RecipeMatchResult[];
+  error: string | null;
+  /** Tokens with no ingredient row (exact or partial); matching uses only resolved tokens. */
+  unmatchedTokens?: string[];
+}> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return {
@@ -319,11 +324,16 @@ export async function matchRecipesForPantry(
   }
 
   type IngRow = { id: string; name: string };
-  const ingRows: IngRow[] = [...((exactRows ?? []) as IngRow[])];
-  const matchedExactNames = new Set(ingRows.map((r) => r.name));
-  const unmatchedTokens = userTokens.filter((t) => !matchedExactNames.has(t));
+  const tokenToIds = new Map<string, Set<string>>();
+  for (const t of userTokens) tokenToIds.set(t, new Set());
 
-  for (const token of unmatchedTokens) {
+  for (const row of (exactRows ?? []) as IngRow[]) {
+    const s = tokenToIds.get(row.name);
+    if (s) s.add(row.id);
+  }
+
+  for (const token of userTokens) {
+    if (tokenToIds.get(token)!.size > 0) continue;
     if (token.length < PANTRY_PARTIAL_INGREDIENT_MIN_LEN) continue;
     const pattern = `%${escapeIlikePercentPattern(token)}%`;
     const { data: partialRows, error: pErr } = await supabase
@@ -335,41 +345,54 @@ export async function matchRecipesForPantry(
     if (pErr) {
       return { matches: [], error: pErr.message };
     }
-    const seenIds = new Set(ingRows.map((r) => r.id));
+    const acc = tokenToIds.get(token)!;
     for (const row of (partialRows ?? []) as IngRow[]) {
-      if (seenIds.has(row.id)) continue;
-      seenIds.add(row.id);
-      ingRows.push(row);
+      acc.add(row.id);
     }
   }
 
-  if (ingRows.length === 0) {
-    return { matches: [], error: null };
+  const dbUnmatchedTokens = userTokens.filter((t) => tokenToIds.get(t)!.size === 0);
+  const resolvedSpecs = userTokens
+    .filter((t) => tokenToIds.get(t)!.size > 0)
+    .map((t) => ({ token: t, ids: tokenToIds.get(t)! }));
+
+  if (resolvedSpecs.length === 0) {
+    return {
+      matches: [],
+      error: null,
+      ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
+    };
   }
 
-  const userIngredientIds = new Set(ingRows.map((r) => r.id));
+  const userUnion = new Set<string>();
+  for (const spec of resolvedSpecs) {
+    for (const id of spec.ids) userUnion.add(id);
+  }
 
   const { data: riRows, error: riErr } = await supabase
     .from("recipe_ingredients")
     .select("recipe_id,ingredient_id")
-    .in("ingredient_id", [...userIngredientIds]);
+    .in("ingredient_id", [...userUnion]);
 
   if (riErr) {
     return { matches: [], error: riErr.message };
   }
 
-  const overlapByRecipe = new Map<string, number>();
+  const recipeUnionHits = new Map<string, Set<string>>();
   for (const row of (riRows ?? []) as {
     recipe_id: string;
     ingredient_id: string;
   }[]) {
-    overlapByRecipe.set(
-      row.recipe_id,
-      (overlapByRecipe.get(row.recipe_id) ?? 0) + 1,
-    );
+    if (!recipeUnionHits.has(row.recipe_id)) {
+      recipeUnionHits.set(row.recipe_id, new Set());
+    }
+    recipeUnionHits.get(row.recipe_id)!.add(row.ingredient_id);
   }
 
-  let candidateIds = [...overlapByRecipe.keys()];
+  let candidateIds = [...recipeUnionHits.keys()].filter((rid) => {
+    const hits = recipeUnionHits.get(rid)!;
+    return resolvedSpecs.every((spec) => [...spec.ids].some((id) => hits.has(id)));
+  });
 
   const excludeIds = options?.excludeAllergenIds?.filter(Boolean) ?? [];
   const allergyMode = options?.allergyMode ?? "strict";
@@ -385,7 +408,11 @@ export async function matchRecipesForPantry(
   }
 
   if (candidateIds.length === 0) {
-    return { matches: [], error: null };
+    return {
+      matches: [],
+      error: null,
+      ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
+    };
   }
 
   const { data: recipes, error: rErr } = await supabase
@@ -406,6 +433,7 @@ export async function matchRecipesForPantry(
     return {
       matches: [],
       error: allRiErr?.message ?? "Failed to load ingredients.",
+      ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
     };
   }
 
@@ -440,6 +468,9 @@ export async function matchRecipesForPantry(
 
   const matches: RecipeMatchResult[] = [];
 
+  /** One resolved token group: keep legacy overlap vs full recipe list. Two or more: AND across tokens already enforced; badge is 100%. */
+  const useSingleIngredientOverlap = resolvedSpecs.length === 1;
+
   for (const r of (recipes ?? []) as {
     id: string;
     title: string;
@@ -449,12 +480,14 @@ export async function matchRecipesForPantry(
     if (!ids?.size) continue;
     let overlap = 0;
     for (const ingId of ids) {
-      if (userIngredientIds.has(ingId)) overlap += 1;
+      if (userUnion.has(ingId)) overlap += 1;
     }
     const denom = ids.size;
-    const matchPercent = Math.min(100, Math.round((overlap / denom) * 100));
+    const matchPercent = useSingleIngredientOverlap
+      ? Math.min(100, Math.round((overlap / denom) * 100))
+      : 100;
     const missingIngredients = [...ids]
-      .filter((id) => !userIngredientIds.has(id))
+      .filter((id) => !userUnion.has(id))
       .map((id) => ingName.get(id)!)
       .sort((a, b) => a.localeCompare(b));
     matches.push({
@@ -471,17 +504,23 @@ export async function matchRecipesForPantry(
 
   matches.sort(
     (a, b) =>
-      b.matchPercent - a.matchPercent || a.title.localeCompare(b.title),
+      b.matchPercent - a.matchPercent ||
+      a.missingIngredients.length - b.missingIngredients.length ||
+      a.title.localeCompare(b.title),
   );
 
   const shortQuery =
     userTokens.length > 0 &&
     userTokens.length <= PANTRY_MATCH_SHORT_QUERY_MAX_TOKENS;
-  const filtered = matches.filter(
-    (m) =>
+  const filtered = matches.filter((m) => {
+    if (!useSingleIngredientOverlap) {
+      return true;
+    }
+    return (
       m.matchPercent >= PANTRY_MATCH_MIN_PERCENT ||
-      (shortQuery && m.matchPercent > 0),
-  );
+      (shortQuery && m.matchPercent > 0)
+    );
+  });
 
   if (
     excludeIds.length > 0 &&
@@ -527,7 +566,11 @@ export async function matchRecipesForPantry(
     }
   }
 
-  return { matches: filtered, error: null };
+  return {
+    matches: filtered,
+    error: null,
+    ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
+  };
 }
 
 export async function createRecipe(formData: FormData) {

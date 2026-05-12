@@ -16,6 +16,8 @@ export type HelpMeCookPantryProps = {
   initialTextarea: string;
   initialPantryOnly: boolean;
   matchError?: string | null;
+  /** Tokens with no DB ingredient row; matching used only resolved tokens. */
+  unmatchedTokens?: string[];
   allergyNote?: string | null;
   /** Rendered after the Find Matches submit control (e.g. upsell). */
   afterFindMatches?: ReactNode;
@@ -35,6 +37,7 @@ export function HelpMeCookPantry(props: HelpMeCookPantryProps) {
     initialTextarea,
     initialPantryOnly,
     matchError,
+    unmatchedTokens,
     allergyNote,
     afterFindMatches = null,
     children = null,
@@ -163,6 +166,14 @@ export function HelpMeCookPantry(props: HelpMeCookPantryProps) {
       {matchError ? (
         <p className="text-sm text-[var(--danger)]" role="alert">
           {matchError}
+        </p>
+      ) : null}
+
+      {unmatchedTokens?.length ? (
+        <p className="text-sm text-[var(--muted)]" role="status">
+          {t("help_cook_unmatched_tokens", {
+            tokens: unmatchedTokens.join(", "),
+          })}
         </p>
       ) : null}
 

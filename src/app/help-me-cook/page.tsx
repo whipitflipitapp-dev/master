@@ -80,12 +80,12 @@ export default async function HelpMeCookPage({
 
   const initialTextarea = mergedTokens.join(", ");
 
-  const { matches, error: matchError } = effectiveMatchText
+  const { matches, error: matchError, unmatchedTokens } = effectiveMatchText
     ? await matchRecipesForPantry(effectiveMatchText, {
         excludeAllergenIds,
         allergyMode,
       })
-    : { matches: [], error: null };
+    : { matches: [], error: null, unmatchedTokens: undefined };
 
   if (
     supabase &&
@@ -139,6 +139,7 @@ export default async function HelpMeCookPage({
         initialTextarea={initialTextarea}
         initialPantryOnly={pantryOnlyChecked}
         matchError={matchError}
+        unmatchedTokens={unmatchedTokens}
         allergyNote={allergyNote}
         afterFindMatches={
           <section
