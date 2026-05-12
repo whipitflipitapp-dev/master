@@ -18,16 +18,21 @@ export function RecipeListCard({
   trailing,
   footer,
 }: RecipeListCardProps) {
+  const resolvedImage =
+    typeof imageUrl === "string" && imageUrl.trim().length > 0
+      ? imageUrl.trim()
+      : null;
+
   return (
     <Link
       href={href}
       className="group block overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-200 hover:border-[color-mix(in_srgb,var(--primary)_35%,var(--border))] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.992] md:active:scale-100"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-[color-mix(in_srgb,var(--muted)_12%,var(--card))]">
-        {imageUrl ? (
+        {resolvedImage ? (
           // eslint-disable-next-line @next/next/no-img-element -- Supabase URLs; avoids remotePatterns setup
           <img
-            src={imageUrl}
+            src={resolvedImage}
             alt=""
             className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:group-hover:scale-100"
           />

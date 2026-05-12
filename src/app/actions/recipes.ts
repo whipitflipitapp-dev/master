@@ -35,6 +35,59 @@ export type RecipeListItem = {
 
 type RecipeBrowseRow = Omit<RecipeListItem, "creator_display_name">;
 
+function trimRecipeImageUrl(raw: unknown): string | null {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  return s.length > 0 ? s : null;
+}
+
+/**
+ * RPC / REST rows may omit keys or use alternate casing depending on PostgREST
+ * and deployed function versions — normalize before UI.
+ */
+function coerceRecipeBrowseRow(row: unknown): RecipeBrowseRow | null {
+  if (!row || typeof row !== "object") return null;
+  const r = row as Record<string, unknown>;
+  if (typeof r.id !== "string" || typeof r.title !== "string") return null;
+
+  const rawImg = r.image_url ?? r.imageUrl;
+  const favoritesRaw = r.favorites_count;
+  const favoritesCount =
+    typeof favoritesRaw === "number" && Number.isFinite(favoritesRaw)
+      ? favoritesRaw
+      : Number(favoritesRaw);
+  const favorites_count = Number.isFinite(favoritesCount) ? favoritesCount : 0;
+
+  let cook_time_minutes: number | null = null;
+  if (r.cook_time_minutes != null && r.cook_time_minutes !== "") {
+    const n = Number(r.cook_time_minutes);
+    cook_time_minutes = Number.isFinite(n) ? n : null;
+  }
+
+  const difficultyRaw = r.difficulty;
+  const difficulty =
+    difficultyRaw == null || difficultyRaw === ""
+      ? null
+      : String(difficultyRaw);
+
+  const created_at =
+    typeof r.created_at === "string"
+      ? r.created_at
+      : r.created_at != null
+        ? String(r.created_at)
+        : "";
+
+  return {
+    id: r.id,
+    title: r.title,
+    image_url: trimRecipeImageUrl(rawImg),
+    favorites_count,
+    difficulty,
+    cook_time_minutes,
+    created_at,
+  };
+}
+
 /** Fixed IDs from `20260511140000_seed_demo_recipes.sql` — surfaced first in browse fallback. */
 const DEMO_RECIPE_IDS = [
   "e2a7c0d1-5b3e-4a11-8f00-000000000001",
@@ -182,7 +235,9 @@ export async function listRecipes(
 
   let rows: RecipeBrowseRow[];
   if (!rpcError && Array.isArray(data)) {
-    rows = data as RecipeBrowseRow[];
+    rows = (data as unknown[])
+      .map(coerceRecipeBrowseRow)
+      .filter((x): x is RecipeBrowseRow => x != null);
   } else {
     const fb = await listRecipesBrowseFallback(
       supabase,
@@ -193,7 +248,9 @@ export async function listRecipes(
     if (fb.errorMessage || !fb.rows) {
       return { recipes: [], error: "browse_unavailable" as const };
     }
-    rows = fb.rows;
+    rows = fb.rows
+      .map((row) => coerceRecipeBrowseRow(row))
+      .filter((x): x is RecipeBrowseRow => x != null);
   }
 
   const creatorByRecipeId = new Map<string, string | null>();
@@ -401,7 +458,7 @@ export async function matchRecipesForPantry(
     matches.push({
       recipeId: r.id,
       title: r.title,
-      image_url: r.image_url,
+      image_url: trimRecipeImageUrl(r.image_url),
       matchPercent,
       missingIngredients,
     });

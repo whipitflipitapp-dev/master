@@ -32,7 +32,13 @@ function normalizeEmbeddedRecipe(
   embed: EmbeddedRecipe | EmbeddedRecipe[] | null,
 ): EmbeddedRecipe | null {
   if (!embed) return null;
-  return Array.isArray(embed) ? embed[0] ?? null : embed;
+  const row = Array.isArray(embed) ? embed[0] ?? null : embed;
+  if (!row) return null;
+  const img =
+    typeof row.image_url === "string" && row.image_url.trim().length > 0
+      ? row.image_url.trim()
+      : null;
+  return { ...row, image_url: img };
 }
 
 export default async function SavedPage() {

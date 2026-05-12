@@ -16,15 +16,20 @@ export function RecipeDetailHero({
   imageUrl,
   imageAlt = "",
 }: RecipeDetailHeroProps) {
+  const resolvedImage =
+    typeof imageUrl === "string" && imageUrl.trim().length > 0
+      ? imageUrl.trim()
+      : null;
+
   return (
     <section
       className="relative w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--muted)_12%,var(--card))] shadow-[var(--shadow-card)]"
       aria-label="Recipe hero"
     >
       <div className="relative aspect-[16/10] w-full">
-        {imageUrl ? (
+        {resolvedImage ? (
           <Image
-            src={imageUrl}
+            src={resolvedImage}
             alt={imageAlt}
             fill
             className="object-cover"
