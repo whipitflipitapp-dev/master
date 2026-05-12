@@ -19,6 +19,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   /** Bottom inset: bottom nav when shown, plus FAB reserve when the floating menu trigger is visible. */
   const bottomShellPad = (() => {
+    /** Splash paints FAB reserve itself so padding does not reveal body `--bg` (#faf8f5 strip). */
+    if (pathname === "/") {
+      return "";
+    }
     if (hideMenu) {
       return showNav
         ? "pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0"
