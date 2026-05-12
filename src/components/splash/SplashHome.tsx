@@ -61,7 +61,7 @@ export function SplashHome() {
       />
 
       <header className="relative z-10 flex items-start justify-between max-sm:justify-end px-5 pt-4">
-        <div className="ml-12 flex max-sm:hidden flex-col gap-1 leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)] sm:ml-14 md:hidden">
+        <div className="ml-12 flex max-sm:hidden flex-col gap-1 leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)] sm:ml-14">
           <span className="text-2xl" aria-hidden>
             👨‍🍳
           </span>
@@ -74,18 +74,6 @@ export function SplashHome() {
             </span>
             <span className="mt-1 h-1 w-16 rounded-full bg-[#ea580c]" aria-hidden />
           </div>
-        </div>
-        <div className="relative ml-12 hidden shrink-0 sm:ml-14 md:block">
-          <Image
-            src="/whipitflipit-logo-lockup.png"
-            alt="Whip It Flip It"
-            width={1024}
-            height={682}
-            priority
-            sizes="(min-width: 768px) 320px, 0px"
-            className="h-auto max-h-20 w-auto max-w-[min(50vw,20rem)] border-0 bg-transparent object-contain object-left outline-none ring-0"
-            style={{ background: "transparent" }}
-          />
         </div>
         <div className="flex gap-1 rounded-full border border-white/20 bg-black/35 p-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
           {LOCALES.map(({ code, label }) => (
