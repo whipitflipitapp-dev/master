@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 
 import { toggleFavorite } from "@/app/actions/recipes";
 
@@ -14,6 +14,11 @@ type RecipeFavoriteButtonProps = {
   initialCount: number;
 };
 
+type FavoriteSnapshot = {
+  favored: boolean;
+  count: number;
+};
+
 export function RecipeFavoriteButton({
   recipeId,
   loginNextPath,
@@ -22,13 +27,18 @@ export function RecipeFavoriteButton({
   initialCount,
 }: RecipeFavoriteButtonProps) {
   const [pending, startTransition] = useTransition();
-  const [favored, setFavored] = useState(initialFavored);
-  const [count, setCount] = useState(initialCount);
-
-  useEffect(() => {
-    setFavored(initialFavored);
-    setCount(initialCount);
-  }, [recipeId, initialFavored, initialCount]);
+  // useOptimistic keeps the visible state in lock-step with the server props
+  // (`initialFavored` / `initialCount`) once a server action settles + revalidates,
+  // while letting us paint an instant optimistic flip during the in-flight call.
+  // This avoids the stale-state and remount races that broke toggling for the
+  // second recipe / unsave path in the previous useState + useEffect pattern.
+  const [optimistic, applyOptimistic] = useOptimistic<
+    FavoriteSnapshot,
+    FavoriteSnapshot
+  >(
+    { favored: initialFavored, count: Math.max(0, initialCount) },
+    (_state, next) => next,
+  );
 
   if (!authenticated) {
     const next = `/login?next=${encodeURIComponent(loginNextPath)}`;
@@ -42,7 +52,7 @@ export function RecipeFavoriteButton({
         </span>
         <span className="whitespace-nowrap">Save</span>
         <span className="text-[length:var(--text-caption)] font-medium text-[var(--muted)]">
-          {count}
+          {Math.max(0, initialCount)}
         </span>
       </Link>
     );
@@ -56,44 +66,36 @@ export function RecipeFavoriteButton({
         e.preventDefault();
         e.stopPropagation();
         startTransition(async () => {
-          const prevFav = favored;
-          const prevCount = count;
-          const nextFav = !prevFav;
-          setFavored(nextFav);
-          setCount(Math.max(0, prevCount + (nextFav ? 1 : -1)));
-
-          try {
-            const res = await toggleFavorite(recipeId);
-            if (!res.ok) {
-              setFavored(prevFav);
-              setCount(prevCount);
-              return;
-            }
-            if (typeof res.favored === "boolean") {
-              setFavored(res.favored);
-            }
-            if (typeof res.favoritesCount === "number") {
-              setCount(Math.max(0, res.favoritesCount));
-            }
-          } catch {
-            setFavored(prevFav);
-            setCount(prevCount);
-          }
+          const nextFav = !optimistic.favored;
+          applyOptimistic({
+            favored: nextFav,
+            count: Math.max(0, optimistic.count + (nextFav ? 1 : -1)),
+          });
+          // When the action returns, revalidatePath rerenders the parent server
+          // component with fresh `initialFavored` / `initialCount`. Once the
+          // transition settles, useOptimistic reverts to that authoritative
+          // base — covering both the success and error paths without manual
+          // rollback bookkeeping.
+          await toggleFavorite(recipeId);
         });
       }}
       className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_94%,transparent)] px-3.5 py-2 text-[length:var(--text-meta)] font-semibold text-[var(--text)] shadow-[0_1px_0_rgba(28,25,23,0.03)] backdrop-blur-[2px] transition-colors hover:bg-[color-mix(in_srgb,var(--primary-muted)_85%,var(--card))] disabled:opacity-55"
-      aria-pressed={favored}
-      aria-label={favored ? "Remove from saved recipes" : "Save recipe"}
+      aria-pressed={optimistic.favored}
+      aria-label={
+        optimistic.favored ? "Remove from saved recipes" : "Save recipe"
+      }
     >
       <span
-        className={`text-base leading-none ${favored ? "text-[var(--primary)]" : "text-[var(--muted)]"}`}
+        className={`text-base leading-none ${optimistic.favored ? "text-[var(--primary)]" : "text-[var(--muted)]"}`}
         aria-hidden
       >
-        {favored ? "♥" : "♡"}
+        {optimistic.favored ? "♥" : "♡"}
       </span>
-      <span className="whitespace-nowrap">{favored ? "Saved" : "Save"}</span>
+      <span className="whitespace-nowrap">
+        {optimistic.favored ? "Saved" : "Save"}
+      </span>
       <span className="text-[length:var(--text-caption)] font-medium text-[var(--muted)]">
-        {count}
+        {optimistic.count}
       </span>
     </button>
   );
