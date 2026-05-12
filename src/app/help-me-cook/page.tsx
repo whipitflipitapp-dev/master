@@ -92,7 +92,7 @@ export default async function HelpMeCookPage({
       })
     : { matches: [], error: null, unmatchedTokens: undefined };
 
-  let favoriteByRecipeId: Record<string, HelpMeCookMatchFavoriteSnapshot> = {};
+  const favoriteByRecipeId: Record<string, HelpMeCookMatchFavoriteSnapshot> = {};
 
   if (
     supabase &&
@@ -243,6 +243,7 @@ export default async function HelpMeCookPage({
 
         {effectiveMatchText && !matchError && !pantryError ? (
           <MatchResultsCarousel
+            key={`${effectiveMatchText}|${matches.map((x) => x.recipeId).join(",")}`}
             searchKey={effectiveMatchText}
             matches={matches}
             authenticated={loggedIn}

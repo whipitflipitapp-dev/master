@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { RecipeMatchResult } from "@/app/actions/recipes";
@@ -44,16 +44,6 @@ export function HelpMeCookMatchResultsSection({
   const regionRef = useRef<HTMLElement | null>(null);
   const lastScrollSignatureRef = useRef<string>("");
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [searchKey]);
-
-  useEffect(() => {
-    setCurrentIndex((i) =>
-      Math.max(0, Math.min(i, Math.max(0, matches.length - 1))),
-    );
-  }, [matches.length]);
 
   useLayoutEffect(() => {
     if (matches.length === 0) {
