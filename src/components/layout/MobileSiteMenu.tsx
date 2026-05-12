@@ -56,22 +56,51 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
   const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<User | null | undefined>(undefined);
+  const [firstName, setFirstName] = useState<string | null>(null);
 
   const hide =
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/auth/");
 
+  const loadFirstName = useCallback(async (userId: string) => {
+    const supabase = createSupabaseBrowserClient();
+    if (!supabase) {
+      return;
+    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("first_name,display_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const fromFirst =
+      typeof data?.first_name === "string" && data.first_name.trim()
+        ? data.first_name.trim()
+        : "";
+    const fromDisplay =
+      !fromFirst && typeof data?.display_name === "string"
+        ? data.display_name.trim().split(/\s+/)[0] ?? ""
+        : "";
+    setFirstName(fromFirst || fromDisplay || null);
+  }, []);
+
   const refreshUser = useCallback(() => {
     const supabase = createSupabaseBrowserClient();
     if (!supabase) {
       setUser(null);
+      setFirstName(null);
       return;
     }
     void supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
+      const u = data.user ?? null;
+      setUser(u);
+      if (u) {
+        void loadFirstName(u.id);
+      } else {
+        setFirstName(null);
+      }
     });
-  }, []);
+  }, [loadFirstName]);
 
   useEffect(() => {
     refreshUser();
@@ -82,12 +111,18 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        void loadFirstName(u.id);
+      } else {
+        setFirstName(null);
+      }
     });
     return () => {
       subscription.unsubscribe();
     };
-  }, [refreshUser]);
+  }, [refreshUser, loadFirstName]);
 
   useEffect(() => {
     if (open) {
@@ -198,6 +233,11 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
                   <p className="px-3 py-2 text-xs text-[var(--muted)]">…</p>
                 ) : user ? (
                   <>
+                    {firstName ? (
+                      <p className="px-3 pb-1 pt-1 text-[length:var(--text-meta)] font-semibold text-[var(--text)]">
+                        {t("menu_greeting", { firstName })}
+                      </p>
+                    ) : null}
                     <Link href="/profile" className={linkClass} onClick={close}>
                       {t("menu_profile")}
                     </Link>
