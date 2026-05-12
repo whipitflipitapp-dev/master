@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { createRecipeFromForm } from "@/app/actions/recipes";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
@@ -60,6 +60,7 @@ export function AddRecipeForm({
   const busy = submitting;
   const capped = Boolean(atLimit);
   const pitchPlan = planForPitch ?? "free";
+  const allergensPresentLabelId = useId();
 
   useEffect(() => {
     return () => {
@@ -336,10 +337,16 @@ export function AddRecipeForm({
         <span className="text-[length:var(--text-caption)] text-[var(--muted)]">Comma-separated</span>
       </div>
 
-      <fieldset className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4">
-        <legend className="px-1 text-sm font-medium text-[var(--text)]">
+      <fieldset
+        className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4"
+        aria-labelledby={allergensPresentLabelId}
+      >
+        <p
+          id={allergensPresentLabelId}
+          className="mb-2 text-sm font-medium text-[var(--text)]"
+        >
           Allergens present
-        </legend>
+        </p>
         <p className="mb-3 text-[length:var(--text-caption)] text-[var(--muted)]">
           Select allergens this recipe contains (seed list). Keyword hints from the
           ingredients field are suggestions only.
