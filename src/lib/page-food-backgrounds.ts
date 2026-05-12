@@ -11,6 +11,26 @@ export const FOOD_PAGE_BACKGROUNDS = [
   "/food/soup.jpg",
 ] as const;
 
+/** Onboarding wizard: one hero image per step (indices match `FOOD_PAGE_BACKGROUNDS`). */
+export const ONBOARDING_STEP_VISUALS = [
+  {
+    src: FOOD_PAGE_BACKGROUNDS[0],
+    objectClass: "object-cover object-[center_32%]",
+  },
+  {
+    src: FOOD_PAGE_BACKGROUNDS[1],
+    objectClass: "object-cover object-[58%_48%]",
+  },
+  {
+    src: FOOD_PAGE_BACKGROUNDS[4],
+    objectClass: "object-cover object-[42%_52%]",
+  },
+  {
+    src: FOOD_PAGE_BACKGROUNDS[5],
+    objectClass: "object-cover object-[50%_28%]",
+  },
+] as const;
+
 function djb2Hash(input: string): number {
   let hash = 5381;
   for (let i = 0; i < input.length; i++) {

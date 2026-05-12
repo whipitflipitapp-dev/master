@@ -24,6 +24,14 @@ export interface Database {
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
           onboarding_completed_at: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          birthdate: string | null;
+          foods_loved: string[];
+          foods_loved_other: string | null;
+          cooks_per_week: number | null;
+          allergy_other: string | null;
+          referral_source: string | null;
         };
         Insert: {
           id: string;
@@ -36,6 +44,14 @@ export interface Database {
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
           onboarding_completed_at?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          birthdate?: string | null;
+          foods_loved?: string[];
+          foods_loved_other?: string | null;
+          cooks_per_week?: number | null;
+          allergy_other?: string | null;
+          referral_source?: string | null;
         };
         Update: {
           display_name?: string | null;
@@ -46,6 +62,14 @@ export interface Database {
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
           onboarding_completed_at?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          birthdate?: string | null;
+          foods_loved?: string[];
+          foods_loved_other?: string | null;
+          cooks_per_week?: number | null;
+          allergy_other?: string | null;
+          referral_source?: string | null;
         };
       };
       recipes: {

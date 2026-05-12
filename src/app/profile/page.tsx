@@ -28,6 +28,7 @@ async function loadProfileContent() {
       allergens: [] as { id: string; name: string }[],
       selected: [] as string[],
       allergyMode: "strict" as const,
+      firstName: null as string | null,
     };
   }
 
@@ -45,6 +46,7 @@ async function loadProfileContent() {
       allergens: (allergens ?? []) as { id: string; name: string }[],
       selected: [],
       allergyMode: "strict" as const,
+      firstName: null,
     };
   }
 
@@ -55,12 +57,22 @@ async function loadProfileContent() {
     .select("allergen_id")
     .eq("user_id", user.id);
 
+  const { data: nameRow } = await supabase
+    .from("profiles")
+    .select("first_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
   return {
     supabaseConfigured: true as const,
     session,
     allergens: (allergens ?? []) as { id: string; name: string }[],
     selected: (ua ?? []).map((r: { allergen_id: string }) => r.allergen_id),
     allergyMode: profile.allergy_mode,
+    firstName:
+      typeof nameRow?.first_name === "string" && nameRow.first_name.trim()
+        ? nameRow.first_name.trim()
+        : null,
   };
 }
 
@@ -82,8 +94,14 @@ function PlanBadge({ plan }: { plan: PlanType }) {
 export default async function ProfilePage() {
   const locale = await resolveAppLocale();
   const dict = await getDictionary(locale);
-  const { supabaseConfigured, session, allergens, selected, allergyMode } =
-    await loadProfileContent();
+  const {
+    supabaseConfigured,
+    session,
+    allergens,
+    selected,
+    allergyMode,
+    firstName,
+  } = await loadProfileContent();
 
   const user = session?.user ?? null;
   const profile = session?.profile ?? null;
@@ -95,11 +113,19 @@ export default async function ProfilePage() {
   const plan: PlanType = profile?.plan_type ?? "free";
   const hideUpgradePromo =
     !!user && plan === "ai_chef";
+  const welcomeName =
+    firstName ||
+    (profile?.display_name?.trim() ? profile.display_name.trim().split(/\s+/)[0] ?? "" : "");
 
   return (
     <ContentPageBackdrop pageKey="/profile">
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 py-8">
       <header className="border-b border-[var(--border)] pb-5">
+        {user && welcomeName ? (
+          <p className="text-[length:var(--text-meta)] font-semibold uppercase tracking-wide text-[var(--primary)]">
+            {dictText(dict, "profile_welcome_kicker", { firstName: welcomeName })}
+          </p>
+        ) : null}
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">
           {dictText(dict, "profile_title")}
         </h1>

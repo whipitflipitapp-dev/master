@@ -12,6 +12,7 @@ export function ProfileAllergiesForm({
   onSaved,
   submitLabel = "Save allergies",
   submitPendingLabel = "Saving…",
+  formClassName = "mt-4 flex flex-col gap-4",
 }: {
   allergens: { id: string; name: string }[];
   selectedIds: string[];
@@ -19,6 +20,8 @@ export function ProfileAllergiesForm({
   onSaved?: () => void;
   submitLabel?: string;
   submitPendingLabel?: string;
+  /** Override default top margin when nested (e.g. onboarding hero layout). */
+  formClassName?: string;
 }) {
   const selectedSet = new Set(selectedIds);
   const prevPending = useRef(false);
@@ -37,7 +40,7 @@ export function ProfileAllergiesForm({
   }, [pending, state.error, onSaved]);
 
   return (
-    <form className="mt-4 flex flex-col gap-4" action={formAction}>
+    <form className={formClassName} action={formAction}>
       <fieldset className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]">
         <legend className="px-1 text-sm font-medium text-[var(--text)]">
           When recipes match your allergens
