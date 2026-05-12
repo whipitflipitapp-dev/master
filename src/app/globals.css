@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
-/* Cookpad-inspired community recipe UI: warm paper background, orange accent, soft card elevation */
+/* Cookpad-inspired community recipe UI: white canvas, orange accent, soft card elevation */
 :root {
-  --bg: #faf8f5;
-  --card: #ffffff;
+  --bg: #ffffff;
+  --card: #fafafa;
   --text: #1c1917;
   --muted: #78716c;
   --muted-light: #a8a29e;
