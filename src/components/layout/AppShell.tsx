@@ -17,17 +17,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/signup") ||
     pathname.startsWith("/auth/");
 
+  /** Bottom inset: bottom nav when shown, plus FAB reserve when the floating menu trigger is visible. */
+  const bottomShellPad = (() => {
+    if (hideMenu) {
+      return showNav
+        ? "pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0"
+        : "";
+    }
+    if (showNav) {
+      return "pb-[calc(5rem+3.75rem+0.75rem+env(safe-area-inset-bottom))] md:pb-[calc(3.75rem+0.75rem+env(safe-area-inset-bottom))]";
+    }
+    return "pb-[calc(3.75rem+0.75rem+env(safe-area-inset-bottom))]";
+  })();
+
   return (
-    <div
-      className={`flex min-h-dvh flex-col ${showNav ? "pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0" : ""}`}
-    >
-      {!hideMenu ? (
-        <div className="flex shrink-0 items-center border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] pl-[max(0.5rem,env(safe-area-inset-left))] pr-3 pt-[max(0.25rem,env(safe-area-inset-top))] pb-1.5 backdrop-blur-md md:border-transparent md:bg-transparent md:backdrop-blur-none">
-          <MobileSiteMenu />
-          <div className="min-w-0 flex-1" aria-hidden />
-        </div>
-      ) : null}
+    <div className={`flex min-h-dvh flex-col ${bottomShellPad}`}>
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      {!hideMenu ? <MobileSiteMenu showBottomNav={showNav} /> : null}
       {showNav ? <BottomNav /> : null}
     </div>
   );
