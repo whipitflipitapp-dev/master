@@ -13,9 +13,13 @@ import { getCurrentUserPlanType } from "@/lib/profile";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { resolvePantryUserIngredientIds } from "@/lib/pantry-ingredient-resolve";
 import { parseYoutubeVideoId } from "@/lib/youtube";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ q?: string }>;
+};
 
 function summarizeForMeta(text: string, max = 160): string {
   const normalized = text.replace(/\s+/g, " ").trim();
@@ -24,7 +28,10 @@ function summarizeForMeta(text: string, max = 160): string {
     : `${normalized.slice(0, Math.max(0, max - 1))}\u2026`;
 }
 
-async function loadRecipe(id: string) {
+async function loadRecipe(
+  id: string,
+  options?: { pantryMatchText?: string },
+) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return null;
 
@@ -73,6 +80,7 @@ async function loadRecipe(id: string) {
   );
 
   const ingredientsList: {
+    ingredient_id: string;
     quantity: string | null;
     sort_order: number;
     name: string;
@@ -82,11 +90,21 @@ async function loadRecipe(id: string) {
       sort_order: number;
       ingredient_id: string;
     }) => ({
+      ingredient_id: row.ingredient_id,
       quantity: row.quantity,
       sort_order: row.sort_order,
       name: nameById.get(row.ingredient_id) ?? "unknown",
     }),
   );
+
+  let pantryHaveIngredientIds: Set<string> | null = null;
+  const pantryText = options?.pantryMatchText?.trim();
+  if (pantryText) {
+    const resolved = await resolvePantryUserIngredientIds(supabase, pantryText);
+    if (resolved.ok) {
+      pantryHaveIngredientIds = resolved.userIngredientIds;
+    }
+  }
 
   const { data: wines } = await supabase
     .from("wine_pairings")
@@ -170,6 +188,7 @@ async function loadRecipe(id: string) {
   return {
     recipe,
     ingredientsList,
+    pantryHaveIngredientIds,
     wines: wines ?? [],
     tags: tagRows,
     planForWine,
@@ -240,9 +259,13 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function RecipeDetailPage(props: Props) {
   const { id } = await props.params;
+  const sp = await props.searchParams;
+  const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
   const locale = await resolveAppLocale();
   const dict = await getDictionary(locale);
-  const payload = await loadRecipe(id);
+  const payload = await loadRecipe(id, {
+    pantryMatchText: qRaw || undefined,
+  });
 
   if (!payload) {
     notFound();
@@ -259,6 +282,7 @@ export default async function RecipeDetailPage(props: Props) {
   const {
     recipe,
     ingredientsList,
+    pantryHaveIngredientIds,
     wines,
     tags,
     planForWine,
@@ -396,6 +420,9 @@ export default async function RecipeDetailPage(props: Props) {
                 type="checkbox"
                 className="mt-0.5 h-[1.125rem] w-[1.125rem] shrink-0 accent-[var(--primary)]"
                 aria-label={ing.name}
+                defaultChecked={
+                  pantryHaveIngredientIds?.has(ing.ingredient_id) ?? false
+                }
               />
               <span className="text-[0.9375rem] leading-relaxed text-[var(--text)]">
                 {ing.quantity ? (

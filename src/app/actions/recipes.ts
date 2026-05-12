@@ -5,9 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
-  escapeIlikePercentPattern,
   normalizeIngredientToken,
-  parseIngredientInput,
   parseIngredientLinesForRecipe,
 } from "@/lib/ingredients";
 import {
@@ -23,6 +21,7 @@ import {
   validateRecipeImageUploadMeta,
   validateStoredRecipeImageUrl,
 } from "@/lib/recipe-image";
+import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -284,6 +283,10 @@ export type RecipeMatchResult = {
   image_url?: string | null;
   matchPercent: number;
   missingIngredients: string[];
+  /** Total catalog ingredients linked to the recipe (denominator for overlap). */
+  recipeIngredientCount: number;
+  /** Ingredients matched to the user's resolved pantry tokens. */
+  matchedIngredientCount: number;
   /** User warn mode: tagged allergen names that intersect profile allergens. */
   allergyOverlapNames?: string[];
 };
@@ -309,52 +312,17 @@ export async function matchRecipesForPantry(
     };
   }
 
-  const userTokens = parseIngredientInput(ingredientText);
+  const phase = await resolvePantryIngredientTokens(supabase, ingredientText);
+  if (!phase.ok) {
+    return { matches: [], error: phase.error };
+  }
+
+  const { userTokens, resolvedSpecs, userUnion, dbUnmatchedTokens } =
+    phase.data;
+
   if (userTokens.length === 0) {
     return { matches: [], error: null };
   }
-
-  const { data: exactRows, error: ingErr } = await supabase
-    .from("ingredients")
-    .select("id,name")
-    .in("name", userTokens);
-
-  if (ingErr) {
-    return { matches: [], error: ingErr.message };
-  }
-
-  type IngRow = { id: string; name: string };
-  const tokenToIds = new Map<string, Set<string>>();
-  for (const t of userTokens) tokenToIds.set(t, new Set());
-
-  for (const row of (exactRows ?? []) as IngRow[]) {
-    const s = tokenToIds.get(row.name);
-    if (s) s.add(row.id);
-  }
-
-  for (const token of userTokens) {
-    if (tokenToIds.get(token)!.size > 0) continue;
-    if (token.length < PANTRY_PARTIAL_INGREDIENT_MIN_LEN) continue;
-    const pattern = `%${escapeIlikePercentPattern(token)}%`;
-    const { data: partialRows, error: pErr } = await supabase
-      .from("ingredients")
-      .select("id,name")
-      .ilike("name", pattern)
-      .limit(80);
-
-    if (pErr) {
-      return { matches: [], error: pErr.message };
-    }
-    const acc = tokenToIds.get(token)!;
-    for (const row of (partialRows ?? []) as IngRow[]) {
-      acc.add(row.id);
-    }
-  }
-
-  const dbUnmatchedTokens = userTokens.filter((t) => tokenToIds.get(t)!.size === 0);
-  const resolvedSpecs = userTokens
-    .filter((t) => tokenToIds.get(t)!.size > 0)
-    .map((t) => ({ token: t, ids: tokenToIds.get(t)! }));
 
   if (resolvedSpecs.length === 0) {
     return {
@@ -362,11 +330,6 @@ export async function matchRecipesForPantry(
       error: null,
       ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
     };
-  }
-
-  const userUnion = new Set<string>();
-  for (const spec of resolvedSpecs) {
-    for (const id of spec.ids) userUnion.add(id);
   }
 
   const { data: riRows, error: riErr } = await supabase
@@ -499,6 +462,8 @@ export async function matchRecipesForPantry(
       ),
       matchPercent,
       missingIngredients,
+      recipeIngredientCount: denom,
+      matchedIngredientCount: overlap,
     });
   }
 
@@ -738,10 +703,28 @@ export async function createRecipe(formData: FormData) {
   return { error: null, recipeId };
 }
 
+async function fetchRecipeFavoritesCount(
+  supabase: SupabaseClient,
+  recipeId: string,
+): Promise<number | undefined> {
+  const { data, error } = await supabase
+    .from("recipes")
+    .select("favorites_count")
+    .eq("id", recipeId)
+    .maybeSingle();
+  if (error || !data) return undefined;
+  const raw = data.favorites_count as number | string | null | undefined;
+  const n =
+    typeof raw === "number" && Number.isFinite(raw) ? raw : Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
 /** Toggle signed-in user's favorite row; bumps recipes.favorites_count via triggers. */
 export async function toggleFavorite(recipeId: string): Promise<{
   ok: boolean;
   favored?: boolean;
+  /** Denormalized count after DB triggers; omit if read fails. */
+  favoritesCount?: number;
   error?: string;
 }> {
   const supabase = await createSupabaseServerClient();
@@ -789,7 +772,13 @@ export async function toggleFavorite(recipeId: string): Promise<{
     revalidatePath("/recipes");
     revalidatePath(`/recipes/${rid}`);
     revalidatePath("/dashboard");
-    return { ok: true, favored: false };
+    revalidatePath("/help-me-cook");
+    const favoritesCount = await fetchRecipeFavoritesCount(supabase, rid);
+    return {
+      ok: true,
+      favored: false,
+      ...(favoritesCount !== undefined ? { favoritesCount } : {}),
+    };
   }
 
   const { error: insErr } = await supabase.from("favorites").insert({
@@ -803,7 +792,13 @@ export async function toggleFavorite(recipeId: string): Promise<{
       revalidatePath("/recipes");
       revalidatePath(`/recipes/${rid}`);
       revalidatePath("/dashboard");
-      return { ok: true, favored: true };
+      revalidatePath("/help-me-cook");
+      const favoritesCount = await fetchRecipeFavoritesCount(supabase, rid);
+      return {
+        ok: true,
+        favored: true,
+        ...(favoritesCount !== undefined ? { favoritesCount } : {}),
+      };
     }
     return { ok: false, error: insErr.message };
   }
@@ -817,7 +812,13 @@ export async function toggleFavorite(recipeId: string): Promise<{
   revalidatePath("/recipes");
   revalidatePath(`/recipes/${rid}`);
   revalidatePath("/dashboard");
-  return { ok: true, favored: true };
+  revalidatePath("/help-me-cook");
+  const favoritesCount = await fetchRecipeFavoritesCount(supabase, rid);
+  return {
+    ok: true,
+    favored: true,
+    ...(favoritesCount !== undefined ? { favoritesCount } : {}),
+  };
 }
 
 export async function createRecipeFromForm(formData: FormData) {

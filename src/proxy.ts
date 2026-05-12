@@ -5,6 +5,7 @@ import {
   LOCALE_COOKIE,
   localeFromAcceptLanguageHeader,
 } from "@/lib/i18n/locale";
+import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
 
 const PROTECTED_PREFIXES = [
   "/add",
@@ -39,7 +40,8 @@ function isProtectedPath(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const urlRaw = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = urlRaw ? normalizeSupabaseProjectUrl(urlRaw) : "";
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
     return response;

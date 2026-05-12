@@ -1,7 +1,15 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import type { RecipeMatchResult } from "@/app/actions/recipes";
@@ -11,6 +19,8 @@ import { PANTRY_MATCH_MIN_PERCENT } from "@/lib/pantry";
 
 const SWIPE_THRESHOLD_PX = 40;
 const DRAG_CONSTRAINT = 140;
+
+type HelpCookSortMode = "best_match" | "fewest_missing" | "most_on_hand";
 
 export type HelpMeCookMatchFavoriteSnapshot = {
   favoritesCount: number;
@@ -40,10 +50,48 @@ export function HelpMeCookMatchResultsSection({
   const { t } = useTranslation("common");
   const reduceMotion = useReducedMotion();
   const headingId = useId();
+  const sortSelectId = useId();
   const carouselId = useId();
   const regionRef = useRef<HTMLElement | null>(null);
   const lastScrollSignatureRef = useRef<string>("");
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [sortMode, setSortMode] = useState<HelpCookSortMode>("best_match");
+
+  const displayMatches = useMemo(() => {
+    const tagged = matches.map((m, i) => ({ m, i }));
+    switch (sortMode) {
+      case "best_match":
+        return tagged.sort((a, b) => a.i - b.i).map((x) => x.m);
+      case "fewest_missing":
+        return tagged
+          .sort((a, b) => {
+            const missA = a.m.missingIngredients.length;
+            const missB = b.m.missingIngredients.length;
+            return (
+              missA - missB ||
+              b.m.matchedIngredientCount - a.m.matchedIngredientCount ||
+              a.m.title.localeCompare(b.m.title)
+            );
+          })
+          .map((x) => x.m);
+      case "most_on_hand":
+        return tagged
+          .sort((a, b) => {
+            return (
+              b.m.matchedIngredientCount - a.m.matchedIngredientCount ||
+              a.m.missingIngredients.length - b.m.missingIngredients.length ||
+              a.m.title.localeCompare(b.m.title)
+            );
+          })
+          .map((x) => x.m);
+      default:
+        return matches;
+    }
+  }, [matches, sortMode]);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [sortMode]);
 
   useLayoutEffect(() => {
     if (matches.length === 0) {
@@ -68,10 +116,10 @@ export function HelpMeCookMatchResultsSection({
   }, []);
 
   const goNext = useCallback(() => {
-    setCurrentIndex((i) => Math.min(matches.length - 1, i + 1));
-  }, [matches.length]);
+    setCurrentIndex((i) => Math.min(displayMatches.length - 1, i + 1));
+  }, [displayMatches.length]);
 
-  const m = matches[currentIndex];
+  const m = displayMatches[currentIndex];
   const snap =
     m && favoriteByRecipeId[m.recipeId]
       ? favoriteByRecipeId[m.recipeId]
@@ -92,6 +140,32 @@ export function HelpMeCookMatchResultsSection({
       >
         {t("help_cook_results_title")}
       </h2>
+      {matches.length > 1 ? (
+        <div className="mt-3 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <label
+            htmlFor={sortSelectId}
+            className="text-xs font-medium text-[var(--muted)]"
+          >
+            {t("help_cook_sort_label")}
+          </label>
+          <select
+            id={sortSelectId}
+            value={sortMode}
+            onChange={(e) =>
+              setSortMode(e.target.value as HelpCookSortMode)
+            }
+            className="min-h-[44px] w-full rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--text)] shadow-[var(--shadow-card)] outline-none ring-[var(--primary)]/25 focus:ring-2 sm:max-w-[min(100%,16rem)] sm:flex-1"
+          >
+            <option value="best_match">{t("help_cook_sort_best_match")}</option>
+            <option value="fewest_missing">
+              {t("help_cook_sort_fewest_missing")}
+            </option>
+            <option value="most_on_hand">
+              {t("help_cook_sort_most_on_hand")}
+            </option>
+          </select>
+        </div>
+      ) : null}
       {matches.length === 0 ? (
         <p className="mt-2 text-sm text-[var(--muted)]">
           {t("help_cook_no_matches", { percent: PANTRY_MATCH_MIN_PERCENT })}
@@ -114,7 +188,7 @@ export function HelpMeCookMatchResultsSection({
             >
               {t("help_cook_carousel_position", {
                 current: currentIndex + 1,
-                total: matches.length,
+                total: displayMatches.length,
               })}
             </p>
             <div className="shrink-0 [&_button]:min-h-[44px] [&_a]:min-h-[44px]">
@@ -130,19 +204,19 @@ export function HelpMeCookMatchResultsSection({
             <button
               type="button"
               onClick={goNext}
-              disabled={currentIndex >= matches.length - 1}
+              disabled={currentIndex >= displayMatches.length - 1}
               className="inline-flex min-h-[44px] shrink-0 items-center rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[var(--text)] shadow-[var(--shadow-card)] transition-colors hover:bg-[color-mix(in_srgb,var(--card)_88%,var(--text))] disabled:pointer-events-none disabled:opacity-45"
             >
               {t("help_cook_carousel_next")}
             </button>
           </div>
 
-          {matches.length > 1 ? (
+          {displayMatches.length > 1 ? (
             <nav
               className="mt-3 flex flex-wrap justify-center gap-2"
               aria-label={t("help_cook_carousel_dots_label")}
             >
-              {matches.map((recipe, i) => (
+              {displayMatches.map((recipe, i) => (
                 <button
                   key={recipe.recipeId}
                   type="button"
@@ -174,7 +248,7 @@ export function HelpMeCookMatchResultsSection({
             aria-label={t("help_cook_carousel_slide_aria", {
               title: m.title,
               current: currentIndex + 1,
-              total: matches.length,
+              total: displayMatches.length,
             })}
             key={m.recipeId}
             className="mt-3 min-w-0 w-full cursor-grab touch-pan-y active:cursor-grabbing"
@@ -191,14 +265,20 @@ export function HelpMeCookMatchResultsSection({
                 offset.x <= -SWIPE_THRESHOLD_PX ||
                 vx < -380
               ) {
-                if (currentIndex < matches.length - 1) goNext();
+                if (currentIndex < displayMatches.length - 1) goNext();
               } else if (offset.x >= SWIPE_THRESHOLD_PX || vx > 380) {
                 if (currentIndex > 0) goPrev();
               }
             }}
           >
             <RecipeListCard
-              href={`/recipes/${m.recipeId}`}
+              href={
+                searchKey.trim().length > 0
+                  ? `/recipes/${m.recipeId}?${new URLSearchParams({
+                      q: searchKey,
+                    }).toString()}`
+                  : `/recipes/${m.recipeId}`
+              }
               title={m.title}
               imageUrl={m.image_url}
               trailing={

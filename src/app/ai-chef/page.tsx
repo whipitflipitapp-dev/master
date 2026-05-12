@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { AiChefWorkbench } from "@/components/ai-chef/AiChefWorkbench";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
-import type { PlanType } from "@/lib/plan";
+import { isAiChef, type PlanType } from "@/lib/plan";
 import { getCurrentProfile } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -51,6 +52,13 @@ export default async function AiChefPage() {
   const dict = await getDictionary(await resolveAppLocale());
   const ctx = await getCurrentProfile();
   const planType: PlanType = ctx?.profile.plan_type ?? "free";
+
+  // Signed-in users without the AI Chef tier are routed to the existing upgrade
+  // page. Signed-out users are already redirected to /login by the auth proxy
+  // (see `PROTECTED_PREFIXES` in `src/proxy.ts`).
+  if (ctx?.user && !isAiChef(planType)) {
+    redirect("/upgrade");
+  }
 
   let suggestedAllergyNotes = "";
   const supabase = await createSupabaseServerClient();
