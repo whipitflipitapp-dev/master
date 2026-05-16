@@ -284,6 +284,16 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
                   </>
                 )}
               </nav>
+
+              <div className="shrink-0 border-t border-[var(--border)] p-3">
+                <Link
+                  href="/privacy"
+                  className="block rounded-[var(--radius-card)] px-3 py-2 text-center text-[length:var(--text-meta)] font-medium text-[var(--muted)] underline-offset-4 hover:bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] hover:text-[var(--text)] hover:underline"
+                  onClick={close}
+                >
+                  {t("footer_privacy")}
+                </Link>
+              </div>
             </motion.div>
           </motion.div>
         ) : null}

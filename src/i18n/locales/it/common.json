@@ -372,5 +372,15 @@
   "onboarding_summary_referral": "Scoperto via",
   "onboarding_thanks_cta": "Inizia a cucinare",
   "profile_welcome_kicker": "Benvenuto, {{firstName}}",
-  "menu_greeting": "Ciao, {{firstName}}"
+  "menu_greeting": "Ciao, {{firstName}}",
+  "footer_privacy": "Informativa sulla privacy",
+  "privacy_meta_title": "Informativa sulla privacy | {{brand}}",
+  "privacy_meta_desc": "Come Whip It Flip It raccoglie, usa e protegge account, ricette e preferenze.",
+  "privacy_page_title": "Informativa sulla privacy",
+  "privacy_last_updated": "Ultimo aggiornamento: {{date}}",
+  "footer_terms": "Termini di servizio",
+  "terms_meta_title": "Termini di servizio | {{brand}}",
+  "terms_meta_desc": "Termini che regolano l'uso di Whip It Flip It.",
+  "terms_page_title": "Termini di servizio",
+  "terms_last_updated": "Ultimo aggiornamento: {{date}}"
 }

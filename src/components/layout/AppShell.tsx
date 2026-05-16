@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 import { BottomNav } from "@/components/layout/BottomNav";
 import { MobileSiteMenu } from "@/components/layout/MobileSiteMenu";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -37,6 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className={`flex min-h-dvh flex-col ${bottomShellPad}`}>
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <SiteFooter />
       {!hideMenu ? <MobileSiteMenu showBottomNav={showNav} /> : null}
       {showNav ? <BottomNav /> : null}
     </div>
