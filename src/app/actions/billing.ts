@@ -18,8 +18,8 @@ export type CheckoutSessionState = CheckoutFailure | { ok: true; url: string };
 /**
  * Create a Stripe Checkout Session for the signed-in user.
  *
- * Bound to `useActionState` on `/upgrade` (prevState, formData). Returns
- * `{ ok: true, url }` for client navigation — never call `redirect()` here.
+ * Legacy server-action entry point; `/upgrade` uses `POST /api/checkout` instead.
+ * Returns `{ ok: true, url }` for client navigation — never call `redirect()` here.
  */
 export async function createCheckoutSession(
   _prev: CheckoutSessionState | null,
