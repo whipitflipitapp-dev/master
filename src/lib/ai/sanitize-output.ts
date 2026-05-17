@@ -21,6 +21,9 @@ const MAX_ASSISTANT_TEXT = 1200;
 const MAX_ASSISTANT_ITEM = 100;
 const MAX_ASSISTANT_ITEMS = 8;
 
+const MAX_CHECK_IN_TEXT = 520;
+const MAX_CHECK_IN_CAUTION = 220;
+
 export type RecipeGenerateShape = {
   title: string;
   ingredients: string[];
@@ -46,6 +49,12 @@ export type CookingAssistantShape = {
   suggested_meals: string[];
   used_pantry_items: string[];
   next_steps: string[];
+};
+
+export type CameraCheckInShape = {
+  guidance: string;
+  food_safety_caution: string | null;
+  next_step: string;
 };
 
 function clip(s: string, max: number): string {
@@ -132,5 +141,18 @@ export function sanitizeCookingAssistantOutput(
     suggested_meals: shortList(raw.suggested_meals),
     used_pantry_items: shortList(raw.used_pantry_items),
     next_steps: shortList(raw.next_steps),
+  };
+}
+
+export function sanitizeCameraCheckInOutput(
+  raw: CameraCheckInShape,
+): CameraCheckInShape {
+  return {
+    guidance: clip(String(raw.guidance ?? ""), MAX_CHECK_IN_TEXT),
+    food_safety_caution:
+      raw.food_safety_caution == null
+        ? null
+        : clip(String(raw.food_safety_caution ?? ""), MAX_CHECK_IN_CAUTION) || null,
+    next_step: clip(String(raw.next_step ?? ""), MAX_CHECK_IN_TEXT),
   };
 }

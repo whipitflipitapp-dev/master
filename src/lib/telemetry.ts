@@ -4,6 +4,7 @@ export type AiUsageEventType =
   | "ai_recipe_generated"
   | "ai_substitution_suggested"
   | "ai_vision_ingredients"
+  | "ai_camera_check_in"
   | "ai_cooking_assistant_answered"
   | "ai_wine_pairings_generated";
 

@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { createRecipeFromForm } from "@/app/actions/recipes";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import type {
+  CameraCheckInShape,
   CookingAssistantShape,
   RecipeGenerateShape,
   SubstitutionSuggestion,
@@ -45,6 +46,7 @@ export function AiChefWorkbench(props: Props) {
   const [subAllergy, setSubAllergy] = useState(suggestedAllergyNotes);
   const [assistantQuestion, setAssistantQuestion] = useState("");
   const [assistantIngredients, setAssistantIngredients] = useState(pantryText);
+  const [checkInQuestion, setCheckInQuestion] = useState("");
 
   const [recipeResult, setRecipeResult] = useState<RecipeGenerateShape | null>(
     null,
@@ -57,16 +59,21 @@ export function AiChefWorkbench(props: Props) {
   );
   const [assistantResult, setAssistantResult] =
     useState<CookingAssistantShape | null>(null);
+  const [checkInResult, setCheckInResult] = useState<
+    (CameraCheckInShape & { usage?: { used: number; limit: number } }) | null
+  >(null);
 
   const [recipeErr, setRecipeErr] = useState<string | null>(null);
   const [subErr, setSubErr] = useState<string | null>(null);
   const [visionErr, setVisionErr] = useState<string | null>(null);
   const [assistantErr, setAssistantErr] = useState<string | null>(null);
+  const [checkInErr, setCheckInErr] = useState<string | null>(null);
 
   const [recipeBusy, setRecipeBusy] = useState(false);
   const [subBusy, setSubBusy] = useState(false);
   const [visionBusy, setVisionBusy] = useState(false);
   const [assistantBusy, setAssistantBusy] = useState(false);
+  const [checkInBusy, setCheckInBusy] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
 
   const runRecipe = async (e: React.FormEvent) => {
@@ -251,6 +258,74 @@ export function AiChefWorkbench(props: Props) {
       setAssistantErr(t("ai_chef_err_network"));
     } finally {
       setAssistantBusy(false);
+    }
+  };
+
+  const runCheckIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!unlocked) {
+      return;
+    }
+    setCheckInErr(null);
+    setCheckInResult(null);
+    const input = e.currentTarget.elements.namedItem(
+      "image",
+    ) as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file) {
+      setCheckInErr(t("ai_chef_err_pick_check_in_photo"));
+      return;
+    }
+    if (!file.type.toLowerCase().startsWith("image/")) {
+      setCheckInErr(t("ai_chef_err_check_in_type"));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setCheckInErr(t("ai_chef_err_check_in_size"));
+      return;
+    }
+    const question = checkInQuestion.trim().slice(0, 500);
+    const fd = new FormData();
+    fd.set("image", file);
+    if (question) {
+      fd.set("question", question);
+    }
+    setCheckInBusy(true);
+    try {
+      const res = await fetch("/api/ai/camera-check-in", {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+      const data = (await res.json()) as Partial<CameraCheckInShape> & {
+        error?: string;
+        code?: string;
+        usage?: { used?: number; limit?: number };
+      };
+      if (!res.ok) {
+        if (data.code === "camera_check_in_monthly_limit") {
+          setCheckInErr(t("ai_chef_err_check_in_monthly_limit"));
+          return;
+        }
+        setCheckInErr(data.error ?? t("ai_chef_err_generic"));
+        return;
+      }
+      setCheckInResult({
+        guidance: data.guidance ?? "",
+        food_safety_caution: data.food_safety_caution ?? null,
+        next_step: data.next_step ?? "",
+        usage:
+          typeof data.usage?.used === "number" &&
+          typeof data.usage?.limit === "number"
+            ? { used: data.usage.used, limit: data.usage.limit }
+            : undefined,
+      });
+      e.currentTarget.reset();
+      setCheckInQuestion("");
+    } catch {
+      setCheckInErr(t("ai_chef_err_network"));
+    } finally {
+      setCheckInBusy(false);
     }
   };
 
@@ -579,6 +654,118 @@ export function AiChefWorkbench(props: Props) {
               </button>
             ) : null}
           </div>
+        ) : null}
+      </section>
+
+      <section
+        className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]"
+        aria-labelledby="ai-chef-camera-check-in"
+      >
+        <h2
+          id="ai-chef-camera-check-in"
+          className="text-lg font-semibold text-[var(--text)]"
+        >
+          {t("ai_chef_section_check_in_title")}
+        </h2>
+        <p className="mt-1.5 text-sm text-[var(--muted)]">
+          {t("ai_chef_section_check_in_sub")}
+        </p>
+        <form
+          onSubmit={runCheckIn}
+          className="mt-4 flex flex-col gap-3"
+          encType="multipart/form-data"
+        >
+          <label className="text-sm font-medium text-[var(--text)]" htmlFor="ai-check-in-photo">
+            {t("ai_chef_label_check_in_image")}
+          </label>
+          <input
+            id="ai-check-in-photo"
+            name="image"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            disabled={!unlocked}
+            className="text-sm text-[var(--text)] file:mr-3 file:rounded-[var(--radius-card)] file:border file:border-[var(--border)] file:bg-[var(--bg)] file:px-3 file:py-2 file:text-sm file:font-medium disabled:opacity-60"
+          />
+          <label className="text-sm font-medium text-[var(--text)]" htmlFor="ai-check-in-question">
+            {t("ai_chef_label_check_in_question")}
+          </label>
+          <textarea
+            id="ai-check-in-question"
+            rows={3}
+            maxLength={500}
+            value={checkInQuestion}
+            onChange={(ev) => setCheckInQuestion(ev.target.value)}
+            placeholder={t("ai_chef_placeholder_check_in_question")}
+            disabled={!unlocked}
+            className="w-full rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/25 focus:ring-2 disabled:opacity-60"
+          />
+          <div className="flex flex-wrap gap-2" aria-label={t("ai_chef_check_in_examples_label")}>
+            {[
+              "ai_chef_check_in_example_browned",
+              "ai_chef_check_in_example_next",
+              "ai_chef_check_in_example_done",
+            ].map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setCheckInQuestion(t(key))}
+                disabled={!unlocked}
+                className="rounded-full border border-[var(--border)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--text)] transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_10%,var(--bg))] disabled:opacity-60"
+              >
+                {t(key)}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-[var(--muted)]">
+            {t("ai_chef_check_in_limit_note")}
+          </p>
+          <button
+            type="submit"
+            disabled={!unlocked || checkInBusy}
+            className="rounded-[var(--radius-card)] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--primary-hover)] active:scale-[0.99] disabled:opacity-60"
+          >
+            {checkInBusy
+              ? t("ai_chef_btn_check_in_pending")
+              : t("ai_chef_btn_check_in")}
+          </button>
+          {checkInErr ? (
+            <p className="text-sm text-[var(--danger)]" role="alert">
+              {checkInErr}
+            </p>
+          ) : null}
+        </form>
+        {checkInResult ? (
+          <article className="mt-5 border-t border-[var(--border)] pt-5 text-sm text-[var(--text)]">
+            <h3 className="font-semibold">
+              {t("ai_chef_check_in_guidance")}
+            </h3>
+            <p className="mt-2 whitespace-pre-wrap leading-relaxed">
+              {checkInResult.guidance}
+            </p>
+            {checkInResult.food_safety_caution ? (
+              <>
+                <h3 className="mt-4 font-semibold">
+                  {t("ai_chef_check_in_safety")}
+                </h3>
+                <p className="mt-2 leading-relaxed">
+                  {checkInResult.food_safety_caution}
+                </p>
+              </>
+            ) : null}
+            <h3 className="mt-4 font-semibold">
+              {t("ai_chef_check_in_next_step")}
+            </h3>
+            <p className="mt-2 leading-relaxed">{checkInResult.next_step}</p>
+            {checkInResult.usage ? (
+              <p className="mt-4 text-xs text-[var(--muted)]">
+                {t("ai_chef_check_in_usage", {
+                  used: checkInResult.usage.used,
+                  limit: checkInResult.usage.limit,
+                })}
+              </p>
+            ) : null}
+          </article>
         ) : null}
       </section>
 
