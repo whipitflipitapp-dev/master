@@ -53,6 +53,9 @@ export const BY_CATEGORY = {
     ["Grilled halloumi skewers", "easy", 20, "Thread halloumi and vegetables; grill until charred. Drizzle with lemon.", [["halloumi cheese", "12 oz"], ["cherry tomatoes", "2 cups"], ["zucchini", "2 chunked"], ["lemon", "1"]]],
     ["Baked sea bass with herbs", "medium", 30, "Stuff fish cavity with lemon and herbs. Roast at 400°F until flaky.", [["whole sea bass", "2 small"], ["fresh dill", "¼ cup"], ["lemon", "2"], ["extra-virgin olive oil", "3 tbsp"]]],
     ["Hummus platter", "easy", 10, "Blend chickpeas with tahini, lemon, and garlic. Serve with vegetables and pita.", [["canned chickpeas", "2 cans"], ["tahini", "¼ cup"], ["garlic cloves", "2"], ["whole-wheat pita", "4"]]],
+    ["Lamb kofta with tzatziki", "medium", 40, "Mix ground lamb with spices, shape into skewers, and grill. Serve with cucumber yogurt sauce.", [["ground lamb", "1 lb"], ["ground cumin", "1 tsp"], ["plain Greek yogurt", "1 cup"], ["fresh mint", "¼ cup"]]],
+    ["Falafel pita pockets", "medium", 35, "Blend chickpeas with herbs, form balls, and bake until crisp. Stuff in pita with tahini sauce.", [["canned chickpeas", "2 cans"], ["fresh parsley", "1 cup"], ["whole-wheat pita", "4"], ["tahini", "3 tbsp"]]],
+    ["Mediterranean orzo bake", "easy", 45, "Toss cooked orzo with feta, sun-dried tomatoes, and olives. Bake until golden on top.", [["orzo", "8 oz"], ["feta cheese", "6 oz"], ["sun-dried tomatoes", "½ cup"], ["Kalamata olives", "1 cup"]]],
   ],
   indian: [
     ["Chana masala", "easy", 35, "Sauté onion and spices, add tomatoes and chickpeas. Simmer 20 minutes.", [["canned chickpeas", "2"], ["garam masala", "2 tsp"], ["crushed tomatoes", "1 can"], ["fresh cilantro", "for garnish"]]],
@@ -77,6 +80,8 @@ export const BY_CATEGORY = {
     ["Grilled portobello caps", "easy", 15, "Marinate mushrooms in balsamic and oil; grill 4 minutes per side.", [["portobello mushrooms", "4 large"], ["balsamic vinegar", "¼ cup"], ["extra-virgin olive oil", "3 tbsp"], ["fresh thyme", "2 tsp"]]],
     ["Peach BBQ glaze ribs", "hard", 210, "Smoke or bake ribs low and slow; glaze with peach preserves and vinegar in the last 30 minutes.", [["pork spare ribs", "2 racks"], ["peach preserves", "1 cup"], ["apple cider vinegar", "¼ cup"], ["smoked paprika", "1 tbsp"]]],
     ["Grilled vegetable platter", "easy", 25, "Toss zucchini, peppers, and onion in oil; grill until tender with char marks.", [["zucchini", "3 sliced"], ["bell peppers", "3"], ["red onion", "2 thick slices"], ["extra-virgin olive oil", "¼ cup"]]],
+    ["Maple bourbon ribs", "hard", 240, "Rub ribs with brown sugar and spice, smoke low and slow, glaze with maple and bourbon.", [["pork spare ribs", "2 racks"], ["maple syrup", "½ cup"], ["bourbon", "¼ cup"], ["smoked paprika", "1 tbsp"]]],
+    ["Alabama white BBQ chicken", "medium", 50, "Grill chicken pieces, toss in tangy mayo-vinegar white sauce before serving.", [["chicken pieces", "3 lb"], ["mayonnaise", "1 cup"], ["apple cider vinegar", "3 tbsp"], ["coleslaw mix", "4 cups"]]],
   ],
   seafood: [
     ["Lemon garlic shrimp skewers", "easy", 20, "Marinate shrimp briefly, thread on skewers, grill 2 minutes per side.", [["large shrimp peeled", "1.5 lb"], ["garlic cloves", "4 minced"], ["lemon", "2"], ["extra-virgin olive oil", "3 tbsp"]]],
@@ -85,6 +90,8 @@ export const BY_CATEGORY = {
     ["Seared scallops", "medium", 15, "Pat scallops dry, sear in hot butter 90 seconds per side. Serve with pea purée.", [["dry sea scallops", "12"], ["frozen peas", "2 cups"], ["unsalted butter", "3 tbsp"], ["lemon", "1"]]],
     ["Tuna poke bowl", "easy", 20, "Cube sushi-grade tuna, toss with soy and sesame. Serve over rice with avocado.", [["sushi-grade tuna", "12 oz"], ["soy sauce", "3 tbsp"], ["avocado", "2"], ["sushi rice", "3 cups cooked"]]],
     ["Grilled salmon with dill", "easy", 22, "Oil salmon, grill skin-side down. Top with dill yogurt and lemon.", [["skin-on salmon fillets", "4"], ["fresh dill", "¼ cup"], ["plain Greek yogurt", "½ cup"], ["cucumber", "1 diced"]]],
+    ["Garlic butter mussels", "easy", 20, "Steam mussels in white wine and garlic, finish with butter and parsley.", [["mussels", "2 lb cleaned"], ["white wine", "1 cup"], ["garlic cloves", "4"], ["fresh parsley", "¼ cup"]]],
+    ["Crab cakes with remoulade", "medium", 35, "Mix crab with binder, pan-fry cakes until golden. Serve with tangy remoulade.", [["lump crab meat", "1 lb"], ["breadcrumbs", "½ cup"], ["eggs", "1"], ["lemon", "1"]]],
   ],
   vegetarian: [
     ["Caprese stuffed avocados", "easy", 15, "Fill avocado halves with mozzarella, tomato, and basil; drizzle balsamic.", [["ripe avocados", "4"], ["fresh mozzarella", "8 oz"], ["balsamic glaze", "2 tbsp"], ["fresh basil", "handful"]]],
@@ -93,6 +100,8 @@ export const BY_CATEGORY = {
     ["Mushroom risotto", "medium", 45, "Toast arborio, add warm broth ladle by ladle, fold in sautéed mushrooms and parmesan.", [["arborio rice", "1½ cups"], ["cremini mushrooms", "12 oz"], ["parmesan cheese", "½ cup"], ["low-sodium vegetable broth", "5 cups hot"]]],
     ["Black bean burgers", "medium", 30, "Mash beans with oats and spices, form patties, pan-sear until crisp.", [["black beans", "2 cans"], ["rolled oats", "1 cup"], ["burger buns", "6"], ["smoked paprika", "1 tsp"]]],
     ["Zucchini fritters", "easy", 25, "Grate zucchini, squeeze dry, mix with egg and flour, pan-fry until golden.", [["zucchini", "3 large"], ["eggs", "2"], ["all-purpose flour", "½ cup"], ["sour cream", "for serving"]]],
+    ["Roasted cauliflower steaks", "easy", 35, "Slice cauliflower into thick slabs, roast with smoked paprika until caramelized.", [["cauliflower", "2 heads"], ["smoked paprika", "1 tbsp"], ["extra-virgin olive oil", "3 tbsp"], ["lemon", "1"]]],
+    ["Three-bean chili", "easy", 40, "Simmer kidney, black, and pinto beans with tomatoes and chili spices.", [["kidney beans", "1 can"], ["black beans", "1 can"], ["pinto beans", "1 can"], ["diced tomatoes", "1 can"]]],
   ],
   vegan: [
     ["Chickpea curry", "easy", 30, "Sauté onion, add spices, tomatoes, and chickpeas. Simmer and finish with coconut milk.", [["canned chickpeas", "2"], ["coconut milk", "1 can"], ["curry powder", "2 tbsp"], ["spinach", "4 cups"]]],
@@ -101,6 +110,9 @@ export const BY_CATEGORY = {
     ["Vegan Caesar salad", "easy", 15, "Toss romaine with cashew-based dressing and chickpea croutons.", [["romaine hearts", "3 chopped"], ["raw cashews", "½ cup soaked"], ["canned chickpeas", "1 can roasted"], ["lemon", "1 juiced"]]],
     ["Sweet potato black bean tacos", "easy", 30, "Roast cubed sweet potato, fill tortillas with beans, salsa, and cilantro.", [["sweet potato", "2 large"], ["black beans", "2 cans"], ["corn tortillas", "12"], ["fresh cilantro", "1 bunch"]]],
     ["Overnight oats", "easy", 5, "Combine oats, plant milk, chia, and maple. Refrigerate overnight; top with berries.", [["rolled oats", "1 cup"], ["oat milk", "1½ cups"], ["chia seeds", "2 tbsp"], ["mixed berries", "1 cup"]]],
+    ["Jackfruit carnitas tacos", "medium", 35, "Shred jackfruit, simmer with orange and spices, crisp in a skillet. Serve in tortillas.", [["young jackfruit", "2 cans"], ["orange juice", "½ cup"], ["corn tortillas", "12"], ["fresh cilantro", "1 bunch"]]],
+    ["Coconut red lentil dal", "easy", 35, "Cook red lentils with coconut milk, ginger, and tomatoes until creamy.", [["red lentils", "1 cup"], ["coconut milk", "1 can"], ["fresh ginger", "1 tbsp"], ["crushed tomatoes", "1 can"]]],
+    ["Stuffed sweet potatoes", "easy", 50, "Bake sweet potatoes until tender, fill with black beans, corn, and avocado.", [["sweet potato", "4 large"], ["black beans", "1 can"], ["corn kernels", "1 cup"], ["avocado", "2"]]],
   ],
   gluten_free: [
     ["Quinoa tabbouleh", "easy", 25, "Cook quinoa, cool, toss with parsley, tomato, cucumber, and lemon.", [["quinoa", "1 cup dry"], ["fresh parsley", "2 cups"], ["lemon", "2 juiced"], ["english cucumber", "1 diced"]]],
@@ -117,6 +129,8 @@ export const BY_CATEGORY = {
     ["Corn chowder", "medium", 40, "Sauté corn and potatoes in butter, add broth, blend half for creaminess.", [["corn kernels", "4 cups"], ["russet potatoes", "2"], ["heavy cream", "1 cup"], ["bacon", "4 slices"]]],
     ["Miso ramen bowl", "medium", 35, "Simmer broth with miso, cook noodles, top with soft egg and greens.", [["ramen noodles", "4 packs"], ["white miso paste", "3 tbsp"], ["soft-boiled eggs", "4"], ["baby spinach", "4 cups"]]],
     ["Lentil soup", "easy", 40, "Cook lentils with carrots, cumin, and tomatoes until thick and hearty.", [["brown lentils", "1 cup"], ["carrots", "3 diced"], ["ground cumin", "1 tsp"], ["crushed tomatoes", "1 can"]]],
+    ["Italian wedding soup", "medium", 45, "Simmer mini meatballs and greens in chicken broth with orzo.", [["ground turkey", "½ lb"], ["orzo", "½ cup"], ["baby spinach", "4 cups"], ["low-sodium chicken broth", "6 cups"]]],
+    ["Roasted butternut squash soup", "easy", 50, "Roast squash, blend with broth and cream, season with nutmeg.", [["butternut squash", "1 large"], ["heavy cream", "½ cup"], ["yellow onion", "1"], ["ground nutmeg", "¼ tsp"]]],
   ],
   salads: [
     ["Summer watermelon feta salad", "easy", 10, "Toss cubed watermelon with feta, mint, and lime. Serve chilled.", [["seedless watermelon", "4 cups cubed"], ["feta cheese", "4 oz"], ["fresh mint", "¼ cup"], ["lime", "1"]]],
@@ -126,6 +140,8 @@ export const BY_CATEGORY = {
     ["Strawberry spinach salad", "easy", 12, "Toss spinach with strawberries, goat cheese, and poppy seed dressing.", [["baby spinach", "6 cups"], ["strawberries", "2 cups sliced"], ["goat cheese", "4 oz"], ["sliced almonds", "¼ cup"]]],
     ["Cobb salad", "easy", 20, "Layer lettuce with chicken, bacon, egg, avocado, and blue cheese.", [["romaine lettuce", "1 head"], ["cooked chicken breast", "2 cups"], ["avocado", "2"], ["blue cheese", "4 oz"]]],
     ["Panzanella", "easy", 20, "Toss torn bread with tomatoes, cucumber, red onion, and vinaigrette.", [["ciabatta bread", "4 cups cubed"], ["heirloom tomatoes", "4"], ["red onion", "½ sliced"], ["red wine vinegar", "3 tbsp"]]],
+    ["Kale apple salad", "easy", 12, "Massage kale with lemon dressing, toss with sliced apple and toasted pecans.", [["kale", "1 bunch"], ["apple", "2 sliced"], ["pecans", "½ cup toasted"], ["lemon", "1 juiced"]]],
+    ["Farro beet salad", "medium", 35, "Cook farro, toss with roasted beets, goat cheese, and arugula.", [["farro", "1 cup dry"], ["beets", "3 roasted"], ["goat cheese", "4 oz"], ["baby arugula", "4 cups"]]],
   ],
   pasta: [
     ["Spaghetti aglio e olio", "easy", 20, "Cook spaghetti, toss with olive oil, garlic, chili flakes, and parsley.", [["spaghetti", "12 oz"], ["garlic cloves", "6 sliced"], ["extra-virgin olive oil", "½ cup"], ["red pepper flakes", "½ tsp"]]],
@@ -169,10 +185,25 @@ export function buildStarterRecipes() {
     if (pool.length === 0) throw new Error(`Missing recipes for ${cat}`);
   }
   const queues = Object.fromEntries(CATEGORIES.map((c) => [c, [...BY_CATEGORY[c]]]));
+  const usedTitles = new Set();
+  const normTitle = (title) => title.trim().toLowerCase();
+  const takeFromQueue = (cat) => {
+    const queue = queues[cat];
+    while (queue.length > 0) {
+      const item = queue.shift();
+      const key = normTitle(item[0]);
+      if (!usedTitles.has(key)) {
+        usedTitles.add(key);
+        return item;
+      }
+    }
+    throw new Error(
+      `No unused recipes left in ${cat} (add more unique titles to BY_CATEGORY.${cat})`,
+    );
+  };
   const counts = Object.fromEntries(CATEGORIES.map((c) => [c, 0]));
   for (const cat of CATEGORIES) {
-    const item = queues[cat].shift();
-    if (!item) throw new Error(`Empty queue for ${cat}`);
+    const item = takeFromQueue(cat);
     recipes.push({ cat, item, seq: seq++ });
     counts[cat]++;
   }
@@ -183,10 +214,14 @@ export function buildStarterRecipes() {
         ? summerBoost[i % summerBoost.length]
         : CATEGORIES[i % CATEGORIES.length];
     i++;
-    if (queues[cat].length === 0) queues[cat].push(...BY_CATEGORY[cat]);
-    const item = queues[cat].shift();
+    const item = takeFromQueue(cat);
     recipes.push({ cat, item, seq: seq++ });
     counts[cat]++;
+  }
+  if (usedTitles.size !== TARGET) {
+    throw new Error(
+      `Expected ${TARGET} unique titles, got ${usedTitles.size} (${recipes.length} recipes)`,
+    );
   }
   return { recipes, counts };
 }
