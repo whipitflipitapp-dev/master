@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { parseIngredientInput } from "@/lib/ingredients";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const PANTRY_INPUT_MAX = 4000;
+const PANTRY_TOKEN_MAX = 80;
+const PANTRY_SYNC_MAX_ITEMS = 100;
 
 export type PantryRow = {
   id: string;
@@ -35,7 +40,8 @@ export async function listPantry(): Promise<{
     .order("ingredient", { ascending: true });
 
   if (error) {
-    return { items: [], error: error.message };
+    logServerError("pantry.list", error);
+    return { items: [], error: GENERIC_SERVER_ERROR };
   }
 
   return { items: (data ?? []) as PantryRow[], error: null };
@@ -56,10 +62,17 @@ export async function addPantryItem(
     return { ok: false, error: "Sign in to save pantry items." };
   }
 
+  if (ingredient.length > PANTRY_INPUT_MAX) {
+    return { ok: false, error: "Ingredient name is too long." };
+  }
+
   const tokens = parseIngredientInput(ingredient);
   const name = tokens[0];
   if (!name) {
     return { ok: false, error: "Enter an ingredient name." };
+  }
+  if (name.length > PANTRY_TOKEN_MAX) {
+    return { ok: false, error: "Ingredient name is too long." };
   }
 
   const { data: maxRow } = await supabase
@@ -84,7 +97,8 @@ export async function addPantryItem(
       revalidatePath("/help-me-cook");
       return { ok: true };
     }
-    return { ok: false, error: error.message };
+    logServerError("pantry.add", error);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   revalidatePath("/help-me-cook");
@@ -118,7 +132,8 @@ export async function removePantryItem(
     .eq("user_id", user.id);
 
   if (error) {
-    return { ok: false, error: error.message };
+    logServerError("pantry.remove", error);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   revalidatePath("/help-me-cook");
@@ -143,7 +158,11 @@ export async function syncPantryFromCommaString(
     return { ok: false, error: "Sign in to save your pantry." };
   }
 
-  const tokens = parseIngredientInput(raw);
+  if (raw.length > PANTRY_INPUT_MAX) {
+    return { ok: false, error: "Pantry list is too long." };
+  }
+
+  const tokens = parseIngredientInput(raw).slice(0, PANTRY_SYNC_MAX_ITEMS);
 
   const { data: existing, error: listErr } = await supabase
     .from("user_pantry")
@@ -151,7 +170,8 @@ export async function syncPantryFromCommaString(
     .eq("user_id", user.id);
 
   if (listErr) {
-    return { ok: false, error: listErr.message };
+    logServerError("pantry.sync_list", listErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   const rows = existing ?? [];
@@ -178,7 +198,8 @@ export async function syncPantryFromCommaString(
         have.add(key);
         continue;
       }
-      return { ok: false, error: error.message };
+      logServerError("pantry.sync_insert", error);
+      return { ok: false, error: GENERIC_SERVER_ERROR };
     }
     have.add(key);
   }

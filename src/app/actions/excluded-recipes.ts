@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ExcludedRecipeListItem = {
@@ -11,6 +12,9 @@ export type ExcludedRecipeListItem = {
   imageUrl: string | null;
   excludedAt: string;
 };
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function revalidateExcludedRecipePaths(recipeId?: string) {
   revalidatePath("/profile");
@@ -38,7 +42,7 @@ export async function excludeRecipe(recipeId: string): Promise<{
   }
 
   const rid = recipeId.trim();
-  if (!rid) {
+  if (!UUID_RE.test(rid)) {
     return { ok: false, error: "Invalid recipe." };
   }
 
@@ -52,7 +56,8 @@ export async function excludeRecipe(recipeId: string): Promise<{
       revalidateExcludedRecipePaths(rid);
       return { ok: true };
     }
-    return { ok: false, error: error.message };
+    logServerError("excluded_recipes.exclude", error);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   revalidateExcludedRecipePaths(rid);
@@ -76,7 +81,7 @@ export async function includeRecipe(recipeId: string): Promise<{
   }
 
   const rid = recipeId.trim();
-  if (!rid) {
+  if (!UUID_RE.test(rid)) {
     return { ok: false, error: "Invalid recipe." };
   }
 
@@ -87,7 +92,8 @@ export async function includeRecipe(recipeId: string): Promise<{
     .eq("recipe_id", rid);
 
   if (error) {
-    return { ok: false, error: error.message };
+    logServerError("excluded_recipes.include", error);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   revalidateExcludedRecipePaths(rid);
@@ -127,7 +133,8 @@ export async function listExcludedRecipes(): Promise<{
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { items: [], error: error.message };
+    logServerError("excluded_recipes.list", error);
+    return { items: [], error: GENERIC_SERVER_ERROR };
   }
 
   type Embed = {

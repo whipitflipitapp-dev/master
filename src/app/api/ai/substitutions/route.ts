@@ -10,6 +10,7 @@ import {
   type SubstitutionSuggestion,
 } from "@/lib/ai/sanitize-output";
 import { loadAiChefUserContext } from "@/lib/ai/user-context";
+import { rejectOversizedRequest } from "@/lib/http/request-size";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ export const dynamic = "force-dynamic";
 const MAX_INGREDIENT = 120;
 const MAX_CONTEXT = 400;
 const MAX_ALLERGY = 400;
+const MAX_JSON_BODY_BYTES = 2 * 1024;
 
 function readStr(v: unknown, max: number): string {
   if (typeof v !== "string") {
@@ -67,6 +69,11 @@ export async function POST(req: NextRequest) {
   const ctx = await requireAiChefRequest();
   if ("error" in ctx) {
     return ctx.error;
+  }
+
+  const oversized = rejectOversizedRequest(req, MAX_JSON_BODY_BYTES);
+  if (oversized) {
+    return oversized;
   }
 
   const openai = getOpenAi();

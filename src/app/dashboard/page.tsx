@@ -6,6 +6,7 @@ import { RecipeUploadQuotaNotice } from "@/components/billing/RecipeUploadQuotaN
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { getRecipeUploadQuotaForUi } from "@/lib/recipe-upload-limit";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -57,6 +58,7 @@ export default async function DashboardPage() {
   ]);
 
   if (favCountRes.error) {
+    logServerError("dashboard.favorite_count", favCountRes.error);
     return (
       <ContentPageBackdrop pageKey="/dashboard">
       <main className="mx-auto flex max-w-lg flex-1 flex-col gap-4 px-5 py-8">
@@ -64,7 +66,7 @@ export default async function DashboardPage() {
           {dictText(dict, "dashboard_title")}
         </h1>
         <p className="text-sm text-[var(--danger)]" role="alert">
-          {favCountRes.error.message}
+          {GENERIC_LOAD_ERROR}
         </p>
       </main>
       </ContentPageBackdrop>
@@ -72,6 +74,7 @@ export default async function DashboardPage() {
   }
 
   if (authoredRes.error) {
+    logServerError("dashboard.authored_recipes", authoredRes.error);
     return (
       <ContentPageBackdrop pageKey="/dashboard">
       <main className="mx-auto flex max-w-lg flex-1 flex-col gap-4 px-5 py-8">
@@ -79,7 +82,7 @@ export default async function DashboardPage() {
           {dictText(dict, "dashboard_title")}
         </h1>
         <p className="text-sm text-[var(--danger)]" role="alert">
-          {authoredRes.error.message}
+          {GENERIC_LOAD_ERROR}
         </p>
       </main>
       </ContentPageBackdrop>

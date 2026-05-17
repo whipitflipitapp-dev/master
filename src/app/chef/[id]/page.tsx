@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { AffiliateDisclosure } from "@/components/affiliate/AffiliateDisclosure";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
+import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type Props = { params: Promise<{ id: string }> };
@@ -73,7 +74,8 @@ async function loadChefPage(chefId: string) {
   );
 
   if (headerErr) {
-    return { configured: true as const, error: headerErr.message };
+    logServerError("chef.public_profile", headerErr);
+    return { configured: true as const, error: GENERIC_LOAD_ERROR };
   }
 
   type Header = { display_name: string | null; avatar_url: string | null };
@@ -89,7 +91,8 @@ async function loadChefPage(chefId: string) {
     .order("title", { ascending: true });
 
   if (booksErr) {
-    return { configured: true as const, error: booksErr.message };
+    logServerError("chef.cookbooks", booksErr);
+    return { configured: true as const, error: GENERIC_LOAD_ERROR };
   }
 
   return {

@@ -32,6 +32,7 @@ import {
 import { checkMonthlyRecipeUploadAllowed } from "@/lib/recipe-upload-limit";
 import { PREMIUM_RECIPE_TOOLS_PLAN_REQUIRED_ERROR } from "@/lib/premium-recipe-tools-plan-gate";
 import { getCurrentProfile } from "@/lib/profile";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isProOrAbove } from "@/lib/plan";
@@ -40,6 +41,15 @@ import {
   type RecipeCategory,
 } from "@/lib/recipe-categories";
 import { getExcludedRecipeIdsForUser } from "@/lib/user-excluded-recipes";
+
+const RECIPE_TITLE_MAX = 200;
+const RECIPE_INSTRUCTIONS_MAX = 12000;
+const RECIPE_INGREDIENTS_TEXT_MAX = 8000;
+const RECIPE_INGREDIENT_MAX_COUNT = 80;
+const RECIPE_TAGS_TEXT_MAX = 1000;
+const RECIPE_VIDEO_URL_MAX = 2048;
+const RECIPE_ALLERGEN_MAX_COUNT = 32;
+const RECIPE_CATEGORY_MAX_COUNT = 8;
 
 export type RecipeListItem = {
   id: string;
@@ -163,7 +173,8 @@ async function listRecipesBrowseFallback(
       .in("allergen_id", excludeIds);
 
     if (raErr) {
-      return { rows: null, errorMessage: raErr.message };
+      logServerError("recipes.browse_allergen_filter", raErr);
+      return { rows: null, errorMessage: GENERIC_SERVER_ERROR };
     }
     blocked = new Set(
       (ra ?? []).map((r: { recipe_id: string }) => r.recipe_id),
@@ -187,7 +198,8 @@ async function listRecipesBrowseFallback(
   const { data: demoData, error: demoErr } = await demoQ;
 
   if (demoErr) {
-    return { rows: null, errorMessage: demoErr.message };
+    logServerError("recipes.browse_demo_recipes", demoErr);
+    return { rows: null, errorMessage: GENERIC_SERVER_ERROR };
   }
 
   const demoById = new Map(
@@ -228,7 +240,8 @@ async function listRecipesBrowseFallback(
     const { data, error } = await q.range(offset, offset + PAGE - 1);
 
     if (error) {
-      return { rows: null, errorMessage: error.message };
+      logServerError("recipes.browse", error);
+      return { rows: null, errorMessage: GENERIC_SERVER_ERROR };
     }
 
     const batch = (data ?? []) as RecipeBrowseRow[];
@@ -555,7 +568,8 @@ export async function matchRecipesForPantry(
     .in("ingredient_id", [...userUnion]);
 
   if (riErr) {
-    return { matches: [], error: riErr.message };
+    logServerError("recipes.match_recipe_ingredients", riErr);
+    return { matches: [], error: GENERIC_SERVER_ERROR };
   }
 
   const recipeUnionHits = new Map<string, Set<string>>();
@@ -616,7 +630,8 @@ export async function matchRecipesForPantry(
     .in("id", candidateIds);
 
   if (rErr) {
-    return { matches: [], error: rErr.message };
+    logServerError("recipes.match_recipes", rErr);
+    return { matches: [], error: GENERIC_SERVER_ERROR };
   }
 
   const { data: allRi, error: allRiErr } = await supabase
@@ -625,9 +640,12 @@ export async function matchRecipesForPantry(
     .in("recipe_id", candidateIds);
 
   if (allRiErr || !allRi) {
+    if (allRiErr) {
+      logServerError("recipes.match_all_ingredients", allRiErr);
+    }
     return {
       matches: [],
-      error: allRiErr?.message ?? "Failed to load ingredients.",
+      error: GENERIC_SERVER_ERROR,
       ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
       ...genericHintsExtra,
     };
@@ -852,10 +870,37 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
   if (!title || !instructions) {
     return { error: "Title and instructions are required.", recipeId: null };
   }
+  if (title.length > RECIPE_TITLE_MAX) {
+    return { error: `Title must be at most ${RECIPE_TITLE_MAX} characters.`, recipeId: null };
+  }
+  if (instructions.length > RECIPE_INSTRUCTIONS_MAX) {
+    return {
+      error: `Instructions must be at most ${RECIPE_INSTRUCTIONS_MAX} characters.`,
+      recipeId: null,
+    };
+  }
+  if (ingredientBlock.length > RECIPE_INGREDIENTS_TEXT_MAX) {
+    return { error: "Ingredient list is too long.", recipeId: null };
+  }
+  if (tagRaw.length > RECIPE_TAGS_TEXT_MAX) {
+    return { error: "Tags are too long.", recipeId: null };
+  }
+  if (videoUrlRaw.length > RECIPE_VIDEO_URL_MAX) {
+    return { error: "Video URL is too long.", recipeId: null };
+  }
+  if (categorySlugs.length > RECIPE_CATEGORY_MAX_COUNT) {
+    return { error: "Choose fewer recipe categories.", recipeId: null };
+  }
+  if (allergenIds.length > RECIPE_ALLERGEN_MAX_COUNT) {
+    return { error: "Choose fewer allergens.", recipeId: null };
+  }
 
   const ingredientEntries = parseIngredientLinesForRecipe(ingredientBlock);
   if (ingredientEntries.length === 0) {
     return { error: "Add at least one ingredient.", recipeId: null };
+  }
+  if (ingredientEntries.length > RECIPE_INGREDIENT_MAX_COUNT) {
+    return { error: "Use fewer ingredients.", recipeId: null };
   }
 
   const projectOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -886,8 +931,11 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     .single();
 
   if (recipeError || !recipe) {
+    if (recipeError) {
+      logServerError("recipes.create_recipe", recipeError);
+    }
     return {
-      error: recipeError?.message ?? "Could not create recipe.",
+      error: GENERIC_SERVER_ERROR,
       recipeId: null,
     };
   }
@@ -903,7 +951,10 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
       .single();
 
     if (ingErr || !ingRow) {
-      return { error: ingErr?.message ?? "Ingredient save failed.", recipeId };
+      if (ingErr) {
+        logServerError("recipes.create_ingredient_upsert", ingErr);
+      }
+      return { error: GENERIC_SERVER_ERROR, recipeId };
     }
 
     const { error: riErr } = await supabase.from("recipe_ingredients").insert({
@@ -914,7 +965,8 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     });
 
     if (riErr) {
-      return { error: riErr.message, recipeId };
+      logServerError("recipes.create_recipe_ingredient", riErr);
+      return { error: GENERIC_SERVER_ERROR, recipeId };
     }
   }
 
@@ -936,7 +988,10 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
       .single();
 
     if (tagErr || !tagRow) {
-      return { error: tagErr?.message ?? "Tag save failed.", recipeId };
+      if (tagErr) {
+        logServerError("recipes.create_tag_upsert", tagErr);
+      }
+      return { error: GENERIC_SERVER_ERROR, recipeId };
     }
 
     const { error: rtErr } = await supabase.from("recipe_tags").insert({
@@ -945,7 +1000,8 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     });
 
     if (rtErr) {
-      return { error: rtErr.message, recipeId };
+      logServerError("recipes.create_recipe_tag", rtErr);
+      return { error: GENERIC_SERVER_ERROR, recipeId };
     }
   }
 
@@ -955,7 +1011,8 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
       allergen_id: aid,
     });
     if (raErr) {
-      return { error: raErr.message, recipeId };
+      logServerError("recipes.create_recipe_allergen", raErr);
+      return { error: GENERIC_SERVER_ERROR, recipeId };
     }
   }
 
@@ -1025,7 +1082,8 @@ export async function toggleFavorite(recipeId: string): Promise<{
     .maybeSingle();
 
   if (existErr) {
-    return { ok: false, error: existErr.message };
+    logServerError("recipes.favorite_lookup", existErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   if (existing) {
@@ -1035,7 +1093,8 @@ export async function toggleFavorite(recipeId: string): Promise<{
       .eq("user_id", user.id)
       .eq("recipe_id", rid);
     if (error) {
-      return { ok: false, error: error.message };
+      logServerError("recipes.favorite_remove", error);
+      return { ok: false, error: GENERIC_SERVER_ERROR };
     }
     await logEvent(supabase, {
       type: "favorite_removed",
@@ -1073,7 +1132,8 @@ export async function toggleFavorite(recipeId: string): Promise<{
         ...(favoritesCount !== undefined ? { favoritesCount } : {}),
       };
     }
-    return { ok: false, error: insErr.message };
+    logServerError("recipes.favorite_insert", insErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   await logEvent(supabase, {
@@ -1129,11 +1189,16 @@ export async function updateRecipe(
   }
 
   const recipeId = String(formData.get("recipe_id") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim().slice(0, 200);
+  const title = String(formData.get("title") ?? "")
+    .trim()
+    .slice(0, RECIPE_TITLE_MAX);
   const instructions = String(formData.get("instructions") ?? "")
     .trim()
-    .slice(0, 12000);
-  const ingredientBlock = String(formData.get("ingredients") ?? "");
+    .slice(0, RECIPE_INSTRUCTIONS_MAX);
+  const ingredientBlock = String(formData.get("ingredients") ?? "").slice(
+    0,
+    RECIPE_INGREDIENTS_TEXT_MAX,
+  );
   const ingredientEntries = parseIngredientLinesForRecipe(ingredientBlock);
 
   if (!recipeId) {
@@ -1145,6 +1210,9 @@ export async function updateRecipe(
   if (ingredientEntries.length === 0) {
     return { error: "Add at least one ingredient.", success: null };
   }
+  if (ingredientEntries.length > RECIPE_INGREDIENT_MAX_COUNT) {
+    return { error: "Use fewer ingredients.", success: null };
+  }
 
   const { data: ownedRecipe, error: ownedErr } = await supabase
     .from("recipes")
@@ -1154,7 +1222,8 @@ export async function updateRecipe(
     .maybeSingle();
 
   if (ownedErr) {
-    return { error: ownedErr.message, success: null };
+    logServerError("recipes.update_ownership_lookup", ownedErr);
+    return { error: GENERIC_SERVER_ERROR, success: null };
   }
   if (!ownedRecipe) {
     return { error: "You can only edit your own recipes.", success: null };
@@ -1167,7 +1236,8 @@ export async function updateRecipe(
     .eq("created_by", ctx.user.id);
 
   if (recipeError) {
-    return { error: recipeError.message, success: null };
+    logServerError("recipes.update_recipe", recipeError);
+    return { error: GENERIC_SERVER_ERROR, success: null };
   }
 
   const ingredientIds: string[] = [];
@@ -1179,7 +1249,10 @@ export async function updateRecipe(
       .single();
 
     if (ingErr || !ingRow) {
-      return { error: ingErr?.message ?? "Ingredient save failed.", success: null };
+      if (ingErr) {
+        logServerError("recipes.update_ingredient_upsert", ingErr);
+      }
+      return { error: GENERIC_SERVER_ERROR, success: null };
     }
     ingredientIds.push(ingRow.id);
   }
@@ -1190,7 +1263,8 @@ export async function updateRecipe(
     .eq("recipe_id", recipeId);
 
   if (deleteIngredientsError) {
-    return { error: deleteIngredientsError.message, success: null };
+    logServerError("recipes.update_delete_ingredients", deleteIngredientsError);
+    return { error: GENERIC_SERVER_ERROR, success: null };
   }
 
   const { error: riErr } = await supabase.from("recipe_ingredients").insert(
@@ -1203,7 +1277,8 @@ export async function updateRecipe(
   );
 
   if (riErr) {
-    return { error: riErr.message, success: null };
+    logServerError("recipes.update_recipe_ingredients", riErr);
+    return { error: GENERIC_SERVER_ERROR, success: null };
   }
 
   await logEvent(supabase, {

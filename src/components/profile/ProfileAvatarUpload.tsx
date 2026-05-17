@@ -29,14 +29,11 @@ export function ProfileAvatarUpload({
   };
 }) {
   const router = useRouter();
-  const [preview, setPreview] = useState<string | null>(currentAvatarUrl);
+  const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setPreview(currentAvatarUrl);
-  }, [currentAvatarUrl]);
+  const displayPreview = preview ?? currentAvatarUrl;
 
   useEffect(() => {
     return () => {
@@ -142,7 +139,7 @@ export function ProfileAvatarUpload({
     if (next) {
       setPreview(URL.createObjectURL(next));
     } else {
-      setPreview(currentAvatarUrl);
+      setPreview(null);
     }
   }
 
@@ -166,10 +163,10 @@ export function ProfileAvatarUpload({
 
       <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_88%,var(--bg))] shadow-[var(--shadow-card)]">
-          {preview ? (
+          {displayPreview ? (
             // eslint-disable-next-line @next/next/no-img-element -- blob or Supabase avatar URL
             <img
-              src={preview}
+              src={displayPreview}
               alt=""
               className="h-full w-full object-cover"
             />

@@ -8,11 +8,13 @@ import {
   sanitizeVisionOutput,
   type VisionIngredientsShape,
 } from "@/lib/ai/sanitize-output";
+import { rejectOversizedRequest } from "@/lib/http/request-size";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_BYTES = 4 * 1024 * 1024;
+const MAX_MULTIPART_BYTES = MAX_BYTES + 128 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png"]);
 
 function bufferToBase64(buf: Buffer): string {
@@ -39,6 +41,11 @@ export async function POST(req: NextRequest) {
   const ctx = await requireAiChefRequest();
   if ("error" in ctx) {
     return ctx.error;
+  }
+
+  const oversized = rejectOversizedRequest(req, MAX_MULTIPART_BYTES);
+  if (oversized) {
+    return oversized;
   }
 
   const openai = getOpenAi();

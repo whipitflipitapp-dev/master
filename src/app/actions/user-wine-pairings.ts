@@ -6,6 +6,7 @@ import {
   isCuratedWineTypeSlug,
   WINE_TYPE_CANONICAL_LABEL,
 } from "@/lib/wine-types";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const UUID_RE =
@@ -72,6 +73,9 @@ export async function submitUserWinePairing(
     .maybeSingle();
 
   if (recipeErr || !recipe) {
+    if (recipeErr) {
+      logServerError("user_wine_pairings.recipe_lookup", recipeErr);
+    }
     return { ok: false, error: "Recipe not found." };
   }
 
@@ -99,7 +103,8 @@ export async function submitUserWinePairing(
       .update(payload)
       .eq("id", existing.id);
     if (updErr) {
-      return { ok: false, error: updErr.message };
+      logServerError("user_wine_pairings.update", updErr);
+      return { ok: false, error: GENERIC_SERVER_ERROR };
     }
   } else {
     const { error: insErr } = await supabase.from("wine_pairings").insert({
@@ -110,7 +115,8 @@ export async function submitUserWinePairing(
       ...payload,
     });
     if (insErr) {
-      return { ok: false, error: insErr.message };
+      logServerError("user_wine_pairings.insert", insErr);
+      return { ok: false, error: GENERIC_SERVER_ERROR };
     }
   }
 
@@ -146,6 +152,9 @@ export async function deleteUserWinePairing(pairingId: string): Promise<{
     .maybeSingle();
 
   if (fetchErr || !row || row.source !== "user" || row.user_id !== user.id) {
+    if (fetchErr) {
+      logServerError("user_wine_pairings.lookup_for_delete", fetchErr);
+    }
     return { ok: false, error: "Pairing not found." };
   }
 
@@ -155,7 +164,8 @@ export async function deleteUserWinePairing(pairingId: string): Promise<{
     .eq("id", id);
 
   if (delErr) {
-    return { ok: false, error: delErr.message };
+    logServerError("user_wine_pairings.delete", delErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   revalidateRecipeWinePaths(row.recipe_id);

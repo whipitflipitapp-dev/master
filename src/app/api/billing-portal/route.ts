@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 
+import { logServerError } from "@/lib/server-error";
 import { getStripe, resolveSiteUrl } from "@/lib/stripe";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -49,9 +50,11 @@ export async function POST(req: NextRequest) {
   try {
     stripe = getStripe();
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Stripe is not configured.";
-    return NextResponse.json({ error: message }, { status: 503 });
+    logServerError("billing_portal.stripe_config", err);
+    return NextResponse.json(
+      { error: "Stripe is not configured." },
+      { status: 503 },
+    );
   }
 
   let session: Stripe.BillingPortal.Session;
@@ -61,9 +64,11 @@ export async function POST(req: NextRequest) {
       return_url: `${resolveSiteUrl()}/profile`,
     });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to open billing portal.";
-    return NextResponse.json({ error: message }, { status: 502 });
+    logServerError("billing_portal.session_create", err);
+    return NextResponse.json(
+      { error: "Failed to open billing portal." },
+      { status: 502 },
+    );
   }
 
   if (wantsRedirect(req)) {

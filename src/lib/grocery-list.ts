@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const GROCERY_LIST_TITLE = "Whip It Flip It Grocery List";
 export const GROCERY_LIST_LOGO_PATH = "/images/upgrade-pitch-logo.png";
+const GENERIC_GROCERY_LOAD_ERROR =
+  "Something went wrong. Please try again.";
 
 export type GroceryListIngredient = {
   ingredientId: string;
@@ -82,7 +84,7 @@ export async function loadSavedGroceryListRecipes(
     .order("created_at", { ascending: false });
 
   if (favoritesError) {
-    return { recipes: [], error: favoritesError.message };
+    return { recipes: [], error: GENERIC_GROCERY_LOAD_ERROR };
   }
 
   const recipes: GroceryListRecipe[] = (favoriteRows ?? [])
@@ -118,7 +120,7 @@ export async function loadSavedGroceryListRecipes(
       .order("sort_order", { ascending: true });
 
   if (recipeIngredientError) {
-    return { recipes: [], error: recipeIngredientError.message };
+    return { recipes: [], error: GENERIC_GROCERY_LOAD_ERROR };
   }
 
   const ingredientIds = [
@@ -134,7 +136,7 @@ export async function loadSavedGroceryListRecipes(
     : { data: [] as { id: string; name: string }[], error: null };
 
   if (ingredientsError) {
-    return { recipes: [], error: ingredientsError.message };
+    return { recipes: [], error: GENERIC_GROCERY_LOAD_ERROR };
   }
 
   const ingredientNameById = new Map(

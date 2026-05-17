@@ -6,6 +6,7 @@ import {
   fetchGenericPantryTokenHints,
   type GenericPantryTokenHint,
 } from "@/lib/pantry-specificity";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 
 export type { GenericPantryTokenHint };
 
@@ -52,7 +53,8 @@ export async function resolvePantryIngredientTokens(
     .in("name", userTokens);
 
   if (ingErr) {
-    return { ok: false, error: ingErr.message };
+    logServerError("pantry_ingredient_resolve.exact", ingErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   const tokenToIds = new Map<string, Set<string>>();
@@ -74,7 +76,8 @@ export async function resolvePantryIngredientTokens(
       .limit(80);
 
     if (pErr) {
-      return { ok: false, error: pErr.message };
+      logServerError("pantry_ingredient_resolve.partial", pErr);
+      return { ok: false, error: GENERIC_SERVER_ERROR };
     }
     const acc = tokenToIds.get(token)!;
     for (const row of (partialRows ?? []) as IngRow[]) {

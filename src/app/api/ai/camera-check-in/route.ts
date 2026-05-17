@@ -10,6 +10,8 @@ import {
   type CameraCheckInShape,
 } from "@/lib/ai/sanitize-output";
 import { loadAiChefUserContext } from "@/lib/ai/user-context";
+import { rejectOversizedRequest } from "@/lib/http/request-size";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +20,7 @@ export const dynamic = "force-dynamic";
 export const CAMERA_CHECK_IN_MONTHLY_LIMIT = 25;
 
 const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_MULTIPART_BYTES = MAX_BYTES + 128 * 1024;
 const MAX_QUESTION = 500;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const EVENT_TYPE = "ai_camera_check_in";
@@ -46,7 +49,8 @@ async function countCurrentMonthCheckIns(
     .lt("created_at", endExclusiveIso);
 
   if (error) {
-    return { count: 0, error: error.message };
+    logServerError("camera_check_in.usage_count", error);
+    return { count: 0, error: GENERIC_SERVER_ERROR };
   }
 
   return { count: typeof count === "number" ? count : 0, error: null };
@@ -77,6 +81,11 @@ export async function POST(req: NextRequest) {
   const ctx = await requireAiChefRequest();
   if ("error" in ctx) {
     return ctx.error;
+  }
+
+  const oversized = rejectOversizedRequest(req, MAX_MULTIPART_BYTES);
+  if (oversized) {
+    return oversized;
   }
 
   const openai = getOpenAi();

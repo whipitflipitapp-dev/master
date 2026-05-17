@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type RecipeExperienceRow = {
@@ -105,7 +106,8 @@ export async function saveRecipeExperience(
   );
 
   if (error) {
-    return { ok: false, error: error.message };
+    logServerError("recipe_experiences.save", error);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
   }
 
   revalidateExperiencePaths(recipeId);
@@ -149,7 +151,8 @@ export async function listMyRecipeExperiences(): Promise<{
     .order("updated_at", { ascending: false });
 
   if (error) {
-    return { items: [], error: error.message };
+    logServerError("recipe_experiences.list", error);
+    return { items: [], error: GENERIC_SERVER_ERROR };
   }
 
   type Embed = {

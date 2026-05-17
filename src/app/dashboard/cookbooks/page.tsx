@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { CookbooksDashboardManager } from "@/components/cookbooks/CookbooksDashboardManager";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { getCurrentProfile } from "@/lib/profile";
+import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -48,12 +49,13 @@ export default async function DashboardCookbooksPage() {
     .order("title", { ascending: true });
 
   if (error) {
+    logServerError("dashboard_cookbooks.list", error);
     return (
       <ContentPageBackdrop pageKey="/dashboard/cookbooks">
       <main className="mx-auto flex max-w-lg flex-1 flex-col gap-4 px-5 py-8">
         <h1 className="text-2xl font-bold tracking-tight">Cookbooks</h1>
         <p className="text-sm text-[var(--danger)]" role="alert">
-          {error.message}
+          {GENERIC_LOAD_ERROR}
         </p>
       </main>
       </ContentPageBackdrop>

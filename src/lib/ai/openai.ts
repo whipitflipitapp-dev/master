@@ -1,3 +1,5 @@
+import "server-only";
+
 import OpenAI from "openai";
 
 /** Server-side only — never import from client bundles. */

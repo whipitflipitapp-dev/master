@@ -9,6 +9,7 @@ import {
   sanitizeWinePairings,
   type WinePairingGenerated,
 } from "@/lib/ai/wine-pairings-output";
+import { rejectOversizedRequest } from "@/lib/http/request-size";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_JSON_BODY_BYTES = 1024;
 
 function readRecipeId(v: unknown): string | null {
   if (typeof v !== "string") {
@@ -29,6 +31,11 @@ export async function POST(req: NextRequest) {
   const ctx = await requireProWineRequest();
   if ("error" in ctx) {
     return ctx.error;
+  }
+
+  const oversized = rejectOversizedRequest(req, MAX_JSON_BODY_BYTES);
+  if (oversized) {
+    return oversized;
   }
 
   const openai = getOpenAi();
@@ -57,12 +64,16 @@ export async function POST(req: NextRequest) {
 
   const { data: recipe, error: recipeErr } = await ctx.supabase
     .from("recipes")
-    .select("id,title,instructions")
+    .select("id,title,instructions,created_by")
     .eq("id", recipeId)
+    .eq("created_by", ctx.userId)
     .maybeSingle();
 
   if (recipeErr || !recipe) {
-    return NextResponse.json({ error: "Recipe not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Recipe not found or not owned by you." },
+      { status: 404 },
+    );
   }
 
   const { data: ri } = await ctx.supabase

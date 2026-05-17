@@ -10,6 +10,7 @@ import {
 import { COOKBOOK_PLAN_REQUIRED_ERROR } from "@/lib/cookbooks-plan-gate";
 import { getCurrentProfile } from "@/lib/profile";
 import { isProOrAbove } from "@/lib/plan";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const TITLE_MAX = 200;
@@ -109,7 +110,8 @@ export async function createCookbook(
   });
 
   if (error) {
-    return { error: error.message };
+    logServerError("cookbooks.create", error);
+    return { error: GENERIC_SERVER_ERROR };
   }
 
   revalidatePath("/dashboard/cookbooks");
@@ -178,7 +180,8 @@ export async function updateCookbook(
     .select("id");
 
   if (error) {
-    return { error: error.message };
+    logServerError("cookbooks.update", error);
+    return { error: GENERIC_SERVER_ERROR };
   }
   if (!data?.length) {
     return { error: "Could not update cookbook." };

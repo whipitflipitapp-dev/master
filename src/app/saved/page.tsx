@@ -7,6 +7,7 @@ import { RecipeListCard } from "@/components/recipe/RecipeListCard";
 import { RecipeCreatorAttribution } from "@/components/recipe/RecipeCreatorAttribution";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -96,6 +97,7 @@ export default async function SavedPage() {
     .order("created_at", { ascending: false });
 
   if (favErr) {
+    logServerError("saved.favorites", favErr);
     return (
       <ContentPageBackdrop pageKey="/saved">
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-8">
@@ -105,7 +107,7 @@ export default async function SavedPage() {
           </h1>
         </header>
         <p className="text-sm text-[var(--danger)]" role="alert">
-          {favErr.message}
+          {GENERIC_LOAD_ERROR}
         </p>
       </main>
       </ContentPageBackdrop>

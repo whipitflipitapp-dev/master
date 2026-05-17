@@ -1,3 +1,5 @@
+import "server-only";
+
 import type Stripe from "stripe";
 
 import { checkoutErrorMessage } from "@/lib/billing/checkout-session";
@@ -59,7 +61,7 @@ async function persistPendingPlanChange(
   if (!supabase) {
     return {
       ok: false,
-      error: "SUPABASE_SERVICE_ROLE_KEY is not configured.",
+      error: "Could not save scheduled downgrade.",
     };
   }
   const { error } = await supabase
@@ -70,7 +72,7 @@ async function persistPendingPlanChange(
     })
     .eq("id", userId);
   if (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: "Could not save scheduled downgrade." };
   }
   return { ok: true };
 }

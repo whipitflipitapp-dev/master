@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isAiChef, type PlanType } from "@/lib/plan";
 import { getCurrentUserPlanType } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { rateLimitHeaders } from "@/lib/rate-limit";
 
 import { consumeAiRateLimit } from "./rate-limit";
 
@@ -50,11 +51,12 @@ export async function requireAiChefRequest(): Promise<
     };
   }
 
-  if (!consumeAiRateLimit(user.id)) {
+  const limit = consumeAiRateLimit(user.id);
+  if (!limit.allowed) {
     return {
       error: NextResponse.json(
         { error: "Too many requests. Try again shortly." },
-        { status: 429 },
+        { status: 429, headers: rateLimitHeaders(limit) },
       ),
     };
   }

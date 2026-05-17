@@ -8,6 +8,7 @@ import {
   REFERRAL_SOURCE_VALUES,
   type OnboardingInput,
 } from "@/lib/onboarding";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const NAME_MAX_LEN = 80;
@@ -170,7 +171,8 @@ export async function completeOnboarding(
     .eq("id", user.id);
 
   if (error) {
-    return { error: error.message };
+    logServerError("onboarding.save", error);
+    return { error: GENERIC_SERVER_ERROR };
   }
 
   revalidatePath("/", "layout");

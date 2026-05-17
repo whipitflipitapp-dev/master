@@ -9,6 +9,7 @@ import {
   type RecipeGenerateShape,
 } from "@/lib/ai/sanitize-output";
 import { loadAiChefUserContext } from "@/lib/ai/user-context";
+import { rejectOversizedRequest } from "@/lib/http/request-size";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 const MAX_INGREDIENT_INPUT = 24;
 const MAX_INGREDIENT_TOKEN = 48;
 const MAX_OPTIONAL_FIELD = 200;
+const MAX_JSON_BODY_BYTES = 8 * 1024;
 
 function readIngredients(v: unknown): string[] {
   if (!Array.isArray(v)) {
@@ -66,6 +68,11 @@ export async function POST(req: NextRequest) {
   const ctx = await requireAiChefRequest();
   if ("error" in ctx) {
     return ctx.error;
+  }
+
+  const oversized = rejectOversizedRequest(req, MAX_JSON_BODY_BYTES);
+  if (oversized) {
+    return oversized;
   }
 
   const openai = getOpenAi();

@@ -88,12 +88,14 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
     setPlanTier(parsed ?? "free");
   }, []);
 
-  const refreshUser = useCallback(() => {
+  useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     if (!supabase) {
-      setUser(null);
-      setFirstName(null);
-      setPlanTier(null);
+      void Promise.resolve().then(() => {
+        setUser(null);
+        setFirstName(null);
+        setPlanTier(null);
+      });
       return;
     }
     void supabase.auth.getUser().then(({ data }) => {
@@ -106,14 +108,6 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
         setPlanTier(null);
       }
     });
-  }, [loadProfileForMenu]);
-
-  useEffect(() => {
-    refreshUser();
-    const supabase = createSupabaseBrowserClient();
-    if (!supabase) {
-      return;
-    }
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -129,7 +123,7 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [refreshUser, loadProfileForMenu]);
+  }, [loadProfileForMenu]);
 
   useEffect(() => {
     if (open) {

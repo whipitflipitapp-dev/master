@@ -22,6 +22,8 @@ type ProfilePatch = {
   plan_change_effective_at?: string | null;
 };
 
+const WEBHOOK_PROCESSING_ERROR = "Webhook processing failed.";
+
 function subscriptionPeriodEndIso(
   subscription: Stripe.Subscription,
 ): string | null {
@@ -94,7 +96,7 @@ async function applyProfilePatch(
   if (!supabase) {
     return {
       ok: false,
-      error: "SUPABASE_SERVICE_ROLE_KEY is not configured.",
+      error: WEBHOOK_PROCESSING_ERROR,
     };
   }
   const { error } = await supabase
@@ -102,7 +104,7 @@ async function applyProfilePatch(
     .update(patch)
     .eq("id", userId);
   if (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: WEBHOOK_PROCESSING_ERROR };
   }
   return { ok: true };
 }
@@ -151,10 +153,8 @@ async function handleCheckoutCompleted(
     try {
       const sub = await stripe.subscriptions.retrieve(subscriptionId);
       tier = pickTierFromSubscription(sub);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to load subscription.";
-      return { ok: false, error: message };
+    } catch {
+      return { ok: false, error: WEBHOOK_PROCESSING_ERROR };
     }
   }
 
@@ -273,19 +273,15 @@ export async function POST(req: NextRequest) {
   let stripe: Stripe;
   try {
     stripe = getStripe();
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Stripe is not configured.";
-    return new NextResponse(message, { status: 500 });
+  } catch {
+    return new NextResponse("Stripe is not configured.", { status: 500 });
   }
 
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Invalid Stripe signature.";
-    return new NextResponse(`Webhook signature verification failed: ${message}`, {
+  } catch {
+    return new NextResponse("Webhook signature verification failed.", {
       status: 400,
     });
   }
@@ -319,20 +315,17 @@ export async function POST(req: NextRequest) {
         break;
       }
     }
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Unhandled webhook error.";
-    return new NextResponse(`Webhook handler error: ${message}`, {
+  } catch {
+    return new NextResponse("Webhook handler error.", {
       status: 500,
     });
   }
 
   if (!result.ok) {
     // Returning 500 lets Stripe retry the delivery.
-    return new NextResponse(
-      `Webhook processing failed: ${result.error ?? "unknown error"}`,
-      { status: 500 },
-    );
+    return new NextResponse(WEBHOOK_PROCESSING_ERROR, {
+      status: 500,
+    });
   }
 
   return NextResponse.json({ received: true });

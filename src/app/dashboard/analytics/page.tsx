@@ -9,6 +9,7 @@ import {
   type CreatorAnalyticsDay,
 } from "@/lib/creator-analytics";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -110,10 +111,15 @@ export default async function CreatorAnalyticsPage() {
     redirect("/login?next=/dashboard/analytics");
   }
 
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const sinceDate = new Date();
+  sinceDate.setUTCDate(sinceDate.getUTCDate() - 30);
+  const since = sinceDate.toISOString();
   const { data, error } = await supabase.rpc("creator_analytics_overview", {
     p_since: since,
   });
+  if (error) {
+    logServerError("creator_analytics.overview", error);
+  }
   const analytics = parseCreatorAnalyticsOverview(data);
 
   return (
@@ -142,7 +148,7 @@ export default async function CreatorAnalyticsPage() {
 
         {error ? (
           <p className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--danger)]" role="alert">
-            {error.message}
+            {GENERIC_LOAD_ERROR}
           </p>
         ) : !analytics ? (
           <p className="text-sm text-[var(--muted)]">

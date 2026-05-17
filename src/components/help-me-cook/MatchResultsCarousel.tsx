@@ -3,7 +3,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 import {
   useCallback,
-  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -139,10 +138,6 @@ export function HelpMeCookMatchResultsSection({
     }
   }, [matches, sortMode]);
 
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [sortMode]);
-
   useLayoutEffect(() => {
     if (matches.length === 0) {
       lastScrollSignatureRef.current = "";
@@ -201,9 +196,10 @@ export function HelpMeCookMatchResultsSection({
           <select
             id={sortSelectId}
             value={sortMode}
-            onChange={(e) =>
-              setSortMode(e.target.value as HelpCookSortMode)
-            }
+            onChange={(e) => {
+              setSortMode(e.target.value as HelpCookSortMode);
+              setCurrentIndex(0);
+            }}
             className="min-h-[44px] w-full rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--text)] shadow-[var(--shadow-card)] outline-none ring-[var(--primary)]/25 focus:ring-2 sm:max-w-[min(100%,16rem)] sm:flex-1"
           >
             <option value="best_match">{t("help_cook_sort_best_match")}</option>

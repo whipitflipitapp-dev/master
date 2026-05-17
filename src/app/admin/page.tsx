@@ -8,6 +8,7 @@ import {
   parseAdminRecentEvents,
 } from "@/lib/admin/metrics-types";
 import { requireAdminSession } from "@/lib/admin/require-admin-session";
+import { logServerError } from "@/lib/server-error";
 
 export const metadata: Metadata = {
   title: "Admin | Whip It Flip It",
@@ -34,9 +35,9 @@ export default async function AdminPage({
       : 1;
   const offset = (page - 1) * EVENTS_PAGE_SIZE;
 
-  const sinceIso = new Date(
-    Date.now() - 7 * 24 * 60 * 60 * 1000,
-  ).toISOString();
+  const sinceDate = new Date();
+  sinceDate.setUTCDate(sinceDate.getUTCDate() - 7);
+  const sinceIso = sinceDate.toISOString();
 
   const [overviewRes, eventsRes, affiliateLinkTypesRes] = await Promise.all([
     supabase.rpc("admin_metrics_overview", { p_since: sinceIso }),
@@ -48,14 +49,18 @@ export default async function AdminPage({
   ]);
 
   const metrics = parseAdminMetricsOverview(overviewRes.data);
-  const overviewError = overviewRes.error?.message ?? null;
   const recentEvents = parseAdminRecentEvents(eventsRes.data);
-  const eventsError = eventsRes.error?.message ?? null;
   const affiliateLinkTypes = parseAdminAffiliateLinkTypes(
     affiliateLinkTypesRes.data,
   );
-  const affiliateLinkTypesError =
-    affiliateLinkTypesRes.error?.message ?? null;
+  const overviewError = Boolean(overviewRes.error);
+  const eventsError = Boolean(eventsRes.error);
+  const affiliateLinkTypesError = Boolean(affiliateLinkTypesRes.error);
+  if (overviewRes.error) logServerError("admin.metrics_overview", overviewRes.error);
+  if (eventsRes.error) logServerError("admin.recent_events", eventsRes.error);
+  if (affiliateLinkTypesRes.error) {
+    logServerError("admin.affiliate_link_types", affiliateLinkTypesRes.error);
+  }
 
   const exportSince = encodeURIComponent(sinceIso);
   const prevPage = page > 1 ? page - 1 : null;
@@ -70,8 +75,8 @@ export default async function AdminPage({
 
       {overviewError ? (
         <p className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4 text-sm text-[var(--text)]">
-          Could not load metrics: {overviewError}. Apply latest Supabase
-          migrations if this is a new environment.
+          Could not load metrics. Apply latest Supabase migrations if this is a
+          new environment.
         </p>
       ) : metrics ? (
         <>
@@ -162,7 +167,7 @@ export default async function AdminPage({
             </h2>
             {affiliateLinkTypesError ? (
               <p className="mt-3 text-sm text-[var(--muted)]">
-                {affiliateLinkTypesError}
+                Could not load affiliate link type metrics.
               </p>
             ) : affiliateLinkTypes.length === 0 ? (
               <p className="mt-3 text-sm text-[var(--muted)]">
@@ -214,7 +219,9 @@ export default async function AdminPage({
           Recent events
         </h2>
         {eventsError ? (
-          <p className="mt-3 text-sm text-[var(--muted)]">{eventsError}</p>
+          <p className="mt-3 text-sm text-[var(--muted)]">
+            Could not load recent events.
+          </p>
         ) : recentEvents.length === 0 ? (
           <p className="mt-3 text-sm text-[var(--muted)]">No rows.</p>
         ) : (

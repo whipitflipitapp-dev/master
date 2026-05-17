@@ -1,3 +1,5 @@
+import "server-only";
+
 import type Stripe from "stripe";
 
 import {
@@ -10,6 +12,7 @@ import {
   type CheckoutInterval,
   type PaidTier,
 } from "@/lib/stripe";
+import { logServerError } from "@/lib/server-error";
 import { logCheckoutStarted } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -18,14 +21,16 @@ export type CheckoutSessionResult =
   | { ok: false; error: string };
 
 export function checkoutErrorMessage(err: unknown, fallback: string): string {
+  // Provider errors can contain request details or IDs. Keep client-facing
+  // responses generic and only map known internal config errors explicitly.
   if (err && typeof err === "object" && "message" in err) {
     const msg = (err as { message?: unknown }).message;
-    if (typeof msg === "string" && msg.trim()) {
-      return msg.trim();
+    if (
+      typeof msg === "string" &&
+      msg.startsWith("STRIPE_SECRET_KEY is not set.")
+    ) {
+      return "Stripe is not configured on the server.";
     }
-  }
-  if (err instanceof Error && err.message.trim()) {
-    return err.message;
   }
   return fallback;
 }
@@ -33,7 +38,7 @@ export function checkoutErrorMessage(err: unknown, fallback: string): string {
 /** Returns a user-facing error when required billing env is missing. */
 export function validateCheckoutEnvironment(): string | null {
   if (!process.env.STRIPE_SECRET_KEY?.trim()) {
-    return "Stripe is not configured on the server. Set STRIPE_SECRET_KEY in production.";
+    return "Checkout is temporarily unavailable.";
   }
 
   const siteUrl = resolveSiteUrl();
@@ -41,7 +46,7 @@ export function validateCheckoutEnvironment(): string | null {
     process.env.NODE_ENV === "production" &&
     /^https?:\/\/localhost(:\d+)?$/i.test(siteUrl)
   ) {
-    return "Site URL is not configured for checkout. Set NEXT_PUBLIC_SITE_URL in production.";
+    return "Checkout is temporarily unavailable.";
   }
 
   return null;
@@ -189,7 +194,7 @@ export async function runCheckoutSession(
       return {
         ok: false,
         error:
-          "Stripe price IDs are not configured on the server. Set STRIPE_PRICE_* env vars in production.",
+          "Stripe pricing is still being set up. Try again later.",
       };
     }
 
@@ -197,9 +202,10 @@ export async function runCheckoutSession(
     try {
       stripe = getStripe();
     } catch (err) {
+      logServerError("checkout.stripe_config", err);
       return {
         ok: false,
-        error: checkoutErrorMessage(err, "Stripe is not configured."),
+        error: "Checkout is temporarily unavailable.",
       };
     }
 
@@ -210,6 +216,7 @@ export async function runCheckoutSession(
       .maybeSingle();
 
     if (profileError) {
+      logServerError("checkout.profile_lookup", profileError);
       return {
         ok: false,
         error: "Could not load your billing profile. Try again in a moment.",
@@ -237,12 +244,10 @@ export async function runCheckoutSession(
         existingCustomerId,
       );
     } catch (err) {
+      logServerError("checkout.session_create", err);
       return {
         ok: false,
-        error: checkoutErrorMessage(
-          err,
-          "Could not start checkout. Try again in a moment.",
-        ),
+        error: "Could not start checkout. Try again in a moment.",
       };
     }
 
@@ -258,12 +263,10 @@ export async function runCheckoutSession(
 
     return { ok: true, url: session.url };
   } catch (err) {
+    logServerError("checkout.unhandled", err);
     return {
       ok: false,
-      error: checkoutErrorMessage(
-        err,
-        "Something went wrong starting checkout. Try again.",
-      ),
+      error: "Something went wrong starting checkout. Try again.",
     };
   }
 }

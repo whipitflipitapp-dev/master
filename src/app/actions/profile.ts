@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { sanitizeOtherAllergenInput } from "@/lib/allergy-other";
 import { validateStoredAvatarUrl } from "@/lib/avatar-image";
 import { LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n/locale";
+import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const DISPLAY_NAME_MAX_LEN = 80;
@@ -33,7 +34,8 @@ export async function setProfileLanguage(
         .update({ language: locale })
         .eq("id", user.id);
       if (error) {
-        return { ok: false, error: error.message };
+        logServerError("profile.language_update", error);
+        return { ok: false, error: GENERIC_SERVER_ERROR };
       }
     }
   }
@@ -76,7 +78,8 @@ export async function updateDisplayName(
     .eq("id", user.id);
 
   if (error) {
-    return { error: error.message };
+    logServerError("profile.display_name_update", error);
+    return { error: GENERIC_SERVER_ERROR };
   }
 
   revalidatePath("/profile");
@@ -121,7 +124,8 @@ export async function updateAvatarUrl(
     .eq("id", user.id);
 
   if (error) {
-    return { error: error.message };
+    logServerError("profile.avatar_update", error);
+    return { error: GENERIC_SERVER_ERROR };
   }
 
   revalidatePath("/profile");
@@ -173,7 +177,8 @@ export async function saveUserAllergies(
     .eq("user_id", user.id);
 
   if (delErr) {
-    return { error: delErr.message };
+    logServerError("profile.allergies_delete", delErr);
+    return { error: GENERIC_SERVER_ERROR };
   }
 
   if (allergenIds.length > 0) {
@@ -184,7 +189,8 @@ export async function saveUserAllergies(
       })),
     );
     if (insErr) {
-      return { error: insErr.message };
+      logServerError("profile.allergies_insert", insErr);
+      return { error: GENERIC_SERVER_ERROR };
     }
   }
 
@@ -202,7 +208,8 @@ export async function saveUserAllergies(
     .eq("id", user.id);
 
   if (profErr) {
-    return { error: profErr.message };
+    logServerError("profile.allergy_profile_update", profErr);
+    return { error: GENERIC_SERVER_ERROR };
   }
 
   revalidatePath("/profile");

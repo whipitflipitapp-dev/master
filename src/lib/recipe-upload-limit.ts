@@ -59,7 +59,7 @@ export async function checkMonthlyRecipeUploadAllowed(
       allowed: false,
       plan,
       reason: "query_failed",
-      message: error.message,
+      message: "Could not verify your recipe upload limit right now.",
     };
   }
 
