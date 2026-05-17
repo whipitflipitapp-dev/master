@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState } from "react";
 
 export type CheckoutTier = "pro" | "ai_chef";
 
@@ -26,15 +26,23 @@ export function CheckoutTierForm({
   ctaLabel,
 }: Props) {
   const intervalId = useId();
+  const fieldsetRef = useRef<HTMLFieldSetElement>(null);
   const [state, setState] = useState<CheckoutFormState>({ error: null });
   const [pending, setPending] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function startCheckout() {
     setPending(true);
     setState({ error: null });
 
-    const formData = new FormData(event.currentTarget);
+    const fieldset = fieldsetRef.current;
+    const intervalInput = fieldset?.querySelector<HTMLInputElement>(
+      'input[name="interval"]:checked',
+    );
+    const interval = intervalInput?.value ?? "monthly";
+
+    const formData = new FormData();
+    formData.set("tier", tier);
+    formData.set("interval", interval);
 
     try {
       const response = await fetch("/api/checkout", {
@@ -98,10 +106,8 @@ export function CheckoutTierForm({
   }
 
   return (
-    <form className="mt-5 flex flex-col gap-3" onSubmit={handleSubmit}>
-      <input type="hidden" name="tier" value={tier} />
-
-      <fieldset className="flex flex-col gap-2">
+    <div className="mt-5 flex flex-col gap-3">
+      <fieldset ref={fieldsetRef} className="flex flex-col gap-2">
         <legend className="text-[length:var(--text-meta)] font-medium text-[var(--text)]">
           Billing
         </legend>
@@ -156,12 +162,13 @@ export function CheckoutTierForm({
       ) : null}
 
       <button
-        type="submit"
+        type="button"
         disabled={pending}
+        onClick={() => void startCheckout()}
         className="w-full rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--primary-hover)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.99] disabled:opacity-60"
       >
         {pending ? "Redirecting to Stripe…" : (ctaLabel ?? "Continue to checkout")}
       </button>
-    </form>
+    </div>
   );
 }

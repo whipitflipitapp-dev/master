@@ -33,7 +33,7 @@ export function checkoutErrorMessage(err: unknown, fallback: string): string {
 /** Returns a user-facing error when required billing env is missing. */
 export function validateCheckoutEnvironment(): string | null {
   if (!process.env.STRIPE_SECRET_KEY?.trim()) {
-    return "Billing is not configured yet. Please try again later.";
+    return "Stripe is not configured on the server. Set STRIPE_SECRET_KEY in production.";
   }
 
   const siteUrl = resolveSiteUrl();
@@ -45,6 +45,22 @@ export function validateCheckoutEnvironment(): string | null {
   }
 
   return null;
+}
+
+/** Maps checkout failure copy to an HTTP status for `/api/checkout`. */
+export function checkoutFailureHttpStatus(error: string): number {
+  const lower = error.toLowerCase();
+  if (lower.includes("sign in") || lower.includes("session expired")) {
+    return 401;
+  }
+  if (
+    lower.includes("not configured") ||
+    lower.includes("not available yet") ||
+    lower.includes("pricing is still being set up")
+  ) {
+    return 503;
+  }
+  return 400;
 }
 
 function isMissingStripeCustomer(err: unknown): boolean {
@@ -172,7 +188,8 @@ export async function runCheckoutSession(
     if (!priceId) {
       return {
         ok: false,
-        error: "This plan is not available yet — pricing is still being set up.",
+        error:
+          "Stripe price IDs are not configured on the server. Set STRIPE_PRICE_* env vars in production.",
       };
     }
 

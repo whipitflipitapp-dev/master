@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { runCheckoutSession } from "@/lib/billing/checkout-session";
+import {
+  checkoutFailureHttpStatus,
+  runCheckoutSession,
+} from "@/lib/billing/checkout-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,14 +55,7 @@ export async function POST(req: NextRequest) {
   const result = await runCheckoutSession(formData);
 
   if (!result.ok) {
-    const status =
-      result.error.includes("session expired") ||
-      result.error.includes("Sign in again")
-        ? 401
-        : result.error.includes("not configured") ||
-            result.error.includes("not available")
-          ? 503
-          : 400;
+    const status = checkoutFailureHttpStatus(result.error);
     if (wantsRedirect(req, body)) {
       const upgrade = new URL("/upgrade", req.url);
       upgrade.searchParams.set("checkout", "error");

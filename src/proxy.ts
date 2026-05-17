@@ -38,6 +38,18 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname === "/upgrade" && request.method === "POST") {
+    return NextResponse.json(
+      {
+        error:
+          "Checkout must use POST /api/checkout. Refresh this page and try again.",
+      },
+      { status: 405 },
+    );
+  }
+
   let response = NextResponse.next({ request });
 
   const urlRaw = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -68,7 +80,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname, search } = request.nextUrl;
+  const { search } = request.nextUrl;
 
   if (user && !isOnboardingExempt(pathname)) {
     const { data: ob, error: obErr } = await supabase
