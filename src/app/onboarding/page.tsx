@@ -41,7 +41,7 @@ export default async function OnboardingPage() {
   const { data: row } = await supabase
     .from("profiles")
     .select(
-      "onboarding_completed_at,display_name,first_name,last_name,birthdate,foods_loved,foods_loved_other,cooks_per_week,allergy_other,referral_source",
+      "onboarding_completed_at,display_name,first_name,last_name,birthdate,feature_interests,foods_loved,foods_loved_other,cooks_per_week,allergy_other,referral_source",
     )
     .eq("id", session.user.id)
     .maybeSingle();
@@ -67,6 +67,9 @@ export default async function OnboardingPage() {
     lastName: row?.last_name ?? split.last ?? "",
     birthdate:
       typeof row?.birthdate === "string" ? row.birthdate.slice(0, 10) : "",
+    featureInterests: Array.isArray(row?.feature_interests)
+      ? (row.feature_interests as string[])
+      : [],
     foodsLoved: Array.isArray(row?.foods_loved)
       ? (row.foods_loved as string[])
       : [],

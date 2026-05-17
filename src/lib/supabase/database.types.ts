@@ -27,6 +27,7 @@ export interface Database {
           first_name: string | null;
           last_name: string | null;
           birthdate: string | null;
+          feature_interests: string[];
           foods_loved: string[];
           foods_loved_other: string | null;
           cooks_per_week: number | null;
@@ -47,6 +48,7 @@ export interface Database {
           first_name?: string | null;
           last_name?: string | null;
           birthdate?: string | null;
+          feature_interests?: string[];
           foods_loved?: string[];
           foods_loved_other?: string | null;
           cooks_per_week?: number | null;
@@ -65,6 +67,7 @@ export interface Database {
           first_name?: string | null;
           last_name?: string | null;
           birthdate?: string | null;
+          feature_interests?: string[];
           foods_loved?: string[];
           foods_loved_other?: string | null;
           cooks_per_week?: number | null;

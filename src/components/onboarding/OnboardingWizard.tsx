@@ -1,16 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
   completeOnboarding,
+  FEATURE_INTEREST_VALUES,
   FOOD_CATEGORY_VALUES,
   REFERRAL_SOURCE_VALUES,
 } from "@/app/actions/onboarding";
 import { ProfileAllergiesForm } from "@/components/profile/ProfileAllergiesForm";
 import type { AllergyMode } from "@/lib/profile";
+import { ONBOARDING_STEP_VISUALS } from "@/lib/page-food-backgrounds";
 
 const TOTAL_STEPS = 7;
 
@@ -18,6 +20,7 @@ type InitialValues = {
   firstName: string;
   lastName: string;
   birthdate: string;
+  featureInterests: string[];
   foodsLoved: string[];
   foodsLovedOther: string;
   cooksPerWeek: number | null;
@@ -47,6 +50,40 @@ const secondaryBtnClass =
 const ghostLinkBtnClass =
   "text-sm font-medium text-[var(--muted)] underline-offset-4 hover:underline";
 
+function OnboardingStepHero({ step }: { step: number }) {
+  const visual = ONBOARDING_STEP_VISUALS[step - 1];
+  if (!visual) return null;
+  return (
+    <div
+      className="relative -mx-5 mb-1 h-36 overflow-hidden sm:mx-0 sm:mb-2 sm:h-40 sm:rounded-[var(--radius-card)]"
+      aria-hidden
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={visual.src}
+        alt=""
+        className={`h-full w-full ${visual.objectClass}`}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--bg)] via-[color-mix(in_srgb,var(--bg)_25%,transparent)] to-transparent" />
+    </div>
+  );
+}
+
+function OnboardingStepShell({
+  step,
+  children,
+}: {
+  step: number;
+  children: ReactNode;
+}) {
+  return (
+    <section className="flex flex-1 flex-col gap-4">
+      <OnboardingStepHero step={step} />
+      {children}
+    </section>
+  );
+}
+
 export function OnboardingWizard({
   allergens,
   selectedIds,
@@ -62,6 +99,9 @@ export function OnboardingWizard({
   const [firstName, setFirstName] = useState(initial.firstName);
   const [lastName, setLastName] = useState(initial.lastName);
   const [birthdate, setBirthdate] = useState(initial.birthdate);
+  const [featureInterests, setFeatureInterests] = useState<string[]>(
+    initial.featureInterests,
+  );
   const [foodsLoved, setFoodsLoved] = useState<string[]>(initial.foodsLoved);
   const [foodsLovedOther, setFoodsLovedOther] = useState(
     initial.foodsLovedOther,
@@ -91,8 +131,16 @@ export function OnboardingWizard({
     return d.toISOString().slice(0, 10);
   }, []);
 
+  const trimmedFirst = firstName.trim();
+
   function toggleFood(value: string) {
     setFoodsLoved((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
+  }
+
+  function toggleInterest(value: string) {
+    setFeatureInterests((prev) =>
       prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
     );
   }
@@ -119,6 +167,7 @@ export function OnboardingWizard({
             firstName: firstName.trim() || undefined,
             lastName: lastName.trim() || undefined,
             birthdate: birthdate.trim() || undefined,
+            featureInterests,
             foodsLoved,
             foodsLovedOther: foodsLovedOther.trim() || undefined,
             cooksPerWeek: cooksClean,
@@ -152,6 +201,14 @@ export function OnboardingWizard({
     salads: t("onboarding_food_salads"),
   };
 
+  const interestLabels: Record<string, string> = {
+    upload_recipes: t("onboarding_interest_upload_recipes"),
+    pantry_match: t("onboarding_interest_pantry_match"),
+    sell_cookbook: t("onboarding_interest_sell_cookbook"),
+    ai_chef: t("onboarding_interest_ai_chef"),
+    save_favorites: t("onboarding_interest_save_favorites"),
+  };
+
   const referralLabels: Record<string, string> = {
     friend: t("onboarding_referral_friend"),
     search: t("onboarding_referral_search"),
@@ -169,6 +226,17 @@ export function OnboardingWizard({
     setStep((s) => Math.max(1, s - 1));
   }
 
+  const stepNav = (primary: ReactNode, showBack = true) => (
+    <div className="mt-auto flex flex-col gap-3 pt-6">
+      {primary}
+      {showBack ? (
+        <button type="button" onClick={goBack} className={ghostLinkBtnClass}>
+          {t("onboarding_back")}
+        </button>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 py-8">
       <div className="mb-6 flex gap-1" aria-label={t("onboarding_progress_aria")}>
@@ -183,43 +251,7 @@ export function OnboardingWizard({
       </div>
 
       {step === 1 ? (
-        <section className="flex flex-1 flex-col gap-4">
-          <h1 className="text-2xl font-bold text-[var(--text)]">
-            {t("onboarding_welcome_title")}
-          </h1>
-          <p className="text-sm leading-relaxed text-[var(--muted)]">
-            {t("onboarding_welcome_body")}
-          </p>
-          {finishErr ? (
-            <p
-              className="rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--danger)_40%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--danger)]"
-              role="alert"
-            >
-              {finishErr}
-            </p>
-          ) : null}
-          <div className="mt-auto flex flex-col gap-3 pt-6">
-            <button
-              type="button"
-              onClick={goNext}
-              className={primaryBtnClass}
-            >
-              {t("onboarding_welcome_next")}
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => finishSetup(true)}
-              className={secondaryBtnClass}
-            >
-              {t("onboarding_skip_all")}
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {step === 2 ? (
-        <section className="flex flex-1 flex-col gap-4">
+        <OnboardingStepShell step={1}>
           <h1 className="text-2xl font-bold text-[var(--text)]">
             {t("onboarding_name_title")}
           </h1>
@@ -252,19 +284,81 @@ export function OnboardingWizard({
               className={inputClass}
             />
           </label>
-          <div className="mt-auto flex flex-col gap-3 pt-6">
+          {stepNav(
             <button type="button" onClick={goNext} className={primaryBtnClass}>
               {t("onboarding_continue")}
-            </button>
-            <button type="button" onClick={goBack} className={ghostLinkBtnClass}>
-              {t("onboarding_back")}
-            </button>
+            </button>,
+            false,
+          )}
+        </OnboardingStepShell>
+      ) : null}
+
+      {step === 2 ? (
+        <OnboardingStepShell step={2}>
+          <h1 className="text-2xl font-bold text-[var(--text)]">
+            {trimmedFirst
+              ? t("onboarding_welcome_title_named", { firstName: trimmedFirst })
+              : t("onboarding_welcome_title_guest")}
+          </h1>
+          <p className="text-sm leading-relaxed text-[var(--muted)]">
+            {t("onboarding_welcome_intro")}
+          </p>
+          <p className="text-sm font-semibold text-[var(--text)]">
+            {t("onboarding_interests_prompt")}
+          </p>
+          <div
+            className="grid gap-2 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]"
+            role="group"
+            aria-labelledby="onboarding-interests-heading"
+          >
+            <span id="onboarding-interests-heading" className="sr-only">
+              {t("onboarding_interests_prompt")}
+            </span>
+            {FEATURE_INTEREST_VALUES.map((key) => (
+              <label
+                key={key}
+                className="flex items-center gap-2 text-sm text-[var(--text)]"
+              >
+                <input
+                  type="checkbox"
+                  name="feature_interests"
+                  value={key}
+                  checked={featureInterests.includes(key)}
+                  onChange={() => toggleInterest(key)}
+                />
+                <span>{interestLabels[key]}</span>
+              </label>
+            ))}
           </div>
-        </section>
+          {finishErr ? (
+            <p
+              className="rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--danger)_40%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--danger)]"
+              role="alert"
+            >
+              {finishErr}
+            </p>
+          ) : null}
+          {stepNav(
+            <>
+              <button type="button" onClick={goNext} className={primaryBtnClass}>
+                {t("onboarding_continue")}
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => finishSetup(true)}
+                className={secondaryBtnClass}
+              >
+                {t("onboarding_skip_all")}
+              </button>
+            </>,
+            false,
+          )}
+        </OnboardingStepShell>
       ) : null}
 
       {step === 3 ? (
-        <section className="flex flex-1 flex-col gap-4">
+        <OnboardingStepShell step={3}>
           <h1 className="text-2xl font-bold text-[var(--text)]">
             {t("onboarding_basics_title")}
           </h1>
@@ -302,19 +396,16 @@ export function OnboardingWizard({
               ))}
             </select>
           </label>
-          <div className="mt-auto flex flex-col gap-3 pt-6">
+          {stepNav(
             <button type="button" onClick={goNext} className={primaryBtnClass}>
               {t("onboarding_continue")}
-            </button>
-            <button type="button" onClick={goBack} className={ghostLinkBtnClass}>
-              {t("onboarding_back")}
-            </button>
-          </div>
-        </section>
+            </button>,
+          )}
+        </OnboardingStepShell>
       ) : null}
 
       {step === 4 ? (
-        <section className="flex flex-1 flex-col gap-4">
+        <OnboardingStepShell step={4}>
           <h1 className="text-2xl font-bold text-[var(--text)]">
             {t("onboarding_foods_title")}
           </h1>
@@ -351,19 +442,16 @@ export function OnboardingWizard({
               className="min-h-[64px] w-full rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-[border-color] focus:border-[color-mix(in_srgb,var(--primary)_45%,var(--border))]"
             />
           </label>
-          <div className="mt-auto flex flex-col gap-3 pt-6">
+          {stepNav(
             <button type="button" onClick={goNext} className={primaryBtnClass}>
               {t("onboarding_continue")}
-            </button>
-            <button type="button" onClick={goBack} className={ghostLinkBtnClass}>
-              {t("onboarding_back")}
-            </button>
-          </div>
-        </section>
+            </button>,
+          )}
+        </OnboardingStepShell>
       ) : null}
 
       {step === 5 ? (
-        <section className="flex flex-1 flex-col gap-3">
+        <OnboardingStepShell step={5}>
           <h1 className="text-2xl font-bold text-[var(--text)]">
             {t("onboarding_allergies_title")}
           </h1>
@@ -409,11 +497,11 @@ export function OnboardingWizard({
               {t("onboarding_back")}
             </button>
           </div>
-        </section>
+        </OnboardingStepShell>
       ) : null}
 
       {step === 6 ? (
-        <section className="flex flex-1 flex-col gap-4">
+        <OnboardingStepShell step={6}>
           <h1 className="text-2xl font-bold text-[var(--text)]">
             {t("onboarding_referral_title")}
           </h1>
@@ -453,34 +541,41 @@ export function OnboardingWizard({
               />
             </label>
           ) : null}
-          <div className="mt-auto flex flex-col gap-3 pt-6">
+          {stepNav(
             <button type="button" onClick={goNext} className={primaryBtnClass}>
               {t("onboarding_continue")}
-            </button>
-            <button type="button" onClick={goBack} className={ghostLinkBtnClass}>
-              {t("onboarding_back")}
-            </button>
-          </div>
-        </section>
+            </button>,
+          )}
+        </OnboardingStepShell>
       ) : null}
 
       {step === 7 ? (
-        <section className="flex flex-1 flex-col gap-4">
+        <OnboardingStepShell step={7}>
           <h1 className="text-2xl font-bold text-[var(--text)]">
             {t("onboarding_thanks_title", {
-              firstName: firstName.trim() || t("onboarding_thanks_default_name"),
+              firstName: trimmedFirst || t("onboarding_thanks_default_name"),
             })}
           </h1>
           <p className="text-sm leading-relaxed text-[var(--muted)]">
             {t("onboarding_thanks_body")}
           </p>
           <ul className="space-y-1.5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--text)] shadow-[var(--shadow-card)]">
-            {firstName.trim() || lastName.trim() ? (
+            {trimmedFirst || lastName.trim() ? (
               <li>
                 <span className="text-[var(--muted)]">
                   {t("onboarding_summary_name")}:
                 </span>{" "}
-                {[firstName.trim(), lastName.trim()].filter(Boolean).join(" ")}
+                {[trimmedFirst, lastName.trim()].filter(Boolean).join(" ")}
+              </li>
+            ) : null}
+            {featureInterests.length > 0 ? (
+              <li>
+                <span className="text-[var(--muted)]">
+                  {t("onboarding_summary_interests")}:
+                </span>{" "}
+                {featureInterests
+                  .map((f) => interestLabels[f] ?? f)
+                  .join(", ")}
               </li>
             ) : null}
             {birthdate ? (
@@ -542,7 +637,7 @@ export function OnboardingWizard({
               {finishErr}
             </p>
           ) : null}
-          <div className="mt-auto flex flex-col gap-3 pt-6">
+          {stepNav(
             <button
               type="button"
               disabled={pending}
@@ -550,12 +645,9 @@ export function OnboardingWizard({
               className={primaryBtnClass}
             >
               {pending ? "…" : t("onboarding_thanks_cta")}
-            </button>
-            <button type="button" onClick={goBack} className={ghostLinkBtnClass}>
-              {t("onboarding_back")}
-            </button>
-          </div>
-        </section>
+            </button>,
+          )}
+        </OnboardingStepShell>
       ) : null}
     </div>
   );

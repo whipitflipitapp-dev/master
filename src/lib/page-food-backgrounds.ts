@@ -11,7 +11,7 @@ export const FOOD_PAGE_BACKGROUNDS = [
   "/food/soup.jpg",
 ] as const;
 
-/** Onboarding wizard: one hero image per step (indices match `FOOD_PAGE_BACKGROUNDS`). */
+/** Onboarding wizard: one hero image per step (7 steps; index = step − 1). */
 export const ONBOARDING_STEP_VISUALS = [
   {
     src: FOOD_PAGE_BACKGROUNDS[0],
@@ -22,12 +22,24 @@ export const ONBOARDING_STEP_VISUALS = [
     objectClass: "object-cover object-[58%_48%]",
   },
   {
+    src: FOOD_PAGE_BACKGROUNDS[2],
+    objectClass: "object-cover object-[50%_42%]",
+  },
+  {
+    src: FOOD_PAGE_BACKGROUNDS[3],
+    objectClass: "object-cover object-[48%_38%]",
+  },
+  {
     src: FOOD_PAGE_BACKGROUNDS[4],
     objectClass: "object-cover object-[42%_52%]",
   },
   {
     src: FOOD_PAGE_BACKGROUNDS[5],
     objectClass: "object-cover object-[50%_28%]",
+  },
+  {
+    src: FOOD_PAGE_BACKGROUNDS[1],
+    objectClass: "object-cover object-[55%_45%]",
   },
 ] as const;
 

@@ -36,6 +36,17 @@ export const REFERRAL_SOURCE_VALUES = [
 ] as const;
 export type ReferralSource = (typeof REFERRAL_SOURCE_VALUES)[number];
 
+export const FEATURE_INTEREST_VALUES = [
+  "upload_recipes",
+  "pantry_match",
+  "sell_cookbook",
+  "ai_chef",
+  "save_favorites",
+] as const;
+export type FeatureInterest = (typeof FEATURE_INTEREST_VALUES)[number];
+
+const INTERESTS_MAX_ITEMS = 10;
+
 function cleanShortString(raw: unknown, max: number): string | undefined {
   if (typeof raw !== "string") return undefined;
   const v = raw.trim().replace(/\s+/g, " ");
@@ -81,6 +92,22 @@ function cleanFoodCategories(raw: unknown): string[] | undefined {
   return out;
 }
 
+function cleanFeatureInterests(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const allowed = new Set<string>(FEATURE_INTEREST_VALUES);
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const v = item.trim();
+    if (!v) continue;
+    if (!allowed.has(v)) continue;
+    if (out.includes(v)) continue;
+    out.push(v);
+    if (out.length >= INTERESTS_MAX_ITEMS) break;
+  }
+  return out;
+}
+
 function cleanCooksPerWeek(raw: unknown): number | null | undefined {
   if (raw === null) return null;
   if (raw === undefined || raw === "") return undefined;
@@ -104,6 +131,7 @@ export type OnboardingInput = {
   firstName?: string;
   lastName?: string;
   birthdate?: string | null;
+  featureInterests?: string[];
   foodsLoved?: string[];
   foodsLovedOther?: string;
   cooksPerWeek?: number | null;
@@ -142,6 +170,7 @@ export async function completeOnboarding(
     firstName = cleanShortString(input.firstName, NAME_MAX_LEN);
     lastName = cleanShortString(input.lastName, NAME_MAX_LEN);
     const birthdate = cleanBirthdate(input.birthdate);
+    const featureInterests = cleanFeatureInterests(input.featureInterests);
     const foodsLoved = cleanFoodCategories(input.foodsLoved);
     const foodsLovedOther = cleanLongString(input.foodsLovedOther, TEXT_MAX_LEN);
     const cooksPerWeek = cleanCooksPerWeek(input.cooksPerWeek);
@@ -151,6 +180,8 @@ export async function completeOnboarding(
     if (firstName !== undefined) update.first_name = firstName;
     if (lastName !== undefined) update.last_name = lastName;
     if (birthdate !== undefined) update.birthdate = birthdate;
+    if (featureInterests !== undefined)
+      update.feature_interests = featureInterests;
     if (foodsLoved !== undefined) update.foods_loved = foodsLoved;
     if (foodsLovedOther !== undefined)
       update.foods_loved_other = foodsLovedOther;
