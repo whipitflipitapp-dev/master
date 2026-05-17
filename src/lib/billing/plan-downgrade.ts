@@ -43,8 +43,7 @@ function inferIntervalFromPriceId(priceId: string): CheckoutInterval | null {
 }
 
 function periodEndIso(subscription: Stripe.Subscription): string | null {
-  const end =
-    subscription.items.data[0]?.current_period_end ?? subscription.current_period_end;
+  const end = subscription.items.data[0]?.current_period_end;
   if (typeof end !== "number" || !Number.isFinite(end)) {
     return null;
   }
@@ -151,12 +150,8 @@ async function schedulePaidTierDowngrade(
     };
   }
 
-  const periodStart =
-    subscription.items.data[0]?.current_period_start ??
-    subscription.current_period_start;
-  const periodEnd =
-    subscription.items.data[0]?.current_period_end ??
-    subscription.current_period_end;
+  const periodStart = subscription.items.data[0]?.current_period_start;
+  const periodEnd = subscription.items.data[0]?.current_period_end;
 
   if (
     typeof periodStart !== "number" ||

@@ -25,9 +25,7 @@ type ProfilePatch = {
 function subscriptionPeriodEndIso(
   subscription: Stripe.Subscription,
 ): string | null {
-  const end =
-    subscription.items.data[0]?.current_period_end ??
-    subscription.current_period_end;
+  const end = subscription.items.data[0]?.current_period_end;
   if (typeof end !== "number" || !Number.isFinite(end)) {
     return null;
   }

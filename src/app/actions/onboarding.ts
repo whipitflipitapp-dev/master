@@ -2,28 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  FOOD_CATEGORY_VALUES,
+  type FoodCategory,
+} from "@/lib/recipe-categories";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export { FOOD_CATEGORY_VALUES, type FoodCategory };
 
 const NAME_MAX_LEN = 80;
 const TEXT_MAX_LEN = 500;
 const REFERRAL_MAX_LEN = 200;
 const FOODS_MAX_ITEMS = 30;
-
-export const FOOD_CATEGORY_VALUES = [
-  "italian",
-  "mexican",
-  "asian",
-  "mediterranean",
-  "indian",
-  "american_comfort",
-  "bbq",
-  "seafood",
-  "vegetarian",
-  "vegan",
-  "desserts",
-  "salads",
-] as const;
-export type FoodCategory = (typeof FOOD_CATEGORY_VALUES)[number];
 
 export const REFERRAL_SOURCE_VALUES = [
   "friend",

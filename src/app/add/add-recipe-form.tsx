@@ -354,7 +354,7 @@ export function AddRecipeForm({
         <p className="mb-3 text-[length:var(--text-caption)] text-[var(--muted)]">
           {categoriesHint}
         </p>
-        <motion className="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-2">
+        <div className="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-2">
           {categoryOptions.map((c) => (
             <label
               key={c.value}
@@ -378,10 +378,10 @@ export function AddRecipeForm({
               <span>{c.label}</span>
             </label>
           ))}
-        </motion>
+        </div>
       </fieldset>
 
-      <motion className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <label htmlFor="tags" className="text-sm font-medium text-[var(--text)]">
           {extraTagsLabel}
         </label>
@@ -395,7 +395,7 @@ export function AddRecipeForm({
         <span className="text-[length:var(--text-caption)] text-[var(--muted)]">
           {extraTagsHint}
         </span>
-      </motion>
+      </div>
 
       <fieldset
         className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4"

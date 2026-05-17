@@ -339,6 +339,7 @@ export interface Database {
           p_limit: number;
           p_title_search: string | null;
           p_exclude_allergen_ids: string[] | null;
+          p_tag_names?: string[] | null;
         };
         Returns: {
           id: string;

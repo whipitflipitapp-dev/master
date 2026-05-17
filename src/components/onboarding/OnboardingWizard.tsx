@@ -7,9 +7,9 @@ import { useTranslation } from "react-i18next";
 import {
   completeOnboarding,
   FEATURE_INTEREST_VALUES,
-  FOOD_CATEGORY_VALUES,
   REFERRAL_SOURCE_VALUES,
 } from "@/app/actions/onboarding";
+import { RECIPE_CATEGORY_VALUES } from "@/lib/recipe-categories";
 import { ProfileAllergiesForm } from "@/components/profile/ProfileAllergiesForm";
 import type { AllergyMode } from "@/lib/profile";
 import { ONBOARDING_STEP_VISUALS } from "@/lib/page-food-backgrounds";
@@ -199,6 +199,10 @@ export function OnboardingWizard({
     vegan: t("onboarding_food_vegan"),
     desserts: t("onboarding_food_desserts"),
     salads: t("onboarding_food_salads"),
+    gluten_free: t("onboarding_food_gluten_free"),
+    soups: t("onboarding_food_soups"),
+    pasta: t("onboarding_food_pasta"),
+    breakfast: t("onboarding_food_breakfast"),
   };
 
   const interestLabels: Record<string, string> = {
@@ -413,7 +417,7 @@ export function OnboardingWizard({
             {t("onboarding_foods_body")}
           </p>
           <div className="grid grid-cols-2 gap-2 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]">
-            {FOOD_CATEGORY_VALUES.map((key) => (
+            {RECIPE_CATEGORY_VALUES.map((key) => (
               <label
                 key={key}
                 className="flex items-center gap-2 text-sm text-[var(--text)]"

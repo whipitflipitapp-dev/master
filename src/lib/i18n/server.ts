@@ -31,7 +31,7 @@ export async function resolveAppLocale(): Promise<AppLocale> {
   return "en";
 }
 
-type CommonJson = Record<string, string>;
+export type CommonJson = Record<string, string>;
 
 export async function getDictionary(locale: AppLocale): Promise<CommonJson> {
   const [primary, fallback] = await Promise.all([
