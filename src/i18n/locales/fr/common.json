@@ -112,6 +112,7 @@
   "help_cook_allergy_warn": "Avertissement : les recettes restent listées ; celles avec vos allergènes affichent un badge.",
   "help_cook_sign_in_allergies": "Connectez-vous et enregistrez les allergies dans votre profil pour filtrer automatiquement les recettes.",
   "help_cook_ingredients_label": "Saisissez les ingrédients dont vous disposez",
+  "help_cook_pantry_specificity_example": "Pour de meilleurs résultats, soyez précis. Si vous avez du poulet, saisissez poitrine ou cuisses de poulet, ou bouillon de poulet.",
   "help_cook_ingredients_placeholder": "ex. poulet, ail, huile d’olive, tomates",
   "help_cook_pantry_only_hint": "Utiliser uniquement mon garde-manger enregistré (plus les ingrédients d’un lien partagé). Décochez pour ajouter d’autres ingrédients pour cette recherche sans les enregistrer.",
   "help_cook_find_pending": "Recherche…",

@@ -96,6 +96,9 @@ export function HelpMeCookPantry(props: HelpMeCookPantryProps) {
         <label className="text-sm font-medium text-[var(--text)]" htmlFor="q">
           {t("help_cook_ingredients_label")}
         </label>
+        <p className="text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
+          {t("help_cook_pantry_specificity_example")}
+        </p>
         <textarea
           id="q"
           name="q"

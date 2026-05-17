@@ -595,6 +595,12 @@ export default async function RecipeDetailPage(props: Props) {
         </ul>
       ) : null}
 
+      {qRaw.length > 0 ? (
+        <p className="mt-8 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
+          {dictText(dict, "help_cook_pantry_specificity_example")}
+        </p>
+      ) : null}
+
       <RecipeDetailIngredientsSection
         ingredients={detailIngredients}
         initialHaveIngredientIds={initialHaveIngredientIds}
