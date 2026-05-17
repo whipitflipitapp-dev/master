@@ -6,6 +6,9 @@ export type AiUsageEventType =
   | "ai_vision_ingredients"
   | "ai_wine_pairings_generated";
 
+/** Server-trusted outbound affiliate classifications. */
+export type AffiliateLinkType = "wine_buy" | "cookbook_amazon";
+
 /** Safe, shallow metadata for JSONB — no arbitrary nested blobs. */
 export function sanitizeEventMetadata(
   metadata: Record<string, unknown> | undefined,

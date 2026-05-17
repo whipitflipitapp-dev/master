@@ -84,7 +84,7 @@ export async function loadSavedGroceryListRecipes(
     return { recipes: [], error: favoritesError.message };
   }
 
-  const recipes = (favoriteRows ?? [])
+  const recipes: GroceryListRecipe[] = (favoriteRows ?? [])
     .map((row) => normalizeEmbeddedRecipe((row as FavoriteRecipeRow).recipes))
     .filter((row): row is { id: string; title: string } => Boolean(row))
     .map((row) => ({ id: row.id, title: row.title, ingredients: [] }));

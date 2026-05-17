@@ -1,20 +1,11 @@
 "use server";
 
-import {
-  type ClientTelemetryEventName,
-  CLIENT_TELEMETRY_EVENT_NAMES,
-  recordClientTelemetryEvent,
-} from "@/lib/telemetry/client-events";
+import { recordClientTelemetryEvent } from "@/lib/telemetry/client-events";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { logEvent } from "@/lib/telemetry";
-
-export { CLIENT_TELEMETRY_EVENT_NAMES, type ClientTelemetryEventName };
+import { logEvent, type AffiliateLinkType } from "@/lib/telemetry";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Server-trusted outbound affiliate classifications. */
-export type AffiliateLinkType = "wine_buy" | "cookbook_amazon";
 
 function sanitizeRecipeIdForAffiliate(raw: string | null): string | null {
   if (raw == null || raw === "") return null;

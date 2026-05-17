@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { completeOnboarding } from "@/app/actions/onboarding";
 import {
-  completeOnboarding,
   FEATURE_INTEREST_VALUES,
   REFERRAL_SOURCE_VALUES,
-} from "@/app/actions/onboarding";
+} from "@/lib/onboarding";
 import { RECIPE_CATEGORY_VALUES } from "@/lib/recipe-categories";
 import { ProfileAllergiesForm } from "@/components/profile/ProfileAllergiesForm";
 import type { AllergyMode } from "@/lib/profile";

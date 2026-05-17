@@ -2,10 +2,8 @@
 
 import type { ComponentPropsWithoutRef } from "react";
 
-import {
-  logAffiliateClick,
-  type AffiliateLinkType,
-} from "@/app/actions/telemetry";
+import { logAffiliateClick } from "@/app/actions/telemetry";
+import type { AffiliateLinkType } from "@/lib/telemetry";
 
 type Props = Omit<ComponentPropsWithoutRef<"a">, "href" | "target" | "rel"> & {
   href: string;

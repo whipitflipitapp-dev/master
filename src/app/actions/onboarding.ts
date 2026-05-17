@@ -4,36 +4,16 @@ import { revalidatePath } from "next/cache";
 
 import {
   FOOD_CATEGORY_VALUES,
-  type FoodCategory,
-} from "@/lib/recipe-categories";
+  FEATURE_INTEREST_VALUES,
+  REFERRAL_SOURCE_VALUES,
+  type OnboardingInput,
+} from "@/lib/onboarding";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-export { FOOD_CATEGORY_VALUES, type FoodCategory };
 
 const NAME_MAX_LEN = 80;
 const TEXT_MAX_LEN = 500;
 const REFERRAL_MAX_LEN = 200;
 const FOODS_MAX_ITEMS = 30;
-
-export const REFERRAL_SOURCE_VALUES = [
-  "friend",
-  "search",
-  "social",
-  "app_store",
-  "ad",
-  "blog",
-  "other",
-] as const;
-export type ReferralSource = (typeof REFERRAL_SOURCE_VALUES)[number];
-
-export const FEATURE_INTEREST_VALUES = [
-  "upload_recipes",
-  "pantry_match",
-  "sell_cookbook",
-  "ai_chef",
-  "save_favorites",
-] as const;
-export type FeatureInterest = (typeof FEATURE_INTEREST_VALUES)[number];
 
 const INTERESTS_MAX_ITEMS = 10;
 
@@ -116,18 +96,6 @@ function cleanReferralSource(raw: unknown): string | undefined {
   if (allowed.has(v)) return v;
   return v.length > REFERRAL_MAX_LEN ? v.slice(0, REFERRAL_MAX_LEN) : v;
 }
-
-export type OnboardingInput = {
-  firstName?: string;
-  lastName?: string;
-  birthdate?: string | null;
-  featureInterests?: string[];
-  foodsLoved?: string[];
-  foodsLovedOther?: string;
-  cooksPerWeek?: number | null;
-  allergyOther?: string;
-  referralSource?: string;
-};
 
 /**
  * Saves any provided survey fields and stamps onboarding_completed_at.

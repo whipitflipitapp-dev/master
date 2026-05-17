@@ -6,9 +6,11 @@ import { useActionState, useState, useTransition } from "react";
 import {
   deleteUserWinePairing,
   submitUserWinePairing,
+} from "@/app/actions/user-wine-pairings";
+import {
   type UserWinePairingRow,
   type WineTypeCount,
-} from "@/app/actions/user-wine-pairings";
+} from "@/lib/user-wine-pairings";
 import { CURATED_WINE_TYPES } from "@/lib/wine-types";
 
 const MAX_WHY_BLURB = 200;

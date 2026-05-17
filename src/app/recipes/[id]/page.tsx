@@ -19,7 +19,7 @@ import {
 import {
   aggregateWineTypeCounts,
   type UserWinePairingRow,
-} from "@/app/actions/user-wine-pairings";
+} from "@/lib/user-wine-pairings";
 import { CURATED_WINE_TYPES } from "@/lib/wine-types";
 import type { RecipeExperienceRow } from "@/app/actions/recipe-experiences";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
