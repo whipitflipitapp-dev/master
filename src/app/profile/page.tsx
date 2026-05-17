@@ -287,6 +287,7 @@ export default async function ProfilePage() {
           <ProfileWhippedRecipes
             items={whippedRecipes}
             emptyLabel={dictText(dict, "profile_whipped_empty")}
+            locale={locale}
             labels={{
               madeYes: dictText(dict, "profile_whipped_made_yes"),
               madeNo: dictText(dict, "profile_whipped_made_no"),
@@ -294,6 +295,8 @@ export default async function ProfilePage() {
               ratingNone: dictText(dict, "profile_whipped_rating_none"),
               spent: dictText(dict, "profile_whipped_spent"),
               spentNone: dictText(dict, "profile_whipped_spent_none"),
+              recorded: dictText(dict, "profile_whipped_recorded"),
+              updated: dictText(dict, "profile_whipped_updated"),
             }}
           />
         </section>

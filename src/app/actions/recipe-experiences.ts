@@ -18,6 +18,7 @@ export type WhippedRecipeListItem = {
   madeRecipe: boolean;
   rating: number | null;
   spentCents: number | null;
+  createdAt: string;
   updatedAt: string;
 };
 
@@ -134,6 +135,7 @@ export async function listMyRecipeExperiences(): Promise<{
       made_recipe,
       rating,
       spent_cents,
+      created_at,
       updated_at,
       recipe_id,
       recipes (
@@ -179,6 +181,10 @@ export async function listMyRecipeExperiences(): Promise<{
         typeof row.spent_cents === "number" && row.spent_cents >= 0
           ? row.spent_cents
           : null,
+      createdAt:
+        typeof row.created_at === "string"
+          ? row.created_at
+          : String(row.created_at),
       updatedAt:
         typeof row.updated_at === "string"
           ? row.updated_at
