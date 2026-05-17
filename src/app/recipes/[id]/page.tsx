@@ -141,20 +141,6 @@ async function loadRecipe(
     .select("id,wine_type,wine_name,notes,description,purchase_url")
     .eq("recipe_id", id);
 
-  const { data: tagsJoin } = await supabase
-    .from("recipe_tags")
-    .select("tag_id")
-    .eq("recipe_id", id);
-
-  const tagIds = [
-    ...new Set((tagsJoin ?? []).map((t: { tag_id: string }) => t.tag_id)),
-  ];
-  let tagRows: { id: string; name: string }[] = [];
-  if (tagIds.length > 0) {
-    const res = await supabase.from("tags").select("id,name").in("id", tagIds);
-    tagRows = res.data ?? [];
-  }
-
   const planForWine = await getCurrentUserPlanType(supabase);
 
   let allergyBanner: { variant: "strict" | "warn"; names: string[] } | null =
@@ -296,7 +282,6 @@ async function loadRecipe(
     ingredientsList,
     pantryHaveIngredientIds,
     wines: wines ?? [],
-    tags: tagRows,
     planForWine,
     favoredByUser,
     excludedByUser,
@@ -395,7 +380,6 @@ export default async function RecipeDetailPage(props: Props) {
     ingredientsList,
     pantryHaveIngredientIds,
     wines,
-    tags,
     planForWine,
     favoredByUser,
     excludedByUser,
@@ -531,18 +515,6 @@ export default async function RecipeDetailPage(props: Props) {
             )}
           </div>
         </div>
-        {tags.length > 0 ? (
-          <ul className="mt-5 flex flex-wrap gap-2">
-            {tags.map((t) => (
-              <li
-                key={t.id}
-                className="rounded-full bg-[color-mix(in_srgb,var(--muted)_25%,transparent)] px-2.5 py-0.5 text-xs font-semibold tracking-tight text-[var(--text)]"
-              >
-                {t.name}
-              </li>
-            ))}
-          </ul>
-        ) : null}
         {chefProfileHref ? (
           <div className="mt-5 flex items-center gap-3">
             <ChefAvatar
