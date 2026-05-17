@@ -9,3 +9,6 @@ export const PANTRY_MATCH_MIN_PERCENT = 40;
  * 100% for the pantry subset by definition).
  */
 export const PANTRY_MATCH_SHORT_QUERY_MAX_TOKENS = 5;
+
+/** Minimum token length for substring matching against `ingredients.name` (ILIKE). */
+export const PANTRY_PARTIAL_INGREDIENT_MIN_LEN = 4;

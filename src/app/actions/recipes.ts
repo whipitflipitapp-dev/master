@@ -431,7 +431,7 @@ export async function matchRecipesForPantry(
 ): Promise<{
   matches: RecipeMatchResult[];
   error: string | null;
-  /** Tokens with no exact catalog name match; matching uses only resolved tokens. */
+  /** Tokens with no ingredient row (exact or partial); matching uses only resolved tokens. */
   unmatchedTokens?: string[];
   /** Broad tokens (e.g. chicken) — suggest specific catalog names. */
   genericTokenHints?: GenericPantryTokenHint[];

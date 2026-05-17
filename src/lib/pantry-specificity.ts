@@ -5,7 +5,7 @@ import {
   normalizeIngredientToken,
 } from "@/lib/ingredients";
 
-/** Broad pantry tokens that need a specific catalog name (exact match only). */
+/** Broad pantry tokens — partial pantry match works; hints nudge users toward specifics. */
 const GENERIC_PANTRY_TOKENS = new Set([
   "beef",
   "cheese",

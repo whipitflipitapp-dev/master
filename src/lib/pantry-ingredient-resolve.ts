@@ -1,9 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import {
-  pantryTokenMatchesIngredientName,
-  parseIngredientInput,
-} from "@/lib/ingredients";
+import { escapeIlikePercentPattern, parseIngredientInput } from "@/lib/ingredients";
+import { PANTRY_PARTIAL_INGREDIENT_MIN_LEN } from "@/lib/pantry";
 import {
   fetchGenericPantryTokenHints,
   type GenericPantryTokenHint,
@@ -23,8 +21,9 @@ export type PantryIngredientResolution = {
 };
 
 /**
- * Resolve textarea tokens to catalog ingredient rows (exact normalized name only).
- * Same rules as Help Me Cook matching and recipe-detail pantry pre-checks.
+ * Resolve textarea tokens to catalog ingredient rows (exact name, then partial ILIKE).
+ * Broad tokens (e.g. "chicken", "rice") match related catalog names; the static pantry
+ * disclaimer and {@link fetchGenericPantryTokenHints} encourage more specific input.
  */
 export async function resolvePantryIngredientTokens(
   supabase: SupabaseClient,
@@ -60,9 +59,26 @@ export async function resolvePantryIngredientTokens(
   for (const t of userTokens) tokenToIds.set(t, new Set());
 
   for (const row of (exactRows ?? []) as IngRow[]) {
-    for (const token of userTokens) {
-      if (!pantryTokenMatchesIngredientName(token, row.name)) continue;
-      tokenToIds.get(token)!.add(row.id);
+    const s = tokenToIds.get(row.name);
+    if (s) s.add(row.id);
+  }
+
+  for (const token of userTokens) {
+    if (tokenToIds.get(token)!.size > 0) continue;
+    if (token.length < PANTRY_PARTIAL_INGREDIENT_MIN_LEN) continue;
+    const pattern = `%${escapeIlikePercentPattern(token)}%`;
+    const { data: partialRows, error: pErr } = await supabase
+      .from("ingredients")
+      .select("id,name")
+      .ilike("name", pattern)
+      .limit(80);
+
+    if (pErr) {
+      return { ok: false, error: pErr.message };
+    }
+    const acc = tokenToIds.get(token)!;
+    for (const row of (partialRows ?? []) as IngRow[]) {
+      acc.add(row.id);
     }
   }
 

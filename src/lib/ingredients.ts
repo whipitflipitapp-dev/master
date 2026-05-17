@@ -3,24 +3,6 @@ export function normalizeIngredientToken(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-/**
- * Pantry "have" detection: user token must equal the full catalog ingredient name
- * (normalized). No substring or word-prefix match.
- *
- * Examples (token → ingredient name):
- * - "chicken" → "chicken" yes; "chicken broth" / "chicken breast" no
- * - "chicken broth" → "chicken broth" yes; "chicken" no
- * - "chicken breast" → "chicken thigh" no
- */
-export function pantryTokenMatchesIngredientName(
-  token: string,
-  ingredientName: string,
-): boolean {
-  const t = normalizeIngredientToken(token);
-  const n = normalizeIngredientToken(ingredientName);
-  return t.length > 0 && n === t;
-}
-
 /** Escape `%`, `_`, and `\` for use inside PostgreSQL ILIKE patterns wrapped with `%`. */
 export function escapeIlikePercentPattern(token: string): string {
   return token
