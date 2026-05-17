@@ -32,6 +32,10 @@ import {
 import { checkMonthlyRecipeUploadAllowed } from "@/lib/recipe-upload-limit";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  isRecipeCategory,
+  type RecipeCategory,
+} from "@/lib/recipe-categories";
 import { getExcludedRecipeIdsForUser } from "@/lib/user-excluded-recipes";
 
 export type RecipeListItem = {
@@ -111,14 +115,42 @@ function coerceRecipeBrowseRow(row: unknown): RecipeBrowseRow | null {
  * `recipe_allergens` rows (`.in` on allergen ids only), then skip blocked recipe ids
  * while paginating `recipes`.
  */
+async function recipeIdsMatchingTagNames(
+  supabase: SupabaseClient,
+  tagNames: string[],
+): Promise<Set<string> | null> {
+  if (tagNames.length === 0) return null;
+
+  const { data: tags, error: tagErr } = await supabase
+    .from("tags")
+    .select("id,name")
+    .in("name", tagNames);
+
+  if (tagErr) return null;
+  const tagIds = (tags ?? []).map((t: { id: string }) => t.id);
+  if (tagIds.length === 0) return new Set();
+
+  const { data: rt, error: rtErr } = await supabase
+    .from("recipe_tags")
+    .select("recipe_id")
+    .in("tag_id", tagIds);
+
+  if (rtErr) return null;
+  return new Set((rt ?? []).map((r: { recipe_id: string }) => r.recipe_id));
+}
+
 async function listRecipesBrowseFallback(
   supabase: SupabaseClient,
   limit: number,
   term: string | null,
   excludeIds: string[],
   excludedRecipeIds: Set<string>,
+  tagFilterIds: Set<string> | null,
 ): Promise<{ rows: RecipeBrowseRow[] | null; errorMessage: string | null }> {
   const ilikePattern = term ? `%${term}%` : null;
+
+  const matchesTagFilter = (recipeId: string) =>
+    tagFilterIds == null || tagFilterIds.has(recipeId);
 
   let blocked: Set<string> | null = null;
   if (excludeIds.length > 0) {
@@ -160,7 +192,13 @@ async function listRecipesBrowseFallback(
   );
   for (const id of DEMO_RECIPE_IDS_ORDERED) {
     const r = demoById.get(id);
-    if (!r || blocked?.has(r.id) || excludedRecipeIds.has(r.id)) continue;
+    if (
+      !r ||
+      blocked?.has(r.id) ||
+      excludedRecipeIds.has(r.id) ||
+      !matchesTagFilter(r.id)
+    )
+      continue;
     rows.push(r);
     seen.add(r.id);
     if (rows.length >= limit) {
@@ -195,7 +233,12 @@ async function listRecipesBrowseFallback(
 
     for (const r of batch) {
       if (seen.has(r.id)) continue;
-      if (blocked?.has(r.id) || excludedRecipeIds.has(r.id)) continue;
+      if (
+        blocked?.has(r.id) ||
+        excludedRecipeIds.has(r.id) ||
+        !matchesTagFilter(r.id)
+      )
+        continue;
       seen.add(r.id);
       rows.push(r);
       if (rows.length >= limit) break;
@@ -272,6 +315,8 @@ export async function listRecipes(
     allergyMode?: "strict" | "warn";
     /** Defaults to "newest" — uses the RPC's existing order. Other values post-sort the page slice. */
     sort?: RecipesBrowseSort;
+    /** Canonical category slug stored in tags.name (e.g. vegan, bbq). */
+    category?: RecipeCategory | null;
   },
 ): Promise<{
   recipes: RecipeListItem[];
@@ -292,6 +337,8 @@ export async function listRecipes(
 
   const term = sanitizeRecipeSearch(options?.query);
   const excludeIds = options?.excludeAllergenIds?.filter(Boolean) ?? [];
+  const category = options?.category ?? null;
+  const tagNames = category ? [category] : null;
 
   const { data, error: rpcError } = await supabase.rpc(
     "list_recipes_for_browse",
@@ -300,6 +347,7 @@ export async function listRecipes(
       p_title_search: term,
       p_exclude_allergen_ids:
         excludeIds.length > 0 ? excludeIds : null,
+      p_tag_names: tagNames,
     },
   );
 
@@ -309,12 +357,17 @@ export async function listRecipes(
       .map(coerceRecipeBrowseRow)
       .filter((x): x is RecipeBrowseRow => x != null);
   } else {
+    const tagFilterIds =
+      category != null
+        ? await recipeIdsMatchingTagNames(supabase, [category])
+        : null;
     const fb = await listRecipesBrowseFallback(
       supabase,
       limit,
       term,
       excludeIds,
       excludedRecipeIds,
+      tagFilterIds,
     );
     if (fb.errorMessage || !fb.rows) {
       return { recipes: [], error: "browse_unavailable" as const };
@@ -775,6 +828,10 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
   const video_url = videoUrlRaw ? videoUrlRaw : null;
   const ingredientBlock = String(formData.get("ingredients") ?? "");
   const tagRaw = String(formData.get("tags") ?? "");
+  const categorySlugs = formData
+    .getAll("recipe_category")
+    .map(String)
+    .filter((s) => isRecipeCategory(s));
   const allergenIds = formData.getAll("allergen_id").map(String).filter(Boolean);
 
   if (!title || !instructions) {
@@ -847,12 +904,13 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
   }
 
   const tagNames = [
-    ...new Set(
-      tagRaw
+    ...new Set([
+      ...categorySlugs,
+      ...tagRaw
         .split(/[,]+/)
         .map((t) => normalizeIngredientToken(t))
         .filter(Boolean),
-    ),
+    ]),
   ];
 
   for (const tagName of tagNames) {

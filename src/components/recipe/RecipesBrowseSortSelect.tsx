@@ -17,6 +17,7 @@ type Props = {
   query?: string;
   /** Preserved across submit when the safe-filter is explicit/active. */
   safe?: "1";
+  category?: string;
 };
 
 /**
@@ -30,6 +31,7 @@ export function RecipesBrowseSortSelect({
   options,
   query,
   safe,
+  category,
 }: Props) {
   const id = useId();
   return (
@@ -40,6 +42,7 @@ export function RecipesBrowseSortSelect({
     >
       {query ? <input type="hidden" name="q" value={query} /> : null}
       {safe ? <input type="hidden" name="safe" value={safe} /> : null}
+      {category ? <input type="hidden" name="category" value={category} /> : null}
       <label
         htmlFor={id}
         className="text-[length:var(--text-caption)] font-medium uppercase tracking-wide text-[var(--muted-light)]"

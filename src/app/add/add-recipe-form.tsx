@@ -19,8 +19,16 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Allergen = { id: string; name: string };
 
+type CategoryOption = { value: string; label: string };
+
 export function AddRecipeForm({
   allergens,
+  categoryOptions,
+  categoriesLabel,
+  categoriesHint,
+  extraTagsLabel,
+  extraTagsHint,
+  extraTagsPlaceholder,
   initialError,
   atLimit,
   limitNotice,
@@ -28,6 +36,12 @@ export function AddRecipeForm({
   planForPitch,
 }: {
   allergens: Allergen[];
+  categoryOptions: CategoryOption[];
+  categoriesLabel: string;
+  categoriesHint: string;
+  extraTagsLabel: string;
+  extraTagsHint: string;
+  extraTagsPlaceholder: string;
   /** Already decoded route error query (if present). */
   initialError: string | null;
   /** Free tier reached monthly recipe cap (server); disables submit. */
@@ -47,6 +61,10 @@ export function AddRecipeForm({
   const [allergenSelected, setAllergenSelected] = useState<Set<string>>(
     () => new Set(),
   );
+  const [categoriesSelected, setCategoriesSelected] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const categoriesLabelId = useId();
 
   const suggestionIds = useMemo(
     () => suggestAllergenIdsFromText(ingredientDraft, allergens),
@@ -323,19 +341,61 @@ export function AddRecipeForm({
         />
       </div>
 
-      <div className="flex flex-col gap-2">
+      <fieldset
+        className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4"
+        aria-labelledby={categoriesLabelId}
+      >
+        <p
+          id={categoriesLabelId}
+          className="mb-1 text-sm font-medium text-[var(--text)]"
+        >
+          {categoriesLabel}
+        </p>
+        <p className="mb-3 text-[length:var(--text-caption)] text-[var(--muted)]">
+          {categoriesHint}
+        </p>
+        <motion className="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-2">
+          {categoryOptions.map((c) => (
+            <label
+              key={c.value}
+              className="flex items-center gap-2 text-sm text-[var(--text)]"
+            >
+              <input
+                type="checkbox"
+                name="recipe_category"
+                value={c.value}
+                disabled={busy || capped}
+                checked={categoriesSelected.has(c.value)}
+                onChange={(e) => {
+                  setCategoriesSelected((prev) => {
+                    const next = new Set(prev);
+                    if (e.target.checked) next.add(c.value);
+                    else next.delete(c.value);
+                    return next;
+                  });
+                }}
+              />
+              <span>{c.label}</span>
+            </label>
+          ))}
+        </motion>
+      </fieldset>
+
+      <motion className="flex flex-col gap-2">
         <label htmlFor="tags" className="text-sm font-medium text-[var(--text)]">
-          Tags
+          {extraTagsLabel}
         </label>
         <input
           id="tags"
           name="tags"
           disabled={busy || capped}
-          placeholder="weeknight, vegetarian"
+          placeholder={extraTagsPlaceholder}
           className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/30 focus:ring-2"
         />
-        <span className="text-[length:var(--text-caption)] text-[var(--muted)]">Comma-separated</span>
-      </div>
+        <span className="text-[length:var(--text-caption)] text-[var(--muted)]">
+          {extraTagsHint}
+        </span>
+      </motion>
 
       <fieldset
         className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4"

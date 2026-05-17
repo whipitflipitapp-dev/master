@@ -4,6 +4,10 @@ import type { Metadata } from "next";
 import { AddRecipeForm } from "@/app/add/add-recipe-form";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import {
+  RECIPE_CATEGORY_VALUES,
+  recipeCategoryI18nKey,
+} from "@/lib/recipe-categories";
 import { RecipeUploadQuotaNotice } from "@/components/billing/RecipeUploadQuotaNotice";
 import {
   getRecipeUploadLimitStateForUi,
@@ -112,6 +116,10 @@ export default async function AddRecipePage({
     (fromQuery && !isProOrAbove(limitState.plan));
   const limitNotice = dictText(dict, "add_recipe_monthly_limit_notice");
   const submitBlockedLabel = dictText(dict, "add_recipe_submit_blocked_limit");
+  const categoryOptions = RECIPE_CATEGORY_VALUES.map((value) => ({
+    value,
+    label: dictText(dict, recipeCategoryI18nKey(value)),
+  }));
 
   return (
     <ContentPageBackdrop pageKey="/add">
@@ -136,6 +144,12 @@ export default async function AddRecipePage({
 
       <AddRecipeForm
         allergens={allergens}
+        categoryOptions={categoryOptions}
+        categoriesLabel={dictText(dict, "add_recipe_categories_label")}
+        categoriesHint={dictText(dict, "add_recipe_categories_hint")}
+        extraTagsLabel={dictText(dict, "add_recipe_extra_tags_label")}
+        extraTagsHint={dictText(dict, "add_recipe_extra_tags_hint")}
+        extraTagsPlaceholder={dictText(dict, "add_recipe_extra_tags_placeholder")}
         initialError={decodedError}
         atLimit={atLimit}
         limitNotice={limitNotice}

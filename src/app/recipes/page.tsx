@@ -7,8 +7,14 @@ import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
 import { RecipeCreatorAttribution } from "@/components/recipe/RecipeCreatorAttribution";
+import { RecipesBrowseCategoryChips } from "@/components/recipe/RecipesBrowseCategoryChips";
 import { RecipesBrowseSortSelect } from "@/components/recipe/RecipesBrowseSortSelect";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import {
+  parseRecipeCategoryParam,
+  RECIPE_CATEGORY_VALUES,
+  recipeCategoryI18nKey,
+} from "@/lib/recipe-categories";
 import { profileHasAllergenSelections } from "@/lib/allergy-other";
 import type { AllergyMode } from "@/lib/profile";
 import { getCurrentProfile } from "@/lib/profile";
@@ -19,6 +25,7 @@ type RecipesPageProps = {
     q?: string | string[] | undefined;
     safe?: string | string[] | undefined;
     sort?: string | string[] | undefined;
+    category?: string | string[] | undefined;
   }>;
 };
 
@@ -67,6 +74,7 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
   const qRaw = firstQuery(sp?.q);
   const safeRaw = firstQuery(sp?.safe);
   const sort = parseSort(firstQuery(sp?.sort));
+  const category = parseRecipeCategoryParam(firstQuery(sp?.category));
 
   const supabase = await createSupabaseServerClient();
   let isLoggedIn = false;
@@ -116,7 +124,13 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
     allergyOtherRaw: useSafeFilter ? allergyOtherRaw : undefined,
     allergyMode,
     sort,
+    category,
   });
+
+  const categoryOptions = RECIPE_CATEGORY_VALUES.map((value) => ({
+    value,
+    label: dictText(dict, recipeCategoryI18nKey(value)),
+  }));
 
   const favoriteIds = new Set<string>();
   if (supabase && currentUserId && recipes.length > 0) {
@@ -137,24 +151,25 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
   const browseLoginParams = new URLSearchParams();
   if (qRaw?.trim()) browseLoginParams.set("q", qRaw.trim());
   if (useSafeFilter) browseLoginParams.set("safe", "1");
+  if (category) browseLoginParams.set("category", category);
   const recipesLoginNext =
     browseLoginParams.toString().length > 0
       ? `/recipes?${browseLoginParams.toString()}`
       : "/recipes";
 
-  const paramsShowAll = new URLSearchParams();
-  if (qRaw?.trim()) paramsShowAll.set("q", qRaw.trim());
-  paramsShowAll.set("safe", "0");
-  if (sort !== "newest") paramsShowAll.set("sort", sort);
-  const hrefShowAll = `/recipes?${paramsShowAll.toString()}`;
+  function recipesQueryParams(safeFlag: "0" | "1"): URLSearchParams {
+    const params = new URLSearchParams();
+    if (qRaw?.trim()) params.set("q", qRaw.trim());
+    params.set("safe", safeFlag);
+    if (sort !== "newest") params.set("sort", sort);
+    if (category) params.set("category", category);
+    return params;
+  }
 
-  const paramsSafeOnly = new URLSearchParams();
-  if (qRaw?.trim()) paramsSafeOnly.set("q", qRaw.trim());
-  paramsSafeOnly.set("safe", "1");
-  if (sort !== "newest") paramsSafeOnly.set("sort", sort);
-  const hrefSafeOn = `/recipes?${paramsSafeOnly.toString()}`;
+  const hrefShowAll = `/recipes?${recipesQueryParams("0").toString()}`;
+  const hrefSafeOn = `/recipes?${recipesQueryParams("1").toString()}`;
 
-  const backdropKey = `/recipes|q=${qRaw?.trim() ?? ""}|safe=${useSafeFilter ? "1" : "0"}|sort=${sort}`;
+  const backdropKey = `/recipes|q=${qRaw?.trim() ?? ""}|safe=${useSafeFilter ? "1" : "0"}|sort=${sort}|cat=${category ?? ""}`;
 
   return (
     <ContentPageBackdrop pageKey={backdropKey}>
@@ -175,6 +190,7 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
               label={dictText(dict, "recipes_sort_label")}
               query={qRaw?.trim() ? qRaw.trim() : undefined}
               safe={useSafeFilter ? "1" : undefined}
+              category={category ?? undefined}
               options={[
                 {
                   value: "newest",
@@ -205,6 +221,9 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
           {sort !== "newest" ? (
             <input type="hidden" name="sort" value={sort} />
           ) : null}
+          {category ? (
+            <input type="hidden" name="category" value={category} />
+          ) : null}
           <label htmlFor="recipe-search" className="sr-only">
             {dictText(dict, "recipes_search_aria")}
           </label>
@@ -224,6 +243,17 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
             {dictText(dict, "recipes_search_submit")}
           </button>
         </form>
+
+        <RecipesBrowseCategoryChips
+          ariaLabel={dictText(dict, "recipes_category_filter_aria")}
+          heading={dictText(dict, "recipes_category_heading")}
+          allLabel={dictText(dict, "recipes_category_all")}
+          active={category}
+          options={categoryOptions}
+          query={qRaw?.trim() ? qRaw.trim() : undefined}
+          safe={useSafeFilter ? "1" : undefined}
+          sort={sort !== "newest" ? sort : undefined}
+        />
 
         {isLoggedIn && hasAllergens ? (
           <p className="mt-3 max-w-xl text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
@@ -282,16 +312,31 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
             <p className="text-sm leading-relaxed text-[var(--muted)]">
               {qRaw?.trim()
                 ? dictText(dict, "recipes_empty_search_sub")
-                : dictText(dict, "recipes_empty_default_sub")}
+                : category
+                  ? dictText(dict, "recipes_empty_category_sub", {
+                      category: dictText(
+                        dict,
+                        recipeCategoryI18nKey(category),
+                      ),
+                    })
+                  : dictText(dict, "recipes_empty_default_sub")}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            {qRaw?.trim() ? (
+            {qRaw?.trim() || category ? (
               <Link
-                href="/recipes"
+                href={
+                  category && !qRaw?.trim()
+                    ? "/recipes"
+                    : category
+                      ? `/recipes?category=${category}`
+                      : "/recipes"
+                }
                 className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] shadow-[0_1px_0_rgba(28,25,23,0.04)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))]"
               >
-                {dictText(dict, "recipes_clear_search")}
+                {qRaw?.trim()
+                  ? dictText(dict, "recipes_clear_search")
+                  : dictText(dict, "recipes_clear_category")}
               </Link>
             ) : null}
             {isLoggedIn ? (
