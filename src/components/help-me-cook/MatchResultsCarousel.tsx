@@ -15,12 +15,17 @@ import { useTranslation } from "react-i18next";
 import type { RecipeMatchResult } from "@/app/actions/recipes";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
+import { formatEstimatedMissingCostDisplay } from "@/lib/ingredient-cost-estimates";
 import { PANTRY_MATCH_MIN_PERCENT } from "@/lib/pantry";
 
 const SWIPE_THRESHOLD_PX = 40;
 const DRAG_CONSTRAINT = 140;
 
-type HelpCookSortMode = "best_match" | "fewest_missing" | "most_on_hand";
+type HelpCookSortMode =
+  | "best_match"
+  | "fewest_missing"
+  | "most_on_hand"
+  | "lowest_cost";
 
 export type HelpMeCookMatchFavoriteSnapshot = {
   favoritesCount: number;
@@ -80,6 +85,17 @@ export function HelpMeCookMatchResultsSection({
             return (
               b.m.matchedIngredientCount - a.m.matchedIngredientCount ||
               a.m.missingIngredients.length - b.m.missingIngredients.length ||
+              a.m.title.localeCompare(b.m.title)
+            );
+          })
+          .map((x) => x.m);
+      case "lowest_cost":
+        return tagged
+          .sort((a, b) => {
+            return (
+              a.m.estimatedMissingCostCents - b.m.estimatedMissingCostCents ||
+              a.m.missingIngredients.length - b.m.missingIngredients.length ||
+              b.m.matchPercent - a.m.matchPercent ||
               a.m.title.localeCompare(b.m.title)
             );
           })
@@ -162,6 +178,9 @@ export function HelpMeCookMatchResultsSection({
             </option>
             <option value="most_on_hand">
               {t("help_cook_sort_most_on_hand")}
+            </option>
+            <option value="lowest_cost">
+              {t("help_cook_sort_lowest_cost")}
             </option>
           </select>
         </div>
@@ -294,6 +313,18 @@ export function HelpMeCookMatchResultsSection({
                   <span className="inline-block rounded-full bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2 py-0.5 text-xs font-semibold text-[var(--primary)]">
                     {t("help_cook_match_percent", { percent: m.matchPercent })}
                   </span>
+                  {m.missingIngredients.length > 0 ? (
+                    <span
+                      className="inline-block rounded-full bg-[color-mix(in_srgb,var(--muted)_18%,transparent)] px-2 py-0.5 text-[length:var(--text-caption)] font-semibold leading-tight text-[var(--muted)]"
+                      title={t("help_cook_cost_estimate_disclaimer")}
+                    >
+                      {t("help_cook_estimated_missing_cost", {
+                        amount: formatEstimatedMissingCostDisplay(
+                          m.estimatedMissingCostCents,
+                        ),
+                      })}
+                    </span>
+                  ) : null}
                 </span>
               }
               footer={
@@ -301,6 +332,9 @@ export function HelpMeCookMatchResultsSection({
                   <>
                     {t("help_cook_missing_prefix")}{" "}
                     {m.missingIngredients.join(", ")}
+                    <span className="mt-1 block text-[length:var(--text-caption)] text-[var(--muted)]">
+                      {t("help_cook_cost_estimate_disclaimer")}
+                    </span>
                   </>
                 ) : (
                   <span className="text-[var(--success)]">

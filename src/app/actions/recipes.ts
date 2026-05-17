@@ -25,6 +25,7 @@ import {
   validateRecipeImageUploadMeta,
   validateStoredRecipeImageUrl,
 } from "@/lib/recipe-image";
+import { estimateMissingIngredientsCostCents } from "@/lib/ingredient-cost-estimates";
 import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
 import { checkMonthlyRecipeUploadAllowed } from "@/lib/recipe-upload-limit";
 import { logEvent } from "@/lib/telemetry";
@@ -373,6 +374,8 @@ export type RecipeMatchResult = {
   matchedIngredientCount: number;
   /** User warn mode: tagged allergen names that intersect profile allergens. */
   allergyOverlapNames?: string[];
+  /** Sum of static US-average estimates for {@link missingIngredients} (USD cents). */
+  estimatedMissingCostCents: number;
 };
 
 export async function matchRecipesForPantry(
@@ -560,6 +563,8 @@ export async function matchRecipesForPantry(
       missingIngredients,
       recipeIngredientCount: denom,
       matchedIngredientCount: overlap,
+      estimatedMissingCostCents:
+        estimateMissingIngredientsCostCents(missingIngredients),
     });
   }
 
