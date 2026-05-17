@@ -155,6 +155,32 @@ export interface Database {
         };
         Update: Record<string, never>;
       };
+      user_recipe_experiences: {
+        Row: {
+          user_id: string;
+          recipe_id: string;
+          made_recipe: boolean;
+          rating: number | null;
+          spent_cents: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          recipe_id: string;
+          made_recipe?: boolean;
+          rating?: number | null;
+          spent_cents?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          made_recipe?: boolean;
+          rating?: number | null;
+          spent_cents?: number | null;
+          updated_at?: string;
+        };
+      };
       allergens: {
         Row: { id: string; name: string };
         Insert: { id?: string; name: string };
@@ -314,6 +340,10 @@ export interface Database {
           cook_time_minutes: number | null;
           created_at: string;
         }[];
+      };
+      recipe_whip_flip_count: {
+        Args: { p_recipe_id: string };
+        Returns: number;
       };
     };
   };

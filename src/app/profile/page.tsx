@@ -4,8 +4,10 @@ import type { Metadata } from "next";
 import { signOut } from "@/app/actions/auth";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { listExcludedRecipes } from "@/app/actions/excluded-recipes";
+import { listMyRecipeExperiences } from "@/app/actions/recipe-experiences";
 import { ProfileAllergiesForm } from "@/components/profile/ProfileAllergiesForm";
 import { ProfileExcludedRecipes } from "@/components/profile/ProfileExcludedRecipes";
+import { ProfileWhippedRecipes } from "@/components/profile/ProfileWhippedRecipes";
 import { ProfileAvatarUpload } from "@/components/profile/ProfileAvatarUpload";
 import { ProfileDisplayNameForm } from "@/components/profile/ProfileDisplayNameForm";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
@@ -127,6 +129,11 @@ export default async function ProfilePage() {
   const excludedRecipes =
     session?.user != null
       ? (await listExcludedRecipes()).items
+      : [];
+
+  const whippedRecipes =
+    session?.user != null
+      ? (await listMyRecipeExperiences()).items
       : [];
 
   const user = session?.user ?? null;
@@ -251,6 +258,32 @@ export default async function ProfilePage() {
             includeLabel={dictText(dict, "recipe_exclude_include_again")}
             includingLabel={dictText(dict, "recipe_exclude_including")}
             emptyLabel={dictText(dict, "profile_excluded_empty")}
+          />
+        </section>
+      ) : null}
+
+      {user ? (
+        <section className="mt-8" aria-labelledby="whipped-recipes-heading">
+          <h2
+            id="whipped-recipes-heading"
+            className="text-lg font-semibold text-[var(--text)]"
+          >
+            {dictText(dict, "profile_whipped_heading")}
+          </h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            {dictText(dict, "profile_whipped_intro")}
+          </p>
+          <ProfileWhippedRecipes
+            items={whippedRecipes}
+            emptyLabel={dictText(dict, "profile_whipped_empty")}
+            labels={{
+              madeYes: dictText(dict, "profile_whipped_made_yes"),
+              madeNo: dictText(dict, "profile_whipped_made_no"),
+              rating: dictText(dict, "profile_whipped_rating"),
+              ratingNone: dictText(dict, "profile_whipped_rating_none"),
+              spent: dictText(dict, "profile_whipped_spent"),
+              spentNone: dictText(dict, "profile_whipped_spent_none"),
+            }}
           />
         </section>
       ) : null}

@@ -7,9 +7,12 @@ import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
+import { RecipeDetailIngredientsSection } from "@/components/recipe/RecipeDetailIngredientsSection";
+import { RecipeExperienceForm } from "@/components/recipe/RecipeExperienceForm";
 import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeIncludeAgainButton } from "@/components/recipe/RecipeIncludeAgainButton";
+import type { RecipeExperienceRow } from "@/app/actions/recipe-experiences";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import { isAmazonAffiliateProductUrl } from "@/lib/amazon-affiliate-url";
 import { winePairingsUnlockedForPlan, type PlanType } from "@/lib/plan";
@@ -56,6 +59,15 @@ async function loadRecipe(
     .maybeSingle();
 
   if (rErr || !recipe) return null;
+
+  const { data: whipFlipCountRaw, error: whipFlipErr } = await supabase.rpc(
+    "recipe_whip_flip_count",
+    { p_recipe_id: id },
+  );
+  const whipFlipCount =
+    !whipFlipErr && typeof whipFlipCountRaw === "number" && whipFlipCountRaw >= 0
+      ? whipFlipCountRaw
+      : 0;
 
   let favoredByUser = false;
   let excludedByUser = false;
@@ -156,6 +168,7 @@ async function loadRecipe(
     cover_image_url: string | null;
     external_link: string;
   } | null = null;
+  let recipeExperience: RecipeExperienceRow | null = null;
   const createdBy =
     recipe && "created_by" in recipe && recipe.created_by
       ? (recipe.created_by as string)
@@ -201,6 +214,28 @@ async function loadRecipe(
   }
 
   if (user) {
+    const { data: expRow } = await supabase
+      .from("user_recipe_experiences")
+      .select("made_recipe, rating, spent_cents")
+      .eq("user_id", user.id)
+      .eq("recipe_id", id)
+      .maybeSingle();
+    if (expRow) {
+      recipeExperience = {
+        madeRecipe: Boolean(expRow.made_recipe),
+        rating:
+          typeof expRow.rating === "number" &&
+          expRow.rating >= 1 &&
+          expRow.rating <= 10
+            ? expRow.rating
+            : null,
+        spentCents:
+          typeof expRow.spent_cents === "number" && expRow.spent_cents >= 0
+            ? expRow.spent_cents
+            : null,
+      };
+    }
+
     const { data: profRow } = await supabase
       .from("profiles")
       .select("allergy_mode, allergy_other")
@@ -271,6 +306,8 @@ async function loadRecipe(
     chefDisplayName,
     chefAvatarUrl,
     uploaderCookbook,
+    recipeExperience,
+    whipFlipCount,
   };
 }
 
@@ -368,7 +405,20 @@ export default async function RecipeDetailPage(props: Props) {
     chefDisplayName,
     chefAvatarUrl,
     uploaderCookbook,
+    recipeExperience,
+    whipFlipCount,
   } = payload;
+  const loginNextPath =
+    qRaw.length > 0 ? `/recipes/${recipe.id}?q=${encodeURIComponent(qRaw)}` : `/recipes/${recipe.id}`;
+  const detailIngredients = ingredientsList.map((ing) => ({
+    ingredientId: ing.ingredient_id,
+    name: ing.name,
+    quantity: ing.quantity,
+    sortOrder: ing.sort_order,
+  }));
+  const initialHaveIngredientIds = pantryHaveIngredientIds
+    ? [...pantryHaveIngredientIds]
+    : [];
   const displayImageUrl = resolveRecipeDisplayImageUrl(
     recipe.id,
     recipe.image_url,
@@ -391,11 +441,20 @@ export default async function RecipeDetailPage(props: Props) {
       : dictText(dict, "recipe_detail_save_many", {
           count: recipe.favorites_count,
         });
+  const whipFlipLabel =
+    whipFlipCount > 0
+      ? whipFlipCount === 1
+        ? dictText(dict, "recipe_detail_whip_flip_one", { count: whipFlipCount })
+        : dictText(dict, "recipe_detail_whip_flip_many", {
+            count: whipFlipCount,
+          })
+      : null;
 
   const metaSentence = [
     difficultyLabel,
     recipe.cook_time_minutes != null ? `${recipe.cook_time_minutes} min` : null,
     savesLabel,
+    whipFlipLabel,
   ]
     .filter((x): x is string => Boolean(x))
     .join(" · ");
@@ -505,39 +564,18 @@ export default async function RecipeDetailPage(props: Props) {
         ) : null}
       </header>
 
-      <section className="mt-11" aria-labelledby="ingredients-heading">
-        <h2
-          id="ingredients-heading"
-          className="text-xl font-semibold tracking-tight text-[var(--text)]"
-        >
-          {dictText(dict, "recipe_detail_section_ingredients")}
-        </h2>
-        <ul className="mt-4 space-y-3">
-          {ingredientsList.map((ing, idx) => (
-            <li
-              key={`${ing.sort_order}-${ing.name}-${idx}`}
-              className="flex gap-3 rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-4 py-3 shadow-[0_1px_0_rgba(28,25,23,0.03)]"
-            >
-              <input
-                type="checkbox"
-                className="mt-0.5 h-[1.125rem] w-[1.125rem] shrink-0 accent-[var(--primary)]"
-                aria-label={ing.name}
-                defaultChecked={
-                  pantryHaveIngredientIds?.has(ing.ingredient_id) ?? false
-                }
-              />
-              <span className="text-[0.9375rem] leading-relaxed text-[var(--text)]">
-                {ing.quantity ? (
-                  <span className="font-medium text-[var(--muted)]">
-                    {ing.quantity}{" "}
-                  </span>
-                ) : null}
-                <span>{ing.name}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <RecipeDetailIngredientsSection
+        ingredients={detailIngredients}
+        initialHaveIngredientIds={initialHaveIngredientIds}
+        labels={{
+          sectionTitle: dictText(dict, "recipe_detail_section_ingredients"),
+          estimatedMissingCost: dictText(dict, "help_cook_estimated_missing_cost", {
+            amount: "{{amount}}",
+          }),
+          costDisclaimer: dictText(dict, "help_cook_cost_estimate_disclaimer"),
+          haveAllIngredients: dictText(dict, "help_cook_have_all_ingredients"),
+        }}
+      />
 
       <section className="mt-12" aria-labelledby="instructions-heading">
         <h2
@@ -702,6 +740,26 @@ export default async function RecipeDetailPage(props: Props) {
           </AffiliateOutboundLink>
         </section>
       ) : null}
+
+      <RecipeExperienceForm
+        recipeId={recipe.id}
+        authenticated={authenticated}
+        loginNextPath={loginNextPath}
+        initial={recipeExperience}
+        labels={{
+          sectionTitle: dictText(dict, "recipe_experience_heading"),
+          madeLabel: dictText(dict, "recipe_experience_made_label"),
+          ratingLabel: dictText(dict, "recipe_experience_rating_label"),
+          ratingHint: dictText(dict, "recipe_experience_rating_hint"),
+          spentLabel: dictText(dict, "recipe_experience_spent_label"),
+          spentHint: dictText(dict, "recipe_experience_spent_hint"),
+          save: dictText(dict, "recipe_experience_save"),
+          saving: dictText(dict, "recipe_experience_saving"),
+          signInPrompt: dictText(dict, "recipe_experience_sign_in_suffix"),
+          signInLink: dictText(dict, "profile_sign_in_link"),
+          saved: dictText(dict, "recipe_experience_saved"),
+        }}
+      />
 
       <footer className="mt-16 border-t border-[var(--border)] pt-10">
         <Link
