@@ -106,17 +106,16 @@ export async function getRecipeUploadQuotaForUi(
     };
   }
 
-  if (gate.reason === "monthly_limit") {
-    return {
-      plan: gate.plan,
-      atLimit: true,
-      showQuota: true,
-      remaining: 0,
-      cap,
-    };
-  }
-
-  if (gate.reason === "query_failed") {
+  if (!gate.allowed) {
+    if (gate.reason === "monthly_limit") {
+      return {
+        plan: gate.plan,
+        atLimit: true,
+        showQuota: true,
+        remaining: 0,
+        cap,
+      };
+    }
     return {
       plan: gate.plan,
       atLimit: false,
