@@ -25,7 +25,10 @@ import {
   validateStoredRecipeImageUrl,
 } from "@/lib/recipe-image";
 import { estimateMissingIngredientsCostCents } from "@/lib/ingredient-cost-estimates";
-import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
+import {
+  resolvePantryIngredientTokens,
+  type GenericPantryTokenHint,
+} from "@/lib/pantry-ingredient-resolve";
 import { checkMonthlyRecipeUploadAllowed } from "@/lib/recipe-upload-limit";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -430,6 +433,8 @@ export async function matchRecipesForPantry(
   error: string | null;
   /** Tokens with no exact catalog name match; matching uses only resolved tokens. */
   unmatchedTokens?: string[];
+  /** Broad tokens (e.g. chicken) — suggest specific catalog names. */
+  genericTokenHints?: GenericPantryTokenHint[];
 }> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
@@ -452,8 +457,16 @@ export async function matchRecipesForPantry(
     return { matches: [], error: phase.error };
   }
 
-  const { userTokens, resolvedSpecs, userUnion, dbUnmatchedTokens } =
-    phase.data;
+  const {
+    userTokens,
+    resolvedSpecs,
+    userUnion,
+    dbUnmatchedTokens,
+    genericTokenHints,
+  } = phase.data;
+
+  const genericHintsExtra =
+    genericTokenHints.length > 0 ? { genericTokenHints } : {};
 
   if (userTokens.length === 0) {
     return { matches: [], error: null };
@@ -464,6 +477,7 @@ export async function matchRecipesForPantry(
       matches: [],
       error: null,
       ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
+      ...genericHintsExtra,
     };
   }
 
@@ -524,6 +538,7 @@ export async function matchRecipesForPantry(
       matches: [],
       error: null,
       ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
+      ...genericHintsExtra,
     };
   }
 
@@ -546,6 +561,7 @@ export async function matchRecipesForPantry(
       matches: [],
       error: allRiErr?.message ?? "Failed to load ingredients.",
       ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
+      ...genericHintsExtra,
     };
   }
 
@@ -703,6 +719,7 @@ export async function matchRecipesForPantry(
     matches: filtered,
     error: null,
     ...(dbUnmatchedTokens.length ? { unmatchedTokens: dbUnmatchedTokens } : {}),
+    ...genericHintsExtra,
   };
 }
 

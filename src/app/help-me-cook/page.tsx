@@ -104,13 +104,23 @@ export default async function HelpMeCookPage({
 
   const initialTextarea = mergedTokens.join(", ");
 
-  const { matches, error: matchError, unmatchedTokens } = effectiveMatchText
+  const {
+    matches,
+    error: matchError,
+    unmatchedTokens,
+    genericTokenHints,
+  } = effectiveMatchText
     ? await matchRecipesForPantry(effectiveMatchText, {
         excludeAllergenIds,
         allergyMode,
         allergyOtherRaw,
       })
-    : { matches: [], error: null, unmatchedTokens: undefined };
+    : {
+        matches: [],
+        error: null,
+        unmatchedTokens: undefined,
+        genericTokenHints: undefined,
+      };
 
   const favoriteByRecipeId: Record<string, HelpMeCookMatchFavoriteSnapshot> = {};
 
@@ -219,6 +229,7 @@ export default async function HelpMeCookPage({
         initialPantryOnly={pantryOnlyChecked}
         matchError={matchError}
         unmatchedTokens={unmatchedTokens}
+        genericTokenHints={genericTokenHints}
         allergyNote={allergyNote}
         afterFindMatches={
           <section

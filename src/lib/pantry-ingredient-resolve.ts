@@ -4,6 +4,12 @@ import {
   pantryTokenMatchesIngredientName,
   parseIngredientInput,
 } from "@/lib/ingredients";
+import {
+  fetchGenericPantryTokenHints,
+  type GenericPantryTokenHint,
+} from "@/lib/pantry-specificity";
+
+export type { GenericPantryTokenHint };
 
 type IngRow = { id: string; name: string };
 
@@ -13,6 +19,7 @@ export type PantryIngredientResolution = {
   resolvedSpecs: { token: string; ids: Set<string> }[];
   userUnion: Set<string>;
   dbUnmatchedTokens: string[];
+  genericTokenHints: GenericPantryTokenHint[];
 };
 
 /**
@@ -35,6 +42,7 @@ export async function resolvePantryIngredientTokens(
         resolvedSpecs: [],
         userUnion: new Set(),
         dbUnmatchedTokens: [],
+        genericTokenHints: [],
       },
     };
   }
@@ -68,6 +76,12 @@ export async function resolvePantryIngredientTokens(
     for (const id of spec.ids) userUnion.add(id);
   }
 
+  const genericTokenHints = await fetchGenericPantryTokenHints(
+    supabase,
+    userTokens,
+    tokenToIds,
+  );
+
   return {
     ok: true,
     data: {
@@ -76,6 +90,7 @@ export async function resolvePantryIngredientTokens(
       resolvedSpecs,
       userUnion,
       dbUnmatchedTokens,
+      genericTokenHints,
     },
   };
 }

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { syncPantryFromCommaString } from "@/app/actions/pantry";
 import { mergeIngredientTokens, parseIngredientInput } from "@/lib/ingredients";
+import type { GenericPantryTokenHint } from "@/lib/pantry-ingredient-resolve";
 
 export type HelpMeCookPantryProps = {
   loggedIn: boolean;
@@ -18,6 +19,8 @@ export type HelpMeCookPantryProps = {
   matchError?: string | null;
   /** Tokens with no DB ingredient row; matching used only resolved tokens. */
   unmatchedTokens?: string[];
+  /** Broad tokens — suggest specific catalog names. */
+  genericTokenHints?: GenericPantryTokenHint[];
   allergyNote?: string | null;
   /** Rendered after the Find Matches submit control (e.g. upsell). */
   afterFindMatches?: ReactNode;
@@ -38,6 +41,7 @@ export function HelpMeCookPantry(props: HelpMeCookPantryProps) {
     initialPantryOnly,
     matchError,
     unmatchedTokens,
+    genericTokenHints,
     allergyNote,
     afterFindMatches = null,
     children = null,
@@ -175,6 +179,26 @@ export function HelpMeCookPantry(props: HelpMeCookPantryProps) {
             tokens: unmatchedTokens.join(", "),
           })}
         </p>
+      ) : null}
+
+      {genericTokenHints?.length ? (
+        <ul className="flex flex-col gap-2" role="status">
+          {genericTokenHints.map((hint) => (
+            <li
+              key={hint.token}
+              className="rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_6%,var(--card))] px-3 py-2 text-sm text-[var(--text)]"
+            >
+              <p>{t("pantry_generic_hint", { token: hint.token })}</p>
+              {hint.examples.length > 0 ? (
+                <p className="mt-1 text-[var(--muted)]">
+                  {t("pantry_generic_examples", {
+                    examples: hint.examples.join(", "),
+                  })}
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
       ) : null}
 
       {children}
