@@ -24,10 +24,7 @@ import {
   matchedOtherAllergenTokens,
   parseOtherAllergenTokens,
 } from "@/lib/allergy-other";
-import {
-  resolvePantryIngredientTokens,
-  type GenericPantryTokenHint,
-} from "@/lib/pantry-ingredient-resolve";
+import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
 import { parseYoutubeVideoId } from "@/lib/youtube";
 
 type Props = {
@@ -131,13 +128,11 @@ async function loadRecipe(
   );
 
   let pantryHaveIngredientIds: Set<string> | null = null;
-  let pantryGenericTokenHints: GenericPantryTokenHint[] = [];
   const pantryText = options?.pantryMatchText?.trim();
   if (pantryText) {
     const resolved = await resolvePantryIngredientTokens(supabase, pantryText);
     if (resolved.ok) {
       pantryHaveIngredientIds = resolved.data.userUnion;
-      pantryGenericTokenHints = resolved.data.genericTokenHints;
     }
   }
 
@@ -300,7 +295,6 @@ async function loadRecipe(
     recipe,
     ingredientsList,
     pantryHaveIngredientIds,
-    pantryGenericTokenHints,
     wines: wines ?? [],
     tags: tagRows,
     planForWine,
@@ -400,7 +394,6 @@ export default async function RecipeDetailPage(props: Props) {
     recipe,
     ingredientsList,
     pantryHaveIngredientIds,
-    pantryGenericTokenHints,
     wines,
     tags,
     planForWine,
@@ -570,36 +563,6 @@ export default async function RecipeDetailPage(props: Props) {
           </div>
         ) : null}
       </header>
-
-      {pantryGenericTokenHints.length > 0 ? (
-        <ul
-          className="mt-8 flex flex-col gap-2"
-          role="status"
-          aria-label={dictText(dict, "recipe_detail_pantry_generic_aria")}
-        >
-          {pantryGenericTokenHints.map((hint) => (
-            <li
-              key={hint.token}
-              className="rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_6%,var(--card))] px-3 py-2 text-sm text-[var(--text)]"
-            >
-              <p>{dictText(dict, "pantry_generic_hint", { token: hint.token })}</p>
-              {hint.examples.length > 0 ? (
-                <p className="mt-1 text-[var(--muted)]">
-                  {dictText(dict, "pantry_generic_examples", {
-                    examples: hint.examples.join(", "),
-                  })}
-                </p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {qRaw.length > 0 ? (
-        <p className="mt-8 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
-          {dictText(dict, "help_cook_pantry_specificity_example")}
-        </p>
-      ) : null}
 
       <RecipeDetailIngredientsSection
         ingredients={detailIngredients}
