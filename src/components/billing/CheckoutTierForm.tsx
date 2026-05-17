@@ -1,8 +1,11 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useActionState, useEffect, useId } from "react";
 
-import { createCheckoutSession } from "@/app/actions/billing";
+import {
+  createCheckoutSession,
+  type CheckoutSessionState,
+} from "@/app/actions/billing";
 
 export type CheckoutTier = "pro" | "ai_chef";
 
@@ -15,8 +18,6 @@ type Props = {
   ctaLabel?: string;
 };
 
-type FormState = { ok: false; error: string } | undefined;
-
 export function CheckoutTierForm({
   tier,
   monthlyLabel,
@@ -26,10 +27,16 @@ export function CheckoutTierForm({
   ctaLabel,
 }: Props) {
   const intervalId = useId();
-  const [state, formAction, pending] = useActionState<FormState, FormData>(
-    async (_prev, fd) => createCheckoutSession(fd),
-    undefined,
-  );
+  const [state, formAction, pending] = useActionState<
+    CheckoutSessionState | undefined,
+    FormData
+  >(async (_prev, fd) => createCheckoutSession(fd), undefined);
+
+  useEffect(() => {
+    if (state?.ok === true && state.url) {
+      window.location.assign(state.url);
+    }
+  }, [state]);
 
   if (!isSignedIn) {
     const next = encodeURIComponent("/upgrade");

@@ -17,18 +17,18 @@ import { logCheckoutStarted } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type CheckoutFailure = { ok: false; error: string };
+export type CheckoutSessionState = CheckoutFailure | { ok: true; url: string };
 
 /**
- * Create a Stripe Checkout Session for the signed-in user and redirect to it.
+ * Create a Stripe Checkout Session for the signed-in user.
  *
- * Used as a `<form action={createCheckoutSession}>` handler on `/upgrade`.
- * On success this never returns — it issues a server redirect to Stripe.
- * On failure it returns an `{ ok: false, error }` object so the form can
- * surface the message inline.
+ * Used with `useActionState` on `/upgrade`. Returns `{ ok: true, url }` so the
+ * client can navigate to Stripe (server `redirect()` inside action state handlers
+ * surfaces as an error boundary instead of leaving the page).
  */
 export async function createCheckoutSession(
   formData: FormData,
-): Promise<CheckoutFailure | undefined> {
+): Promise<CheckoutSessionState> {
   const tierRaw = String(formData.get("tier") ?? "")
     .trim()
     .toLowerCase();
@@ -55,7 +55,10 @@ export async function createCheckoutSession(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent("/upgrade")}`);
+    return {
+      ok: false,
+      error: "Your session expired. Sign in again, then continue to checkout.",
+    };
   }
 
   const priceId = getStripePriceId(tier, interval);
@@ -129,9 +132,13 @@ export async function createCheckoutSession(
     return { ok: false, error: "Stripe did not return a checkout URL." };
   }
 
-  await logCheckoutStarted(supabase, tier, interval);
+  try {
+    await logCheckoutStarted(supabase, tier, interval);
+  } catch {
+    // Checkout must succeed even if telemetry insert fails.
+  }
 
-  redirect(session.url);
+  return { ok: true, url: session.url };
 }
 
 /**
