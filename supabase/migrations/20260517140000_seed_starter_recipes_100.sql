@@ -1,6 +1,6 @@
 -- Starter browse recipes (~100) for local/staging. Idempotent (fixed UUIDs + ON CONFLICT DO NOTHING).
 -- Category slugs match src/lib/recipe-categories.ts (tags.name).
--- Image paths cycle demo covers from public/recipes/ (see demo-recipe-cover-images.ts).
+-- Image paths: /recipes/starter-001.jpg … starter-100.jpg (patched in 20260517141000; see demo-recipe-cover-images.ts).
 -- Applied as migration role (bypasses RLS); anon SELECT on recipes is open.
 
 INSERT INTO public.ingredients (name)

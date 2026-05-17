@@ -26,11 +26,9 @@ const CATEGORIES = [
   "desserts",
 ];
 
-const IMAGES = [
-  "/recipes/demo-beef-ribs.jpg",
-  "/recipes/demo-salmon-rosemary.jpg",
-  "/recipes/demo-brazilian-chicken-rice.jpg",
-];
+function starterImagePath(seq) {
+  return `/recipes/starter-${String(seq).padStart(3, "0")}.jpg`;
+}
 
 /** @type {Record<string, Array<{title: string, difficulty: string, minutes: number, instr: string, ings: [string, string][]}>>} */
 const BY_CATEGORY = {
@@ -237,7 +235,8 @@ const allIngredients = [...ingredientCanon.values()];
 const lines = [];
 lines.push(`-- Starter browse recipes (~${TARGET}) for local/staging. Idempotent (fixed UUIDs + ON CONFLICT DO NOTHING).`);
 lines.push(`-- Category slugs match src/lib/recipe-categories.ts (tags.name).`);
-lines.push(`-- Image paths cycle demo covers from public/recipes/ (see demo-recipe-cover-images.ts).`);
+lines.push(`-- Image paths: /recipes/starter-001.jpg … starter-100.jpg (see demo-recipe-cover-images.ts).`);
+lines.push(`-- Add JPEGs under public/recipes/ or run: node scripts/fetch-starter-recipe-covers.mjs`);
 lines.push(`-- Applied as migration role (bypasses RLS); anon SELECT on recipes is open.`);
 lines.push("");
 
@@ -274,7 +273,7 @@ lines.push("VALUES");
 const recipeRows = recipes.map((r) => {
   const [title, difficulty, minutes, instr] = r.item;
   const id = uuidFor(r.seq);
-  const img = IMAGES[(r.seq - 1) % IMAGES.length];
+  const img = starterImagePath(r.seq);
   return `(
   ${sqlStr(id)}::uuid,
   ${sqlStr(title)},

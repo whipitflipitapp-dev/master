@@ -307,7 +307,14 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
             <p className="text-base font-semibold text-[var(--text)]">
               {qRaw?.trim()
                 ? dictText(dict, "recipes_empty_search_title")
-                : dictText(dict, "recipes_empty_default_title")}
+                : category
+                  ? dictText(dict, "recipes_empty_category_title", {
+                      category: dictText(
+                        dict,
+                        recipeCategoryI18nKey(category),
+                      ),
+                    })
+                  : dictText(dict, "recipes_empty_default_title")}
             </p>
             <p className="text-sm leading-relaxed text-[var(--muted)]">
               {qRaw?.trim()

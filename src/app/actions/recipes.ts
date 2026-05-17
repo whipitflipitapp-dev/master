@@ -340,6 +340,19 @@ export async function listRecipes(
   const category = options?.category ?? null;
   const tagNames = category ? [category] : null;
 
+  const tagFilterIds =
+    category != null
+      ? await recipeIdsMatchingTagNames(supabase, [category])
+      : null;
+  if (category != null) {
+    if (tagFilterIds === null) {
+      return { recipes: [], error: "browse_unavailable" as const };
+    }
+    if (tagFilterIds.size === 0) {
+      return { recipes: [], error: null };
+    }
+  }
+
   const { data, error: rpcError } = await supabase.rpc(
     "list_recipes_for_browse",
     {
@@ -356,11 +369,10 @@ export async function listRecipes(
     rows = (data as unknown[])
       .map(coerceRecipeBrowseRow)
       .filter((x): x is RecipeBrowseRow => x != null);
+    if (tagFilterIds != null) {
+      rows = rows.filter((r) => tagFilterIds.has(r.id));
+    }
   } else {
-    const tagFilterIds =
-      category != null
-        ? await recipeIdsMatchingTagNames(supabase, [category])
-        : null;
     const fb = await listRecipesBrowseFallback(
       supabase,
       limit,

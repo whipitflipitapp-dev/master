@@ -30,6 +30,7 @@
   "recipes_category_filter_aria": "Filter recipes by category",
   "recipes_category_heading": "Categories",
   "recipes_category_all": "All",
+  "recipes_empty_category_title": "No {{category}} recipes yet.",
   "recipes_empty_category_sub": "No recipes tagged {{category}} yet — try another filter or add one.",
   "recipes_clear_category": "Clear category",
   "recipes_allergen_banner_filtering": "Hiding recipes tagged with your allergens (strict profile or",

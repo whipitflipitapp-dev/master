@@ -30,6 +30,7 @@
   "recipes_category_filter_aria": "Filtrer les recettes par catégorie",
   "recipes_category_heading": "Catégories",
   "recipes_category_all": "Toutes",
+  "recipes_empty_category_title": "Aucune recette {{category}} pour l’instant.",
   "recipes_empty_category_sub": "Aucune recette avec l’étiquette {{category}} pour l’instant — essayez un autre filtre ou ajoutez-en une.",
   "recipes_clear_category": "Effacer la catégorie",
   "recipes_allergen_banner_filtering": "Masquage des recettes marquées avec vos allergènes (profil strict ou",
