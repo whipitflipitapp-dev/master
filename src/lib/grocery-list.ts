@@ -13,6 +13,7 @@ export type GroceryListIngredient = {
 export type GroceryListRecipe = {
   id: string;
   title: string;
+  savedAt: string;
   ingredients: GroceryListIngredient[];
 };
 
@@ -85,9 +86,24 @@ export async function loadSavedGroceryListRecipes(
   }
 
   const recipes: GroceryListRecipe[] = (favoriteRows ?? [])
-    .map((row) => normalizeEmbeddedRecipe((row as FavoriteRecipeRow).recipes))
-    .filter((row): row is { id: string; title: string } => Boolean(row))
-    .map((row) => ({ id: row.id, title: row.title, ingredients: [] }));
+    .flatMap((row) => {
+      const typed = row as FavoriteRecipeRow;
+      const recipe = normalizeEmbeddedRecipe(typed.recipes);
+      return recipe
+        ? [
+            {
+              id: recipe.id,
+              title: recipe.title,
+              savedAt: typed.created_at,
+              ingredients: [],
+            },
+          ]
+        : [];
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime(),
+    );
 
   const recipeIds = recipes.map((recipe) => recipe.id);
   if (recipeIds.length === 0) {

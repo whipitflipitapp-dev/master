@@ -103,6 +103,32 @@ export default async function GroceryListPage() {
               exportPrint: dictText(dict, "grocery_list_export_print"),
               exportText: dictText(dict, "grocery_list_export_text"),
               exportCsv: dictText(dict, "grocery_list_export_csv"),
+              addHeading: dictText(dict, "grocery_list_add_heading"),
+              addHint: dictText(dict, "grocery_list_add_hint"),
+              customNameLabel: dictText(dict, "grocery_list_custom_name_label"),
+              customNamePlaceholder: dictText(
+                dict,
+                "grocery_list_custom_name_placeholder",
+              ),
+              customQuantityLabel: dictText(
+                dict,
+                "grocery_list_custom_quantity_label",
+              ),
+              customQuantityPlaceholder: dictText(
+                dict,
+                "grocery_list_custom_quantity_placeholder",
+              ),
+              customNotesLabel: dictText(dict, "grocery_list_custom_notes_label"),
+              customNotesPlaceholder: dictText(
+                dict,
+                "grocery_list_custom_notes_placeholder",
+              ),
+              customSubmit: dictText(dict, "grocery_list_custom_submit"),
+              customNameRequired: dictText(
+                dict,
+                "grocery_list_custom_name_required",
+              ),
+              customRemove: dictText(dict, "grocery_list_custom_remove"),
             }}
           />
         )}
