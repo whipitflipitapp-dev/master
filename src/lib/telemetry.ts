@@ -39,7 +39,7 @@ export function sanitizeEventMetadata(
 
 async function insertEventRow(
   supabase: SupabaseClient,
-  userId: string,
+  userId: string | null,
   eventType: string,
   metadata: Record<string, unknown>,
 ): Promise<void> {
@@ -53,7 +53,8 @@ async function insertEventRow(
 
 /**
  * Log an event for the currently authenticated Supabase session user.
- * No-op when signed out. Anonymous telemetry is intentionally not inserted.
+ * No-op when signed out. Use a purpose-built helper for privacy-safe anonymous
+ * events instead of opening generic anonymous event writes.
  */
 export async function logEvent(
   supabase: SupabaseClient,
@@ -64,6 +65,22 @@ export async function logEvent(
   } = await supabase.auth.getUser();
   if (!user) return;
   await insertEventRow(supabase, user.id, options.type, options.metadata ?? {});
+}
+
+/**
+ * Record a recipe detail view. Signed-in users keep their own user_id; anonymous
+ * public views are stored with user_id null and only the recipe id metadata.
+ */
+export async function logRecipeViewedEvent(
+  supabase: SupabaseClient,
+  recipeId: string,
+): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await insertEventRow(supabase, user?.id ?? null, "recipe_viewed", {
+    recipe_id: recipeId,
+  });
 }
 
 /**

@@ -12,6 +12,7 @@ import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeIncludeAgainButton } from "@/components/recipe/RecipeIncludeAgainButton";
 import { RecipePremiumTools } from "@/components/recipe/RecipePremiumTools";
+import { RecipeViewTelemetry } from "@/components/recipe/RecipeViewTelemetry";
 import { RecipeCommunityWinePairingsSection } from "@/components/recipe/RecipeCommunityWinePairingsSection";
 import {
   RecipeWinePairingsSection,
@@ -31,7 +32,6 @@ import {
   type PlanType,
 } from "@/lib/plan";
 import { getCurrentUserPlanType } from "@/lib/profile";
-import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import {
@@ -432,14 +432,6 @@ export default async function RecipeDetailPage(props: Props) {
     notFound();
   }
 
-  const supabaseForTelemetry = await createSupabaseServerClient();
-  if (supabaseForTelemetry && payload.authenticated) {
-    await logEvent(supabaseForTelemetry, {
-      type: "recipe_viewed",
-      metadata: { recipe_id: payload.recipe.id },
-    });
-  }
-
   const {
     recipe,
     ingredientsList,
@@ -525,6 +517,7 @@ export default async function RecipeDetailPage(props: Props) {
   return (
     <ContentPageBackdrop pageKey={`/recipes/detail|${id}`}>
     <article className="mx-auto w-full max-w-2xl flex-1 px-5 pb-12 pt-8">
+      <RecipeViewTelemetry recipeId={recipe.id} />
       <RecipeDetailHero
         title={recipe.title}
         imageUrl={displayImageUrl}
