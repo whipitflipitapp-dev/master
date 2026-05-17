@@ -1,16 +1,24 @@
 "use client";
 
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { createRecipeFromForm } from "@/app/actions/recipes";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
-import type { RecipeGenerateShape } from "@/lib/ai/sanitize-output";
+import type {
+  CookingAssistantShape,
+  RecipeGenerateShape,
+  SubstitutionSuggestion,
+  VisionIngredientsShape,
+} from "@/lib/ai/sanitize-output";
 import type { PlanType } from "@/lib/plan";
 import { isAiChef } from "@/lib/plan";
 
 type Props = {
   planType: PlanType;
   suggestedAllergyNotes: string;
+  initialPantryItems: string[];
 };
 
 function parseIngredientsInput(raw: string): string[] {
@@ -22,11 +30,12 @@ function parseIngredientsInput(raw: string): string[] {
 }
 
 export function AiChefWorkbench(props: Props) {
-  const { planType, suggestedAllergyNotes } = props;
+  const { planType, suggestedAllergyNotes, initialPantryItems } = props;
   const { t } = useTranslation("common");
   const unlocked = isAiChef(planType);
+  const pantryText = initialPantryItems.join(", ");
 
-  const [recipeIngText, setRecipeIngText] = useState("");
+  const [recipeIngText, setRecipeIngText] = useState(pantryText);
   const [cuisine, setCuisine] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [recipeAllergy, setRecipeAllergy] = useState(suggestedAllergyNotes);
@@ -34,20 +43,31 @@ export function AiChefWorkbench(props: Props) {
   const [subIngredient, setSubIngredient] = useState("");
   const [subContext, setSubContext] = useState("");
   const [subAllergy, setSubAllergy] = useState(suggestedAllergyNotes);
+  const [assistantQuestion, setAssistantQuestion] = useState("");
+  const [assistantIngredients, setAssistantIngredients] = useState(pantryText);
 
   const [recipeResult, setRecipeResult] = useState<RecipeGenerateShape | null>(
     null,
   );
-  const [subResult, setSubResult] = useState<string[] | null>(null);
-  const [visionResult, setVisionResult] = useState<string[] | null>(null);
+  const [subResult, setSubResult] = useState<SubstitutionSuggestion[] | null>(
+    null,
+  );
+  const [visionResult, setVisionResult] = useState<VisionIngredientsShape | null>(
+    null,
+  );
+  const [assistantResult, setAssistantResult] =
+    useState<CookingAssistantShape | null>(null);
 
   const [recipeErr, setRecipeErr] = useState<string | null>(null);
   const [subErr, setSubErr] = useState<string | null>(null);
   const [visionErr, setVisionErr] = useState<string | null>(null);
+  const [assistantErr, setAssistantErr] = useState<string | null>(null);
 
   const [recipeBusy, setRecipeBusy] = useState(false);
   const [subBusy, setSubBusy] = useState(false);
   const [visionBusy, setVisionBusy] = useState(false);
+  const [assistantBusy, setAssistantBusy] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
 
   const runRecipe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,13 +144,13 @@ export function AiChefWorkbench(props: Props) {
       });
       const data = (await res.json()) as {
         error?: string;
-        suggestions?: string[];
+        substitutions?: SubstitutionSuggestion[];
       };
       if (!res.ok) {
         setSubErr(data.error ?? t("ai_chef_err_generic"));
         return;
       }
-      setSubResult(data.suggestions ?? []);
+      setSubResult(data.substitutions ?? []);
     } catch {
       setSubErr(t("ai_chef_err_network"));
     } finally {
@@ -165,17 +185,95 @@ export function AiChefWorkbench(props: Props) {
       const data = (await res.json()) as {
         error?: string;
         ingredients?: string[];
+        dish_name?: string | null;
+        suggested_actions?: string[];
       };
       if (!res.ok) {
         setVisionErr(data.error ?? t("ai_chef_err_generic"));
         return;
       }
-      setVisionResult(data.ingredients ?? []);
+      const nextVision = {
+        dish_name: data.dish_name ?? null,
+        ingredients: data.ingredients ?? [],
+        suggested_actions: data.suggested_actions ?? [],
+      };
+      setVisionResult(nextVision);
+      if (nextVision.ingredients.length > 0) {
+        setRecipeIngText(nextVision.ingredients.join(", "));
+        setAssistantIngredients(nextVision.ingredients.join(", "));
+      }
       e.currentTarget.reset();
     } catch {
       setVisionErr(t("ai_chef_err_network"));
     } finally {
       setVisionBusy(false);
+    }
+  };
+
+  const runAssistant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!unlocked) {
+      return;
+    }
+    setAssistantErr(null);
+    setAssistantResult(null);
+    const currentIngredients = parseIngredientsInput(assistantIngredients);
+    const question = assistantQuestion.trim();
+    if (!question && currentIngredients.length === 0) {
+      setAssistantErr(t("ai_chef_err_need_assistant_input"));
+      return;
+    }
+    setAssistantBusy(true);
+    try {
+      const res = await fetch("/api/ai/cooking-assistant", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: question || undefined,
+          currentIngredients,
+        }),
+      });
+      const data = (await res.json()) as Partial<CookingAssistantShape> & {
+        error?: string;
+      };
+      if (!res.ok) {
+        setAssistantErr(data.error ?? t("ai_chef_err_generic"));
+        return;
+      }
+      setAssistantResult({
+        answer: data.answer ?? "",
+        suggested_meals: data.suggested_meals ?? [],
+        used_pantry_items: data.used_pantry_items ?? [],
+        next_steps: data.next_steps ?? [],
+      });
+    } catch {
+      setAssistantErr(t("ai_chef_err_network"));
+    } finally {
+      setAssistantBusy(false);
+    }
+  };
+
+  const saveGeneratedRecipe = async () => {
+    if (!recipeResult || saveBusy) {
+      return;
+    }
+    setRecipeErr(null);
+    setSaveBusy(true);
+    const formData = new FormData();
+    formData.set("title", recipeResult.title || t("ai_chef_result_suggested_recipe"));
+    formData.set("ingredients", recipeResult.ingredients.join("\n"));
+    formData.set("instructions", recipeResult.steps.join("\n\n"));
+    formData.set("tags", "AI Chef");
+    try {
+      await createRecipeFromForm(formData);
+    } catch (err) {
+      if (!isRedirectError(err)) {
+        setRecipeErr(t("ai_chef_err_save_recipe"));
+        setSaveBusy(false);
+        return;
+      }
+      throw err;
     }
   };
 
@@ -308,6 +406,16 @@ export function AiChefWorkbench(props: Props) {
                 <li key={i}>{step}</li>
               ))}
             </ol>
+            <button
+              type="button"
+              onClick={saveGeneratedRecipe}
+              disabled={saveBusy}
+              className="mt-5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_10%,var(--bg))] disabled:opacity-60"
+            >
+              {saveBusy
+                ? t("ai_chef_btn_save_recipe_pending")
+                : t("ai_chef_btn_save_recipe")}
+            </button>
           </article>
         ) : null}
       </section>
@@ -371,9 +479,21 @@ export function AiChefWorkbench(props: Props) {
           ) : null}
         </form>
         {subResult?.length ? (
-          <ul className="mt-4 list-inside list-disc space-y-1.5 border-t border-[var(--border)] pt-4 text-sm text-[var(--text)]">
-            {subResult.map((line) => (
-              <li key={line}>{line}</li>
+          <ul className="mt-4 space-y-3 border-t border-[var(--border)] pt-4 text-sm text-[var(--text)]">
+            {subResult.map((item) => (
+              <li
+                key={`${item.ingredient}-${item.quantity_guidance}`}
+                className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] p-3"
+              >
+                <p className="font-semibold">{item.ingredient}</p>
+                <p className="mt-1">{item.quantity_guidance}</p>
+                <p className="mt-1 text-[var(--muted)]">{item.rationale}</p>
+                {item.dietary_notes ? (
+                  <p className="mt-1 text-[var(--muted)]">
+                    {item.dietary_notes}
+                  </p>
+                ) : null}
+              </li>
             ))}
           </ul>
         ) : null}
@@ -418,13 +538,18 @@ export function AiChefWorkbench(props: Props) {
             </p>
           ) : null}
         </form>
-        {visionResult?.length ? (
+        {visionResult ? (
           <div className="mt-4 border-t border-[var(--border)] pt-4">
+            {visionResult.dish_name ? (
+              <p className="mb-3 text-sm font-semibold text-[var(--text)]">
+                {t("ai_chef_vision_dish_label")}: {visionResult.dish_name}
+              </p>
+            ) : null}
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
               {t("ai_chef_vision_suggested_items")}
             </p>
             <ul className="mt-2 flex flex-wrap gap-2">
-              {visionResult.map((ing) => (
+              {visionResult.ingredients.map((ing) => (
                 <li
                   key={ing}
                   className="rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--primary-muted)_42%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--primary)]"
@@ -433,7 +558,136 @@ export function AiChefWorkbench(props: Props) {
                 </li>
               ))}
             </ul>
+            {visionResult.suggested_actions.length ? (
+              <ul className="mt-4 list-inside list-disc space-y-1.5 text-sm text-[var(--text)]">
+                {visionResult.suggested_actions.map((action) => (
+                  <li key={action}>{action}</li>
+                ))}
+              </ul>
+            ) : null}
+            {visionResult.ingredients.length ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const text = visionResult.ingredients.join(", ");
+                  setRecipeIngText(text);
+                  setAssistantIngredients(text);
+                }}
+                className="mt-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_10%,var(--bg))]"
+              >
+                {t("ai_chef_btn_use_detected")}
+              </button>
+            ) : null}
           </div>
+        ) : null}
+      </section>
+
+      <section
+        className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]"
+        aria-labelledby="ai-chef-assistant"
+      >
+        <h2
+          id="ai-chef-assistant"
+          className="text-lg font-semibold text-[var(--text)]"
+        >
+          {t("ai_chef_section_assistant_title")}
+        </h2>
+        <p className="mt-1.5 text-sm text-[var(--muted)]">
+          {t("ai_chef_section_assistant_sub")}
+        </p>
+        <form onSubmit={runAssistant} className="mt-4 flex flex-col gap-3">
+          <label
+            className="text-sm font-medium text-[var(--text)]"
+            htmlFor="assistant-question"
+          >
+            {t("ai_chef_label_assistant_question")}
+          </label>
+          <textarea
+            id="assistant-question"
+            rows={3}
+            value={assistantQuestion}
+            onChange={(ev) => setAssistantQuestion(ev.target.value)}
+            placeholder={t("ai_chef_placeholder_assistant_question")}
+            disabled={!unlocked}
+            className="w-full rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/25 focus:ring-2 disabled:opacity-60"
+          />
+          <label
+            className="text-sm font-medium text-[var(--text)]"
+            htmlFor="assistant-ingredients"
+          >
+            {t("ai_chef_label_assistant_ingredients")}
+          </label>
+          <textarea
+            id="assistant-ingredients"
+            rows={3}
+            value={assistantIngredients}
+            onChange={(ev) => setAssistantIngredients(ev.target.value)}
+            placeholder={t("ai_chef_placeholder_assistant_ingredients")}
+            disabled={!unlocked}
+            className="w-full rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/25 focus:ring-2 disabled:opacity-60"
+          />
+          <button
+            type="submit"
+            disabled={!unlocked || assistantBusy}
+            className="rounded-[var(--radius-card)] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--primary-hover)] active:scale-[0.99] disabled:opacity-60"
+          >
+            {assistantBusy
+              ? t("ai_chef_btn_assistant_pending")
+              : t("ai_chef_btn_assistant")}
+          </button>
+          {assistantErr ? (
+            <p className="text-sm text-[var(--danger)]" role="alert">
+              {assistantErr}
+            </p>
+          ) : null}
+        </form>
+        {assistantResult ? (
+          <article className="mt-5 border-t border-[var(--border)] pt-5 text-sm text-[var(--text)]">
+            <p className="whitespace-pre-wrap leading-relaxed">
+              {assistantResult.answer}
+            </p>
+            {assistantResult.suggested_meals.length ? (
+              <>
+                <h3 className="mt-4 font-semibold">
+                  {t("ai_chef_result_suggested_meals")}
+                </h3>
+                <ul className="mt-2 list-inside list-disc space-y-1">
+                  {assistantResult.suggested_meals.map((meal) => (
+                    <li key={meal}>{meal}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {assistantResult.used_pantry_items.length ? (
+              <>
+                <h3 className="mt-4 font-semibold">
+                  {t("ai_chef_result_used_pantry")}
+                </h3>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {assistantResult.used_pantry_items.map((item) => (
+                    <li
+                      key={item}
+                      className="rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--primary-muted)_42%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--primary)]"
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {assistantResult.next_steps.length ? (
+              <>
+                <h3 className="mt-4 font-semibold">
+                  {t("ai_chef_result_next_steps")}
+                </h3>
+                <ol className="mt-2 list-inside list-decimal space-y-1">
+                  {assistantResult.next_steps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              </>
+            ) : null}
+          </article>
         ) : null}
       </section>
     </div>

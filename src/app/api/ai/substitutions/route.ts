@@ -4,7 +4,12 @@ import { logAiUsageEvent } from "@/lib/ai/log-ai-event";
 import { getAiCompletionModel, getOpenAi } from "@/lib/ai/openai";
 import { parseLooseJsonObject } from "@/lib/ai/parse-model-json";
 import { requireAiChefRequest } from "@/lib/ai/require-ai-chef";
-import { sanitizeSubstitutionLines } from "@/lib/ai/sanitize-output";
+import {
+  sanitizeSubstitutionLines,
+  sanitizeSubstitutions,
+  type SubstitutionSuggestion,
+} from "@/lib/ai/sanitize-output";
+import { loadAiChefUserContext } from "@/lib/ai/user-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +40,27 @@ function coerceSuggestions(parsed: unknown): string[] {
       .filter(Boolean);
   }
   return [];
+}
+
+function coerceSubstitutions(parsed: unknown): SubstitutionSuggestion[] {
+  if (!parsed || typeof parsed !== "object") {
+    return [];
+  }
+  const o = parsed as Record<string, unknown>;
+  if (!Array.isArray(o.substitutions)) {
+    return [];
+  }
+  return o.substitutions.map((item) => {
+    const row =
+      item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+    return {
+      ingredient: String(row.ingredient ?? ""),
+      quantity_guidance: String(row.quantity_guidance ?? ""),
+      rationale: String(row.rationale ?? ""),
+      dietary_notes:
+        row.dietary_notes == null ? null : String(row.dietary_notes ?? ""),
+    };
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -73,6 +99,7 @@ export async function POST(req: NextRequest) {
 
   const context = readStr(b.context, MAX_CONTEXT);
   const allergyNotes = readStr(b.allergyNotes, MAX_ALLERGY);
+  const userContext = await loadAiChefUserContext(ctx.supabase, ctx.userId);
 
   const model = getAiCompletionModel();
 
@@ -85,9 +112,9 @@ export async function POST(req: NextRequest) {
         {
           role: "system",
           content:
-            'You suggest short cooking substitutions. Return JSON: {"suggestions": string[]} with 3–8 brief lines. ' +
-            "If allergy notes are provided, every suggestion must be safe for those constraints or clearly state why it may not work. " +
-            "No medical claims; practical kitchen guidance only.",
+            'You suggest practical cooking substitutions. Return JSON: {"substitutions":[{"ingredient":string,"quantity_guidance":string,"rationale":string,"dietary_notes":string|null}]} with 3-6 options. ' +
+            "Quantity guidance should explain ratios or adjustment amounts. Rationale should mention flavor, texture, or chemistry. " +
+            "Dietary notes should reflect supplied allergy/profile context when relevant. No medical claims; practical kitchen guidance only.",
         },
         {
           role: "user",
@@ -95,6 +122,7 @@ export async function POST(req: NextRequest) {
             ingredient,
             dish_or_context: context || null,
             allergy_notes: allergyNotes || null,
+            user_context: userContext,
           }),
         },
       ],
@@ -110,7 +138,20 @@ export async function POST(req: NextRequest) {
   }
 
   const parsedUnknown = parseLooseJsonObject(content);
-  const lines = sanitizeSubstitutionLines(coerceSuggestions(parsedUnknown));
+  const substitutions = sanitizeSubstitutions(coerceSubstitutions(parsedUnknown));
+  const lines =
+    substitutions.length > 0
+      ? substitutions.map((item) =>
+          [
+            item.ingredient,
+            item.quantity_guidance,
+            item.rationale,
+            item.dietary_notes,
+          ]
+            .filter(Boolean)
+            .join(" - "),
+        )
+      : sanitizeSubstitutionLines(coerceSuggestions(parsedUnknown));
 
   if (lines.length === 0) {
     return NextResponse.json(
@@ -124,5 +165,8 @@ export async function POST(req: NextRequest) {
     has_allergy_notes: Boolean(allergyNotes),
   });
 
-  return NextResponse.json({ suggestions: lines });
+  return NextResponse.json({
+    substitutions,
+    suggestions: lines,
+  });
 }

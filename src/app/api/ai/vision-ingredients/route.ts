@@ -4,7 +4,10 @@ import { logAiUsageEvent } from "@/lib/ai/log-ai-event";
 import { getAiCompletionModel, getOpenAi } from "@/lib/ai/openai";
 import { parseLooseJsonObject } from "@/lib/ai/parse-model-json";
 import { requireAiChefRequest } from "@/lib/ai/require-ai-chef";
-import { sanitizeIngredientList } from "@/lib/ai/sanitize-output";
+import {
+  sanitizeVisionOutput,
+  type VisionIngredientsShape,
+} from "@/lib/ai/sanitize-output";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,15 +19,20 @@ function bufferToBase64(buf: Buffer): string {
   return buf.toString("base64");
 }
 
-function coerceIngredientArray(parsed: unknown): string[] {
+function coerceVisionOutput(parsed: unknown): VisionIngredientsShape {
   if (!parsed || typeof parsed !== "object") {
-    return [];
+    return { dish_name: null, ingredients: [], suggested_actions: [] };
   }
   const o = parsed as Record<string, unknown>;
-  if (!Array.isArray(o.ingredients)) {
-    return [];
-  }
-  return (o.ingredients as unknown[]).map((x) => String(x ?? ""));
+  return {
+    dish_name: o.dish_name == null ? null : String(o.dish_name ?? ""),
+    ingredients: Array.isArray(o.ingredients)
+      ? (o.ingredients as unknown[]).map((x) => String(x ?? ""))
+      : [],
+    suggested_actions: Array.isArray(o.suggested_actions)
+      ? (o.suggested_actions as unknown[]).map((x) => String(x ?? ""))
+      : [],
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -90,8 +98,8 @@ export async function POST(req: NextRequest) {
         {
           role: "system",
           content:
-            'Identify visible raw ingredients suitable for cooking. Respond with JSON {"ingredients": string[]} — ' +
-            "common pantry names only, lowercase where natural, deduplicated. " +
+            'Identify visible dishes and raw ingredients suitable for cooking. Respond with JSON {"dish_name":string|null,"ingredients":string[],"suggested_actions":string[]} — ' +
+            "use common pantry names, lowercase where natural, deduplicated. Suggested actions should include practical next steps such as generating a recipe, adding items to pantry, or asking for substitutions. " +
             "If unsure, omit rather than hallucinate packaged brand names.",
         },
         {
@@ -120,11 +128,9 @@ export async function POST(req: NextRequest) {
   }
 
   const parsedUnknown = parseLooseJsonObject(content);
-  const ingredients = sanitizeIngredientList(
-    coerceIngredientArray(parsedUnknown),
-  );
+  const result = sanitizeVisionOutput(coerceVisionOutput(parsedUnknown));
 
-  if (ingredients.length === 0) {
+  if (result.ingredients.length === 0 && !result.dish_name) {
     return NextResponse.json(
       { error: "No ingredients extracted. Try another photo." },
       { status: 422 },
@@ -136,5 +142,5 @@ export async function POST(req: NextRequest) {
     bytes: ab.byteLength,
   });
 
-  return NextResponse.json({ ingredients });
+  return NextResponse.json(result);
 }

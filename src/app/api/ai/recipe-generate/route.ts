@@ -8,6 +8,7 @@ import {
   sanitizeRecipeOutput,
   type RecipeGenerateShape,
 } from "@/lib/ai/sanitize-output";
+import { loadAiChefUserContext } from "@/lib/ai/user-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,6 +99,7 @@ export async function POST(req: NextRequest) {
   const cuisine = readOptionalStr(b.cuisine, MAX_OPTIONAL_FIELD);
   const difficulty = readOptionalStr(b.difficulty, MAX_OPTIONAL_FIELD);
   const allergyNotes = readOptionalStr(b.allergyNotes, MAX_OPTIONAL_FIELD);
+  const userContext = await loadAiChefUserContext(ctx.supabase, ctx.userId);
 
   const model = getAiCompletionModel();
 
@@ -113,7 +115,8 @@ export async function POST(req: NextRequest) {
             "You are a careful cooking assistant. Respond with JSON only matching this shape: " +
             '{"title":string,"ingredients":string[],"steps":string[],"cook_time_minutes":number}. ' +
             "Steps should be concise but complete. Honor allergy notes by avoiding risky ingredients " +
-            "and calling out safe alternatives inline in ingredients where helpful. Keep language practical.",
+            "and calling out safe alternatives inline in ingredients where helpful. Use the supplied user context " +
+            "to tailor cuisine, difficulty, pantry usage, and preferences. Avoid recipes similar to hidden recipes. Keep language practical.",
         },
         {
           role: "user",
@@ -122,6 +125,7 @@ export async function POST(req: NextRequest) {
             cuisine: cuisine ?? null,
             difficulty: difficulty ?? null,
             allergy_notes: allergyNotes ?? null,
+            user_context: userContext,
           }),
         },
       ],
@@ -151,6 +155,8 @@ export async function POST(req: NextRequest) {
     ingredient_count: ingredients.length,
     has_cuisine: Boolean(cuisine),
     has_allergy_notes: Boolean(allergyNotes),
+    pantry_count: userContext.pantryItems.length,
+    saved_recipe_count: userContext.savedRecipeTitles.length,
   });
 
   return NextResponse.json(recipe);

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { AiChefWorkbench } from "@/components/ai-chef/AiChefWorkbench";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
+import { loadAiChefUserContext } from "@/lib/ai/user-context";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { isAiChef, type PlanType } from "@/lib/plan";
 import { getCurrentProfile } from "@/lib/profile";
@@ -16,36 +17,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: dictText(dict, "ai_chef_meta_title", { brand: dict.brand }),
     description: dictText(dict, "ai_chef_meta_desc"),
   };
-}
-
-function allergenNameFromJoinedRow(row: unknown): string | undefined {
-  if (!row || typeof row !== "object" || !("allergens" in row)) {
-    return undefined;
-  }
-  const nested = (row as { allergens: unknown }).allergens;
-  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-    const name = (nested as { name?: unknown }).name;
-    if (typeof name === "string" && name.trim()) {
-      return name.trim();
-    }
-    return undefined;
-  }
-  if (Array.isArray(nested)) {
-    for (const item of nested) {
-      if (
-        item &&
-        typeof item === "object" &&
-        "name" in item &&
-        typeof (item as { name: unknown }).name === "string"
-      ) {
-        const name = (item as { name: string }).name.trim();
-        if (name) {
-          return name;
-        }
-      }
-    }
-  }
-  return undefined;
 }
 
 export default async function AiChefPage() {
@@ -61,27 +32,12 @@ export default async function AiChefPage() {
   }
 
   let suggestedAllergyNotes = "";
+  let initialPantryItems: string[] = [];
   const supabase = await createSupabaseServerClient();
   if (supabase && ctx?.user) {
-    const { data: rows } = await supabase
-      .from("user_allergies")
-      .select("allergens(name)")
-      .eq("user_id", ctx.user.id);
-    const names = (rows ?? [])
-      .map((r) => allergenNameFromJoinedRow(r))
-      .filter((n): n is string => Boolean(n));
-    const { data: profRow } = await supabase
-      .from("profiles")
-      .select("allergy_other")
-      .eq("id", ctx.user.id)
-      .maybeSingle();
-    const other =
-      typeof profRow?.allergy_other === "string"
-        ? profRow.allergy_other.trim()
-        : "";
-    const parts = [...names];
-    if (other) parts.push(other);
-    suggestedAllergyNotes = parts.join(", ");
+    const userContext = await loadAiChefUserContext(supabase, ctx.user.id);
+    suggestedAllergyNotes = userContext.allergyNotes.join(", ");
+    initialPantryItems = userContext.pantryItems;
   }
 
   return (
@@ -109,6 +65,7 @@ export default async function AiChefPage() {
       <AiChefWorkbench
         planType={planType}
         suggestedAllergyNotes={suggestedAllergyNotes}
+        initialPantryItems={initialPantryItems}
       />
     </main>
     </ContentPageBackdrop>
