@@ -256,6 +256,9 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
                     <Link href="/saved" className={linkClass} onClick={close}>
                       {t("menu_saved")}
                     </Link>
+                    <Link href="/grocery-list" className={linkClass} onClick={close}>
+                      {t("menu_grocery_list")}
+                    </Link>
                     <div className="mt-2 px-1">
                       <button
                         type="button"

@@ -165,13 +165,21 @@ export default async function SavedPage() {
             </p>
           </div>
           {items.length > 0 ? (
-            <p className="text-[length:var(--text-caption)] font-medium uppercase tracking-wide text-[var(--muted-light)]">
-              {items.length === 1
-                ? dictText(dict, "saved_count_one")
-                : dictText(dict, "saved_count_many", {
-                    count: items.length,
-                  })}
-            </p>
+            <div className="flex flex-col items-start gap-2 sm:items-end">
+              <p className="text-[length:var(--text-caption)] font-medium uppercase tracking-wide text-[var(--muted-light)]">
+                {items.length === 1
+                  ? dictText(dict, "saved_count_one")
+                  : dictText(dict, "saved_count_many", {
+                      count: items.length,
+                    })}
+              </p>
+              <Link
+                href="/grocery-list"
+                className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_1px_0_rgba(28,25,23,0.06)] hover:bg-[var(--primary-hover)]"
+              >
+                {dictText(dict, "saved_make_grocery_list")}
+              </Link>
+            </div>
           ) : null}
         </div>
       </header>
