@@ -30,6 +30,7 @@ import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
 import { checkMonthlyRecipeUploadAllowed } from "@/lib/recipe-upload-limit";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getExcludedRecipeIdsForUser } from "@/lib/user-excluded-recipes";
 
 export type RecipeListItem = {
   id: string;

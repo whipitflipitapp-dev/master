@@ -142,6 +142,19 @@ export interface Database {
         };
         Update: Record<string, never>;
       };
+      user_excluded_recipes: {
+        Row: {
+          user_id: string;
+          recipe_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          recipe_id: string;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+      };
       allergens: {
         Row: { id: string; name: string };
         Insert: { id?: string; name: string };
