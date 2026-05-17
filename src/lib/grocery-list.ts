@@ -206,7 +206,12 @@ export function buildGroceryItems(
       }
       return a.firstIngredientIndex - b.firstIngredientIndex;
     })
-    .map(({ firstRecipeIndex: _r, firstIngredientIndex: _i, ...item }) => item);
+    .map((item) => ({
+      key: item.key,
+      name: item.name,
+      notes: item.notes,
+      text: item.text,
+    }));
 }
 
 export function buildGroceryListText(

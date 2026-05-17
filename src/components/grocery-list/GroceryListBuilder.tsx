@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 
 import {
@@ -101,12 +102,12 @@ export function GroceryListBuilder({
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[var(--muted)]">
           {labels.emptyBody}
         </p>
-        <a
+        <Link
           href="/recipes"
           className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_1px_0_rgba(28,25,23,0.06)] hover:bg-[var(--primary-hover)]"
         >
           {labels.browseRecipes}
-        </a>
+        </Link>
       </div>
     );
   }
