@@ -1,11 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId } from "react";
-
-import {
-  createCheckoutSession,
-  type CheckoutSessionState,
-} from "@/app/actions/billing";
+import { useId, useState, type FormEvent } from "react";
 
 export type CheckoutTier = "pro" | "ai_chef";
 
@@ -18,6 +13,10 @@ type Props = {
   ctaLabel?: string;
 };
 
+type CheckoutFormState = {
+  error: string | null;
+};
+
 export function CheckoutTierForm({
   tier,
   monthlyLabel,
@@ -27,16 +26,51 @@ export function CheckoutTierForm({
   ctaLabel,
 }: Props) {
   const intervalId = useId();
-  const [state, formAction, pending] = useActionState(
-    createCheckoutSession,
-    undefined as CheckoutSessionState | undefined,
-  );
+  const [state, setState] = useState<CheckoutFormState>({ error: null });
+  const [pending, setPending] = useState(false);
 
-  useEffect(() => {
-    if (state?.ok === true && state.url) {
-      window.location.replace(state.url);
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setState({ error: null });
+
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        body: formData,
+        headers: { Accept: "application/json" },
+      });
+
+      const payload: { url?: string; error?: string } = await response
+        .json()
+        .catch(() => ({}));
+
+      if (!response.ok) {
+        setState({
+          error:
+            typeof payload.error === "string" && payload.error.trim()
+              ? payload.error
+              : "Could not start checkout. Try again in a moment.",
+        });
+        return;
+      }
+
+      if (typeof payload.url === "string" && payload.url.trim()) {
+        window.location.replace(payload.url);
+        return;
+      }
+
+      setState({ error: "Stripe did not return a checkout URL." });
+    } catch {
+      setState({
+        error: "Network error. Check your connection and try again.",
+      });
+    } finally {
+      setPending(false);
     }
-  }, [state]);
+  }
 
   if (!isSignedIn) {
     const next = encodeURIComponent("/upgrade");
@@ -64,7 +98,7 @@ export function CheckoutTierForm({
   }
 
   return (
-    <form className="mt-5 flex flex-col gap-3" action={formAction}>
+    <form className="mt-5 flex flex-col gap-3" onSubmit={handleSubmit}>
       <input type="hidden" name="tier" value={tier} />
 
       <fieldset className="flex flex-col gap-2">
@@ -112,7 +146,7 @@ export function CheckoutTierForm({
         </div>
       </fieldset>
 
-      {state?.ok === false ? (
+      {state.error ? (
         <p
           className="rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--danger)_40%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--danger)]"
           role="alert"
