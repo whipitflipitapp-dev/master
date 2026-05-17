@@ -1,5 +1,5 @@
 -- Distinct cover path per starter recipe (public/recipes/starter-001.jpg … starter-100.jpg).
--- JPEGs are not committed; add files locally or run: node scripts/fetch-starter-recipe-covers.mjs
+-- Food-matched JPEGs (TheMealDB / Foodish / optional Unsplash): node scripts/fetch-starter-recipe-covers.mjs
 -- See src/lib/demo-recipe-cover-images.ts for UUID → path fallback when image_url is blank.
 
 UPDATE public.recipes
