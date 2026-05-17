@@ -24,8 +24,11 @@ const DRAG_CONSTRAINT = 140;
 type HelpCookSortMode =
   | "best_match"
   | "fewest_missing"
+  | "fewest_matched"
   | "most_on_hand"
-  | "lowest_cost";
+  | "most_matched"
+  | "lowest_cost"
+  | "highest_cost";
 
 export type HelpMeCookMatchFavoriteSnapshot = {
   favoritesCount: number;
@@ -79,6 +82,16 @@ export function HelpMeCookMatchResultsSection({
             );
           })
           .map((x) => x.m);
+      case "fewest_matched":
+        return tagged
+          .sort((a, b) => {
+            return (
+              a.m.matchedIngredientCount - b.m.matchedIngredientCount ||
+              a.m.missingIngredients.length - b.m.missingIngredients.length ||
+              a.m.title.localeCompare(b.m.title)
+            );
+          })
+          .map((x) => x.m);
       case "most_on_hand":
         return tagged
           .sort((a, b) => {
@@ -89,12 +102,33 @@ export function HelpMeCookMatchResultsSection({
             );
           })
           .map((x) => x.m);
+      case "most_matched":
+        return tagged
+          .sort((a, b) => {
+            return (
+              b.m.matchedIngredientCount - a.m.matchedIngredientCount ||
+              b.m.matchPercent - a.m.matchPercent ||
+              a.m.title.localeCompare(b.m.title)
+            );
+          })
+          .map((x) => x.m);
       case "lowest_cost":
         return tagged
           .sort((a, b) => {
             return (
               a.m.estimatedMissingCostCents - b.m.estimatedMissingCostCents ||
               a.m.missingIngredients.length - b.m.missingIngredients.length ||
+              b.m.matchPercent - a.m.matchPercent ||
+              a.m.title.localeCompare(b.m.title)
+            );
+          })
+          .map((x) => x.m);
+      case "highest_cost":
+        return tagged
+          .sort((a, b) => {
+            return (
+              b.m.estimatedMissingCostCents - a.m.estimatedMissingCostCents ||
+              b.m.missingIngredients.length - a.m.missingIngredients.length ||
               b.m.matchPercent - a.m.matchPercent ||
               a.m.title.localeCompare(b.m.title)
             );
@@ -176,11 +210,20 @@ export function HelpMeCookMatchResultsSection({
             <option value="fewest_missing">
               {t("help_cook_sort_fewest_missing")}
             </option>
+            <option value="fewest_matched">
+              {t("help_cook_sort_fewest_matched")}
+            </option>
             <option value="most_on_hand">
               {t("help_cook_sort_most_on_hand")}
             </option>
+            <option value="most_matched">
+              {t("help_cook_sort_most_matched")}
+            </option>
             <option value="lowest_cost">
               {t("help_cook_sort_lowest_cost")}
+            </option>
+            <option value="highest_cost">
+              {t("help_cook_sort_highest_cost")}
             </option>
           </select>
         </div>
