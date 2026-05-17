@@ -11,6 +11,8 @@ export type AllergyMode = "strict" | "warn";
 export type CurrentProfileRow = {
   display_name: string | null;
   plan_type: PlanType;
+  pending_plan_type: PlanType | null;
+  plan_change_effective_at: string | null;
   is_admin: boolean;
   allergy_mode: AllergyMode;
   language: AppLocale;
@@ -42,18 +44,28 @@ export async function getCurrentProfile(
 
   const { data: row } = await client
     .from("profiles")
-    .select("display_name,plan_type,is_admin,allergy_mode,language")
+    .select(
+      "display_name,plan_type,pending_plan_type,plan_change_effective_at,is_admin,allergy_mode,language",
+    )
     .eq("id", user.id)
     .maybeSingle();
 
   const parsed = parsePlanType(row?.plan_type);
   const plan_type: PlanType = parsed ?? "free";
+  const pending_plan_type = parsePlanType(row?.pending_plan_type);
+  const effectiveRaw = row?.plan_change_effective_at;
+  const plan_change_effective_at =
+    typeof effectiveRaw === "string" && effectiveRaw.trim()
+      ? effectiveRaw.trim()
+      : null;
 
   return {
     user,
     profile: {
       display_name: row?.display_name ?? null,
       plan_type,
+      pending_plan_type,
+      plan_change_effective_at,
       is_admin: Boolean(row?.is_admin),
       allergy_mode: parseAllergyMode(
         typeof row?.allergy_mode === "string" ? row.allergy_mode : undefined,

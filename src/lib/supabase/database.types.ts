@@ -18,6 +18,8 @@ export interface Database {
           display_name: string | null;
           avatar_url: string | null;
           plan_type: "free" | "pro" | "ai_chef";
+          pending_plan_type: "free" | "pro" | "ai_chef" | null;
+          plan_change_effective_at: string | null;
           language: string;
           is_admin: boolean;
           created_at: string;
@@ -39,6 +41,8 @@ export interface Database {
           display_name?: string | null;
           avatar_url?: string | null;
           plan_type?: "free" | "pro" | "ai_chef";
+          pending_plan_type?: "free" | "pro" | "ai_chef" | null;
+          plan_change_effective_at?: string | null;
           language?: string;
           is_admin?: boolean;
           created_at?: string;
@@ -59,6 +63,8 @@ export interface Database {
           display_name?: string | null;
           avatar_url?: string | null;
           plan_type?: "free" | "pro" | "ai_chef";
+          pending_plan_type?: "free" | "pro" | "ai_chef" | null;
+          plan_change_effective_at?: string | null;
           language?: string;
           is_admin?: boolean;
           stripe_customer_id?: string | null;

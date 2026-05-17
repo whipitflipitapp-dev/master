@@ -9,6 +9,10 @@ import {
   runCheckoutSession,
   type CheckoutSessionResult,
 } from "@/lib/billing/checkout-session";
+import {
+  runSchedulePlanDowngrade,
+  type ScheduleDowngradeResult,
+} from "@/lib/billing/plan-downgrade";
 import { getStripe, resolveSiteUrl } from "@/lib/stripe";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -27,6 +31,20 @@ export async function createCheckoutSession(
 ): Promise<CheckoutSessionState> {
   const result: CheckoutSessionResult = await runCheckoutSession(formData);
   return result;
+}
+
+export type ScheduleDowngradeState =
+  | ScheduleDowngradeResult
+  | { ok: false; error: string };
+
+/**
+ * Schedule a downgrade at the end of the current Stripe billing period.
+ * Prefer `POST /api/billing/schedule-downgrade` from client components.
+ */
+export async function schedulePlanDowngrade(
+  targetPlan: string,
+): Promise<ScheduleDowngradeState> {
+  return runSchedulePlanDowngrade(targetPlan);
 }
 
 /**

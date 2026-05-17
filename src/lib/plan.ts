@@ -57,3 +57,20 @@ export function nextPlanType(plan: PlanType): PlanType | null {
       return null;
   }
 }
+
+/** Whether `to` is a strictly lower tier than `from`. */
+export function isDowngrade(from: PlanType, to: PlanType): boolean {
+  return PLAN_ORDER[from] > PLAN_ORDER[to];
+}
+
+/** Paid tiers a subscriber can schedule a downgrade to (never includes current tier). */
+export function downgradeTargetsForPlan(plan: PlanType): PlanType[] {
+  switch (plan) {
+    case "ai_chef":
+      return ["pro", "free"];
+    case "pro":
+      return ["free"];
+    default:
+      return [];
+  }
+}

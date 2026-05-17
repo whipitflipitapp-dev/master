@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 
+import { parsePlanType, type PlanType } from "@/lib/plan";
 import { TIER_IDS, type TierId } from "@/lib/pricing";
 import {
   getStripe,
@@ -17,7 +18,34 @@ type ProfilePatch = {
   plan_type?: TierId;
   stripe_customer_id?: string;
   stripe_subscription_id?: string | null;
+  pending_plan_type?: PlanType | null;
+  plan_change_effective_at?: string | null;
 };
+
+function subscriptionPeriodEndIso(
+  subscription: Stripe.Subscription,
+): string | null {
+  const end =
+    subscription.items.data[0]?.current_period_end ??
+    subscription.current_period_end;
+  if (typeof end !== "number" || !Number.isFinite(end)) {
+    return null;
+  }
+  return new Date(end * 1000).toISOString();
+}
+
+function pendingPlanFromSubscription(
+  subscription: Stripe.Subscription,
+): PlanType | null {
+  if (subscription.cancel_at_period_end) {
+    return TIER_IDS.free;
+  }
+  const meta = subscription.metadata?.pending_downgrade_plan;
+  if (typeof meta === "string") {
+    return parsePlanType(meta);
+  }
+  return null;
+}
 
 function pickTierFromSubscription(
   subscription: Stripe.Subscription,
@@ -177,10 +205,26 @@ async function handleSubscriptionUpserted(
       patch.plan_type = tier;
     }
     patch.stripe_subscription_id = subscription.id;
+
+    const pending = pendingPlanFromSubscription(subscription);
+    const periodEnd = subscriptionPeriodEndIso(subscription);
+
+    if (pending && tier && tier === pending) {
+      patch.pending_plan_type = null;
+      patch.plan_change_effective_at = null;
+    } else if (pending) {
+      patch.pending_plan_type = pending;
+      patch.plan_change_effective_at = periodEnd;
+    } else {
+      patch.pending_plan_type = null;
+      patch.plan_change_effective_at = null;
+    }
   } else {
     // canceled, unpaid, incomplete*, paused → drop to free.
     patch.plan_type = TIER_IDS.free;
     patch.stripe_subscription_id = null;
+    patch.pending_plan_type = null;
+    patch.plan_change_effective_at = null;
   }
 
   return applyProfilePatch(userId, patch);
@@ -209,6 +253,8 @@ async function handleSubscriptionDeleted(
   return applyProfilePatch(userId, {
     plan_type: TIER_IDS.free,
     stripe_subscription_id: null,
+    pending_plan_type: null,
+    plan_change_effective_at: null,
   });
 }
 
