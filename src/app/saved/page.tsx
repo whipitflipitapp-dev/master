@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
+import { RecipeCreatorAttribution } from "@/components/recipe/RecipeCreatorAttribution";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -122,8 +123,18 @@ export default async function SavedPage() {
     if (recipe) items.push({ recipe });
   }
 
-  type CreatorRow = { recipe_id: string; creator_name: string | null };
-  const creatorByRecipeId = new Map<string, string | null>();
+  type CreatorRow = {
+    recipe_id: string;
+    creator_name: string | null;
+    creator_id: string | null;
+    creator_avatar_url: string | null;
+  };
+  type CreatorMeta = {
+    name: string | null;
+    id: string | null;
+    avatarUrl: string | null;
+  };
+  const creatorByRecipeId = new Map<string, CreatorMeta>();
   if (items.length > 0) {
     const { data: creators, error: creatorErr } = await supabase.rpc(
       "recipe_creator_names_for",
@@ -131,7 +142,11 @@ export default async function SavedPage() {
     );
     if (!creatorErr && Array.isArray(creators)) {
       for (const c of creators as CreatorRow[]) {
-        creatorByRecipeId.set(c.recipe_id, c.creator_name ?? null);
+        creatorByRecipeId.set(c.recipe_id, {
+          name: c.creator_name ?? null,
+          id: c.creator_id ?? null,
+          avatarUrl: c.creator_avatar_url ?? null,
+        });
       }
     }
   }
@@ -184,7 +199,8 @@ export default async function SavedPage() {
       ) : (
         <ul className="grid list-none gap-4 sm:grid-cols-2 sm:gap-5">
           {items.map(({ recipe }) => {
-            const creatorName = creatorByRecipeId.get(recipe.id)?.trim();
+            const creator = creatorByRecipeId.get(recipe.id);
+            const creatorName = creator?.name?.trim();
             const savesLabel =
               recipe.favorites_count === 1
                 ? dictText(dict, "recipe_detail_save_one", {
@@ -214,11 +230,14 @@ export default async function SavedPage() {
                     </>
                   }
                   footer={
-                    creatorName
-                      ? dictText(dict, "recipe_list_by", {
-                          name: creatorName,
-                        })
-                      : undefined
+                    creatorName || creator?.id ? (
+                      <RecipeCreatorAttribution
+                        chefId={creator?.id}
+                        displayName={creator?.name}
+                        avatarUrl={creator?.avatarUrl}
+                        byPrefix={dictText(dict, "recipe_creator_by_prefix")}
+                      />
+                    ) : undefined
                   }
                 />
               </li>

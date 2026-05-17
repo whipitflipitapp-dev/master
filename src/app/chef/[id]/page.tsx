@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AffiliateDisclosure } from "@/components/affiliate/AffiliateDisclosure";
+import { ChefAvatar } from "@/components/chef/ChefAvatar";
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -165,21 +166,11 @@ export default async function ChefProfilePage(props: Props) {
           ← Recipes
         </Link>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-          {header?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element -- arbitrary HTTPS avatar URLs
-            <img
-              src={header.avatar_url}
-              alt=""
-              className="h-20 w-20 shrink-0 rounded-full border border-[var(--border)] object-cover shadow-[var(--shadow-card)]"
-            />
-          ) : (
-            <div
-              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--card)] text-3xl"
-              aria-hidden
-            >
-              👨‍🍳
-            </div>
-          )}
+          <ChefAvatar
+            avatarUrl={header?.avatar_url}
+            displayName={displayName}
+            size="lg"
+          />
           <div>
             <h1 className="text-[1.65rem] font-bold tracking-tight text-[var(--text)] sm:text-3xl">
               {displayName}

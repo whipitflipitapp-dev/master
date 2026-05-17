@@ -4,7 +4,11 @@ import type { Metadata } from "next";
 import { AddRecipeForm } from "@/app/add/add-recipe-form";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
-import { getRecipeUploadLimitStateForUi } from "@/lib/recipe-upload-limit";
+import { RecipeUploadQuotaNotice } from "@/components/billing/RecipeUploadQuotaNotice";
+import {
+  getRecipeUploadLimitStateForUi,
+  getRecipeUploadQuotaForUi,
+} from "@/lib/recipe-upload-limit";
 import { isProOrAbove } from "@/lib/plan";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -96,7 +100,10 @@ export default async function AddRecipePage({
 
   const allergens = await loadAllergens();
 
-  const limitState = await getRecipeUploadLimitStateForUi(supabase, user.id);
+  const [limitState, uploadQuota] = await Promise.all([
+    getRecipeUploadLimitStateForUi(supabase, user.id),
+    getRecipeUploadQuotaForUi(supabase, user.id),
+  ]);
   const fromQuery =
     typeof recipeLimitRaw === "string" &&
     (recipeLimitRaw === "1" || recipeLimitRaw.toLowerCase() === "true");
@@ -120,6 +127,12 @@ export default async function AddRecipePage({
           {dictText(dict, "add_subtitle")}
         </p>
       </header>
+
+      {!atLimit ? (
+        <div className="mt-6">
+          <RecipeUploadQuotaNotice dict={dict} quota={uploadQuota} />
+        </div>
+      ) : null}
 
       <AddRecipeForm
         allergens={allergens}

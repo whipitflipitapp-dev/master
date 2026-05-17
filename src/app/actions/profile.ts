@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { sanitizeOtherAllergenInput } from "@/lib/allergy-other";
+import { validateStoredAvatarUrl } from "@/lib/avatar-image";
 import { LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n/locale";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -79,6 +80,53 @@ export async function updateDisplayName(
   }
 
   revalidatePath("/profile");
+  revalidatePath(`/chef/${user.id}`);
+  revalidatePath("/recipes");
+  return { error: null };
+}
+
+export async function updateAvatarUrl(
+  avatarUrl: string | null,
+): Promise<{ error: string | null }> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login?next=/profile");
+  }
+
+  const origin = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!origin) {
+    return { error: "Supabase URL is not configured." };
+  }
+
+  const validated = validateStoredAvatarUrl({
+    avatarUrlRaw: avatarUrl,
+    userId: user.id,
+    supabaseProjectOrigin: origin,
+    rejectPlainDataUrls: true,
+  });
+  if (!validated.ok) {
+    return { error: validated.message };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_url: validated.url })
+    .eq("id", user.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath(`/chef/${user.id}`);
+  revalidatePath("/recipes");
   return { error: null };
 }
 

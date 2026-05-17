@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { RecipeUploadQuotaNotice } from "@/components/billing/RecipeUploadQuotaNotice";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
+import { getRecipeUploadQuotaForUi } from "@/lib/recipe-upload-limit";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -45,12 +47,13 @@ export default async function DashboardPage() {
     redirect("/login?next=/dashboard");
   }
 
-  const [favCountRes, authoredRes] = await Promise.all([
+  const [favCountRes, authoredRes, uploadQuota] = await Promise.all([
     supabase
       .from("favorites")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id),
     supabase.from("recipes").select("favorites_count").eq("created_by", user.id),
+    getRecipeUploadQuotaForUi(supabase, user.id),
   ]);
 
   if (favCountRes.error) {
@@ -105,6 +108,8 @@ export default async function DashboardPage() {
           {dictText(dict, "dashboard_subtitle")}
         </p>
       </header>
+
+      <RecipeUploadQuotaNotice dict={dict} quota={uploadQuota} />
 
       <dl className="grid gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]">
         <div className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">

@@ -6,6 +6,7 @@ import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
+import { RecipeCreatorAttribution } from "@/components/recipe/RecipeCreatorAttribution";
 import { RecipesBrowseSortSelect } from "@/components/recipe/RecipesBrowseSortSelect";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { profileHasAllergenSelections } from "@/lib/allergy-other";
@@ -350,11 +351,14 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
                   </>
                 }
                 footer={
-                  r.creator_display_name?.trim()
-                    ? dictText(dict, "recipe_list_by", {
-                        name: r.creator_display_name.trim(),
-                      })
-                    : undefined
+                  r.creator_display_name?.trim() || r.creator_id ? (
+                    <RecipeCreatorAttribution
+                      chefId={r.creator_id}
+                      displayName={r.creator_display_name}
+                      avatarUrl={r.creator_avatar_url}
+                      byPrefix={dictText(dict, "recipe_creator_by_prefix")}
+                    />
+                  ) : undefined
                 }
               />
             </li>

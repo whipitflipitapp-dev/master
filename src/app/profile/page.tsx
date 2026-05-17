@@ -6,6 +6,7 @@ import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { listExcludedRecipes } from "@/app/actions/excluded-recipes";
 import { ProfileAllergiesForm } from "@/components/profile/ProfileAllergiesForm";
 import { ProfileExcludedRecipes } from "@/components/profile/ProfileExcludedRecipes";
+import { ProfileAvatarUpload } from "@/components/profile/ProfileAvatarUpload";
 import { ProfileDisplayNameForm } from "@/components/profile/ProfileDisplayNameForm";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
@@ -33,6 +34,7 @@ async function loadProfileContent() {
       allergyMode: "strict" as const,
       firstName: null as string | null,
       allergyOther: null as string | null,
+      avatarUrl: null as string | null,
     };
   }
 
@@ -52,6 +54,7 @@ async function loadProfileContent() {
       allergyMode: "strict" as const,
       firstName: null,
       allergyOther: null,
+      avatarUrl: null,
     };
   }
 
@@ -64,7 +67,7 @@ async function loadProfileContent() {
 
   const { data: nameRow } = await supabase
     .from("profiles")
-    .select("first_name, allergy_other")
+    .select("first_name, allergy_other, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -85,6 +88,10 @@ async function loadProfileContent() {
         ? nameRow.first_name.trim()
         : null,
     allergyOther,
+    avatarUrl:
+      typeof nameRow?.avatar_url === "string" && nameRow.avatar_url.trim()
+        ? nameRow.avatar_url.trim()
+        : null,
   };
 }
 
@@ -114,6 +121,7 @@ export default async function ProfilePage() {
     allergyMode,
     firstName,
     allergyOther,
+    avatarUrl,
   } = await loadProfileContent();
 
   const excludedRecipes =
@@ -201,6 +209,19 @@ export default async function ProfilePage() {
             ) : null}
 
             <ProfileDisplayNameForm defaultName={profile?.display_name ?? ""} />
+
+            <ProfileAvatarUpload
+              currentAvatarUrl={avatarUrl}
+              displayName={preferredName}
+              labels={{
+                heading: dictText(dict, "profile_avatar_heading"),
+                intro: dictText(dict, "profile_avatar_intro"),
+                choosePhoto: dictText(dict, "profile_avatar_choose"),
+                removePhoto: dictText(dict, "profile_avatar_remove"),
+                saving: dictText(dict, "profile_avatar_saving"),
+                savePhoto: dictText(dict, "profile_avatar_save"),
+              }}
+            />
           </div>
 
           <form action={signOut}>

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
+import { ChefAvatar } from "@/components/chef/ChefAvatar";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
 import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
@@ -148,6 +149,7 @@ async function loadRecipe(
     null;
   let chefProfileHref: string | null = null;
   let chefDisplayName: string | null = null;
+  let chefAvatarUrl: string | null = null;
   let uploaderCookbook: {
     id: string;
     title: string;
@@ -164,8 +166,12 @@ async function loadRecipe(
       p_user_id: createdBy,
     });
     if (Array.isArray(chefRows) && chefRows.length > 0) {
-      const row = chefRows[0] as { display_name: string | null };
+      const row = chefRows[0] as {
+        display_name: string | null;
+        avatar_url: string | null;
+      };
       chefDisplayName = row.display_name?.trim() || null;
+      chefAvatarUrl = row.avatar_url?.trim() || null;
     }
 
     const { data: cookbookRows } = await supabase
@@ -263,6 +269,7 @@ async function loadRecipe(
     allergyBanner,
     chefProfileHref,
     chefDisplayName,
+    chefAvatarUrl,
     uploaderCookbook,
   };
 }
@@ -359,6 +366,7 @@ export default async function RecipeDetailPage(props: Props) {
     allergyBanner,
     chefProfileHref,
     chefDisplayName,
+    chefAvatarUrl,
     uploaderCookbook,
   } = payload;
   const displayImageUrl = resolveRecipeDisplayImageUrl(
@@ -477,17 +485,23 @@ export default async function RecipeDetailPage(props: Props) {
           </ul>
         ) : null}
         {chefProfileHref ? (
-          <p className="mt-5 text-sm text-[var(--muted)]">
-            <span className="text-[var(--muted)]">
-              {dictText(dict, "recipe_detail_chef_label")}{" "}
-            </span>
-            <Link
+          <div className="mt-5 flex items-center gap-3">
+            <ChefAvatar
+              avatarUrl={chefAvatarUrl}
+              displayName={chefDisplayName}
               href={chefProfileHref}
-              className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
-            >
-              {chefDisplayName ?? dictText(dict, "recipe_detail_view_profile")}
-            </Link>
-          </p>
+              size="md"
+            />
+            <p className="text-sm text-[var(--muted)]">
+              <span>{dictText(dict, "recipe_detail_chef_label")} </span>
+              <Link
+                href={chefProfileHref}
+                className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+              >
+                {chefDisplayName ?? dictText(dict, "recipe_detail_view_profile")}
+              </Link>
+            </p>
+          </div>
         ) : null}
       </header>
 

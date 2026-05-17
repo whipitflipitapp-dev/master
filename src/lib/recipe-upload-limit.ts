@@ -76,12 +76,82 @@ export async function getRecipeUploadLimitStateForUi(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<{ plan: PlanType; atLimit: boolean }> {
+  const quota = await getRecipeUploadQuotaForUi(supabase, userId);
+  return { plan: quota.plan, atLimit: quota.atLimit };
+}
+
+export type RecipeUploadQuotaUi = {
+  plan: PlanType;
+  atLimit: boolean;
+  showQuota: boolean;
+  remaining: number | null;
+  cap: number;
+};
+
+/** Free-tier upload counter for dashboard / add recipe (Pro+ hides quota). */
+export async function getRecipeUploadQuotaForUi(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<RecipeUploadQuotaUi> {
   const gate = await checkMonthlyRecipeUploadAllowed(supabase, userId);
-  if (gate.allowed) {
-    return { plan: gate.plan, atLimit: false };
+  const cap = FREE_MONTHLY_RECIPE_UPLOAD_CAP;
+
+  if (isProOrAbove(gate.plan)) {
+    return {
+      plan: gate.plan,
+      atLimit: false,
+      showQuota: false,
+      remaining: null,
+      cap,
+    };
   }
+
   if (gate.reason === "monthly_limit") {
-    return { plan: gate.plan, atLimit: true };
+    return {
+      plan: gate.plan,
+      atLimit: true,
+      showQuota: true,
+      remaining: 0,
+      cap,
+    };
   }
-  return { plan: gate.plan, atLimit: false };
+
+  if (gate.reason === "query_failed") {
+    return {
+      plan: gate.plan,
+      atLimit: false,
+      showQuota: true,
+      remaining: null,
+      cap,
+    };
+  }
+
+  const { startIso, endExclusiveIso } = utcCalendarMonthBoundsNow();
+  const { count, error } = await supabase
+    .from("recipes")
+    .select("*", { count: "exact", head: true })
+    .eq("created_by", userId)
+    .gte("created_at", startIso)
+    .lt("created_at", endExclusiveIso);
+
+  if (error) {
+    return {
+      plan: gate.plan,
+      atLimit: false,
+      showQuota: true,
+      remaining: null,
+      cap,
+    };
+  }
+
+  const used = typeof count === "number" ? count : 0;
+  const remaining = Math.max(0, cap - used);
+
+  return {
+    plan: gate.plan,
+    atLimit: false,
+    showQuota: true,
+    remaining,
+    cap,
+  };
 }

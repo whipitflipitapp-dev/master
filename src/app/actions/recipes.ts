@@ -41,9 +41,14 @@ export type RecipeListItem = {
   cook_time_minutes: number | null;
   created_at: string;
   creator_display_name: string | null;
+  creator_id: string | null;
+  creator_avatar_url: string | null;
 };
 
-type RecipeBrowseRow = Omit<RecipeListItem, "creator_display_name">;
+type RecipeBrowseRow = Omit<
+  RecipeListItem,
+  "creator_display_name" | "creator_id" | "creator_avatar_url"
+>;
 
 function trimRecipeImageUrl(raw: unknown): string | null {
   if (raw == null) return null;
@@ -339,9 +344,19 @@ export async function listRecipes(
     image_url: resolveRecipeDisplayImageUrl(r.id, r.image_url),
   }));
 
-  const creatorByRecipeId = new Map<string, string | null>();
+  type CreatorMeta = {
+    name: string | null;
+    id: string | null;
+    avatarUrl: string | null;
+  };
+  const creatorByRecipeId = new Map<string, CreatorMeta>();
   if (rows.length > 0) {
-    type CreatorRow = { recipe_id: string; creator_name: string | null };
+    type CreatorRow = {
+      recipe_id: string;
+      creator_name: string | null;
+      creator_id: string | null;
+      creator_avatar_url: string | null;
+    };
     const { data: creators, error: creatorErr } = await supabase.rpc(
       "recipe_creator_names_for",
       { recipe_ids: rows.map((r) => r.id) },
@@ -349,15 +364,24 @@ export async function listRecipes(
 
     if (!creatorErr && Array.isArray(creators)) {
       for (const c of creators as CreatorRow[]) {
-        creatorByRecipeId.set(c.recipe_id, c.creator_name ?? null);
+        creatorByRecipeId.set(c.recipe_id, {
+          name: c.creator_name ?? null,
+          id: c.creator_id ?? null,
+          avatarUrl: c.creator_avatar_url ?? null,
+        });
       }
     }
   }
 
-  const recipes: RecipeListItem[] = rows.map((r) => ({
-    ...r,
-    creator_display_name: creatorByRecipeId.get(r.id) ?? null,
-  }));
+  const recipes: RecipeListItem[] = rows.map((r) => {
+    const creator = creatorByRecipeId.get(r.id);
+    return {
+      ...r,
+      creator_display_name: creator?.name ?? null,
+      creator_id: creator?.id ?? null,
+      creator_avatar_url: creator?.avatarUrl ?? null,
+    };
+  });
 
   const sort = options?.sort ?? "newest";
   if (sort === "cook_asc" || sort === "cook_desc") {
