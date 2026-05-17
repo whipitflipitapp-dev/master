@@ -27,14 +27,14 @@ export function CheckoutTierForm({
   ctaLabel,
 }: Props) {
   const intervalId = useId();
-  const [state, formAction, pending] = useActionState<
-    CheckoutSessionState | undefined,
-    FormData
-  >(async (_prev, fd) => createCheckoutSession(fd), undefined);
+  const [state, formAction, pending] = useActionState(
+    createCheckoutSession,
+    undefined as CheckoutSessionState | undefined,
+  );
 
   useEffect(() => {
     if (state?.ok === true && state.url) {
-      window.location.assign(state.url);
+      window.location.replace(state.url);
     }
   }, [state]);
 

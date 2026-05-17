@@ -19,14 +19,91 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 type CheckoutFailure = { ok: false; error: string };
 export type CheckoutSessionState = CheckoutFailure | { ok: true; url: string };
 
-/**
- * Create a Stripe Checkout Session for the signed-in user.
- *
- * Used with `useActionState` on `/upgrade`. Returns `{ ok: true, url }` so the
- * client can navigate to Stripe (server `redirect()` inside action state handlers
- * surfaces as an error boundary instead of leaving the page).
- */
-export async function createCheckoutSession(
+function checkoutErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message.trim()) {
+    return err.message;
+  }
+  return fallback;
+}
+
+function isMissingStripeCustomer(err: unknown): boolean {
+  if (err && typeof err === "object" && "code" in err) {
+    const code = (err as { code?: string }).code;
+    if (code === "resource_missing") {
+      return true;
+    }
+  }
+  return (
+    err instanceof Error && /no such customer/i.test(err.message)
+  );
+}
+
+function buildCheckoutSessionParams(
+  tier: PaidTier,
+  interval: CheckoutInterval,
+  user: { id: string; email?: string | null },
+  priceId: string,
+  existingCustomerId: string | null,
+): Stripe.Checkout.SessionCreateParams {
+  const siteUrl = resolveSiteUrl();
+  const priceSnapshot = describeTierPrice(tier, interval);
+
+  return {
+    mode: "subscription",
+    line_items: [{ price: priceId, quantity: 1 }],
+    ...(existingCustomerId
+      ? { customer: existingCustomerId }
+      : user.email
+        ? { customer_email: user.email }
+        : {}),
+    client_reference_id: user.id,
+    subscription_data: {
+      metadata: {
+        supabase_user_id: user.id,
+        plan: tier,
+        interval,
+      },
+    },
+    metadata: {
+      supabase_user_id: user.id,
+      plan: tier,
+      interval,
+      price_label: priceSnapshot.label,
+    },
+    allow_promotion_codes: true,
+    automatic_tax: { enabled: false },
+    success_url: `${siteUrl}/profile?checkout=success&tier=${tier}`,
+    cancel_url: `${siteUrl}/upgrade?checkout=cancelled`,
+  };
+}
+
+async function createStripeCheckoutSession(
+  stripe: Stripe,
+  params: Stripe.Checkout.SessionCreateParams,
+  user: { id: string; email?: string | null },
+  tier: PaidTier,
+  interval: CheckoutInterval,
+  priceId: string,
+  existingCustomerId: string | null,
+): Promise<Stripe.Checkout.Session> {
+  try {
+    return await stripe.checkout.sessions.create(params);
+  } catch (err) {
+    if (!existingCustomerId || !isMissingStripeCustomer(err)) {
+      throw err;
+    }
+    const fallbackParams = buildCheckoutSessionParams(
+      tier,
+      interval,
+      user,
+      priceId,
+      null,
+    );
+    return await stripe.checkout.sessions.create(fallbackParams);
+  }
+}
+
+async function runCreateCheckoutSession(
   formData: FormData,
 ): Promise<CheckoutSessionState> {
   const tierRaw = String(formData.get("tier") ?? "")
@@ -46,15 +123,24 @@ export async function createCheckoutSession(
   const tier: PaidTier = tierRaw;
   const interval: CheckoutInterval = intervalRaw;
 
-  const supabase = await createSupabaseServerClient();
+  let supabase;
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch {
+    return {
+      ok: false,
+      error: "Could not verify your session. Refresh the page and try again.",
+    };
+  }
   if (!supabase) {
     return { ok: false, error: "Supabase is not configured." };
   }
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
-  if (!user) {
+  if (userError || !user) {
     return {
       ok: false,
       error: "Your session expired. Sign in again, then continue to checkout.",
@@ -75,56 +161,50 @@ export async function createCheckoutSession(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Stripe is not configured.",
+      error: checkoutErrorMessage(err, "Stripe is not configured."),
     };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("stripe_customer_id")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileError) {
+    return {
+      ok: false,
+      error: "Could not load your billing profile. Try again in a moment.",
+    };
+  }
+
   const existingCustomerId = profile?.stripe_customer_id ?? null;
-  const siteUrl = resolveSiteUrl();
-  const priceSnapshot = describeTierPrice(tier, interval);
+  const sessionParams = buildCheckoutSessionParams(
+    tier,
+    interval,
+    user,
+    priceId,
+    existingCustomerId,
+  );
 
   let session: Stripe.Checkout.Session;
   try {
-    session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      ...(existingCustomerId
-        ? { customer: existingCustomerId }
-        : user.email
-          ? { customer_email: user.email }
-          : {}),
-      client_reference_id: user.id,
-      subscription_data: {
-        metadata: {
-          supabase_user_id: user.id,
-          plan: tier,
-          interval,
-        },
-      },
-      metadata: {
-        supabase_user_id: user.id,
-        plan: tier,
-        interval,
-        price_label: priceSnapshot.label,
-      },
-      allow_promotion_codes: true,
-      automatic_tax: { enabled: false },
-      success_url: `${siteUrl}/profile?checkout=success&tier=${tier}`,
-      cancel_url: `${siteUrl}/upgrade?checkout=cancelled`,
-    });
+    session = await createStripeCheckoutSession(
+      stripe,
+      sessionParams,
+      user,
+      tier,
+      interval,
+      priceId,
+      existingCustomerId,
+    );
   } catch (err) {
     return {
       ok: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Could not start checkout. Try again in a moment.",
+      error: checkoutErrorMessage(
+        err,
+        "Could not start checkout. Try again in a moment.",
+      ),
     };
   }
 
@@ -139,6 +219,29 @@ export async function createCheckoutSession(
   }
 
   return { ok: true, url: session.url };
+}
+
+/**
+ * Create a Stripe Checkout Session for the signed-in user.
+ *
+ * Bound to `useActionState` on `/upgrade` (prevState, formData). Returns
+ * `{ ok: true, url }` for client navigation — never call `redirect()` here.
+ */
+export async function createCheckoutSession(
+  _prev: CheckoutSessionState | undefined,
+  formData: FormData,
+): Promise<CheckoutSessionState> {
+  try {
+    return await runCreateCheckoutSession(formData);
+  } catch (err) {
+    return {
+      ok: false,
+      error: checkoutErrorMessage(
+        err,
+        "Something went wrong starting checkout. Try again.",
+      ),
+    };
+  }
 }
 
 /**

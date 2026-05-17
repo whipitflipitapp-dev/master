@@ -172,7 +172,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await logCheckoutStarted(supabase, tier, interval);
+  try {
+    await logCheckoutStarted(supabase, tier, interval);
+  } catch {
+    // Do not block checkout when telemetry insert fails.
+  }
 
   if (wantsRedirect(req, body)) {
     return NextResponse.redirect(session.url, { status: 303 });
