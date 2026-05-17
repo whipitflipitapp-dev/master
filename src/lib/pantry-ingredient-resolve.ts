@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { escapeIlikePercentPattern, parseIngredientInput } from "@/lib/ingredients";
-import { PANTRY_PARTIAL_INGREDIENT_MIN_LEN } from "@/lib/pantry";
+import {
+  pantryTokenMatchesIngredientName,
+  parseIngredientInput,
+} from "@/lib/ingredients";
 
 type IngRow = { id: string; name: string };
 
@@ -14,8 +16,8 @@ export type PantryIngredientResolution = {
 };
 
 /**
- * Resolve textarea tokens to catalog ingredient rows (exact name + partial ilike),
- * same rules as Help Me Cook matching.
+ * Resolve textarea tokens to catalog ingredient rows (exact normalized name only).
+ * Same rules as Help Me Cook matching and recipe-detail pantry pre-checks.
  */
 export async function resolvePantryIngredientTokens(
   supabase: SupabaseClient,
@@ -50,26 +52,9 @@ export async function resolvePantryIngredientTokens(
   for (const t of userTokens) tokenToIds.set(t, new Set());
 
   for (const row of (exactRows ?? []) as IngRow[]) {
-    const s = tokenToIds.get(row.name);
-    if (s) s.add(row.id);
-  }
-
-  for (const token of userTokens) {
-    if (tokenToIds.get(token)!.size > 0) continue;
-    if (token.length < PANTRY_PARTIAL_INGREDIENT_MIN_LEN) continue;
-    const pattern = `%${escapeIlikePercentPattern(token)}%`;
-    const { data: partialRows, error: pErr } = await supabase
-      .from("ingredients")
-      .select("id,name")
-      .ilike("name", pattern)
-      .limit(80);
-
-    if (pErr) {
-      return { ok: false, error: pErr.message };
-    }
-    const acc = tokenToIds.get(token)!;
-    for (const row of (partialRows ?? []) as IngRow[]) {
-      acc.add(row.id);
+    for (const token of userTokens) {
+      if (!pantryTokenMatchesIngredientName(token, row.name)) continue;
+      tokenToIds.get(token)!.add(row.id);
     }
   }
 

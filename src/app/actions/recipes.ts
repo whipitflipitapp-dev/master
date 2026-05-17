@@ -11,7 +11,6 @@ import {
 import {
   PANTRY_MATCH_MIN_PERCENT,
   PANTRY_MATCH_SHORT_QUERY_MAX_TOKENS,
-  PANTRY_PARTIAL_INGREDIENT_MIN_LEN,
 } from "@/lib/pantry";
 import {
   matchedOtherAllergenTokens,
@@ -429,7 +428,7 @@ export async function matchRecipesForPantry(
 ): Promise<{
   matches: RecipeMatchResult[];
   error: string | null;
-  /** Tokens with no ingredient row (exact or partial); matching uses only resolved tokens. */
+  /** Tokens with no exact catalog name match; matching uses only resolved tokens. */
   unmatchedTokens?: string[];
 }> {
   const supabase = await createSupabaseServerClient();
