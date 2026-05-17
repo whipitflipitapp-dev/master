@@ -33,10 +33,10 @@ export function ContentPageBackdrop({
       >
         <div className="absolute inset-0 bg-[var(--bg)]" />
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.32] saturate-[1.06] sm:opacity-[0.39]"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.35] saturate-[1.06] sm:opacity-[0.42]"
           style={{ backgroundImage: `url(${src})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_61%,transparent)] via-[color-mix(in_srgb,var(--bg)_48%,transparent)] to-[var(--bg)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--bg)_55%,transparent)] via-[color-mix(in_srgb,var(--bg)_44%,transparent)] to-[var(--bg)]" />
       </div>
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
