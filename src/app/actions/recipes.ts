@@ -30,8 +30,11 @@ import {
   type GenericPantryTokenHint,
 } from "@/lib/pantry-ingredient-resolve";
 import { checkMonthlyRecipeUploadAllowed } from "@/lib/recipe-upload-limit";
+import { PREMIUM_RECIPE_TOOLS_PLAN_REQUIRED_ERROR } from "@/lib/premium-recipe-tools-plan-gate";
+import { getCurrentProfile } from "@/lib/profile";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isProOrAbove } from "@/lib/plan";
 import {
   isRecipeCategory,
   type RecipeCategory,
@@ -1105,11 +1108,114 @@ export async function createRecipeFromForm(formData: FormData) {
   redirect("/add");
 }
 
-/** Stub: extend with partial updates and ingredient diffing in a follow-up. */
-export async function updateRecipeStub(
-  _recipeId: string,
-  _formData: FormData,
-): Promise<{ error: string | null }> {
-  // TODO: Stripe-gated edits, audit trail, image upload.
-  return { error: "Recipe update API not implemented yet." };
+export async function updateRecipe(
+  _prev: { error: string | null; success: string | null },
+  formData: FormData,
+): Promise<{ error: string | null; success: string | null }> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "Supabase is not configured.", success: null };
+  }
+
+  const ctx = await getCurrentProfile(supabase);
+  if (!ctx) {
+    redirect("/login");
+  }
+  if (!isProOrAbove(ctx.profile.plan_type)) {
+    return {
+      error: PREMIUM_RECIPE_TOOLS_PLAN_REQUIRED_ERROR,
+      success: null,
+    };
+  }
+
+  const recipeId = String(formData.get("recipe_id") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim().slice(0, 200);
+  const instructions = String(formData.get("instructions") ?? "")
+    .trim()
+    .slice(0, 12000);
+  const ingredientBlock = String(formData.get("ingredients") ?? "");
+  const ingredientEntries = parseIngredientLinesForRecipe(ingredientBlock);
+
+  if (!recipeId) {
+    return { error: "Missing recipe.", success: null };
+  }
+  if (!title || !instructions) {
+    return { error: "Title and instructions are required.", success: null };
+  }
+  if (ingredientEntries.length === 0) {
+    return { error: "Add at least one ingredient.", success: null };
+  }
+
+  const { data: ownedRecipe, error: ownedErr } = await supabase
+    .from("recipes")
+    .select("id")
+    .eq("id", recipeId)
+    .eq("created_by", ctx.user.id)
+    .maybeSingle();
+
+  if (ownedErr) {
+    return { error: ownedErr.message, success: null };
+  }
+  if (!ownedRecipe) {
+    return { error: "You can only edit your own recipes.", success: null };
+  }
+
+  const { error: recipeError } = await supabase
+    .from("recipes")
+    .update({ title, instructions })
+    .eq("id", recipeId)
+    .eq("created_by", ctx.user.id);
+
+  if (recipeError) {
+    return { error: recipeError.message, success: null };
+  }
+
+  const ingredientIds: string[] = [];
+  for (const { canonical } of ingredientEntries) {
+    const { data: ingRow, error: ingErr } = await supabase
+      .from("ingredients")
+      .upsert({ name: canonical }, { onConflict: "name" })
+      .select("id")
+      .single();
+
+    if (ingErr || !ingRow) {
+      return { error: ingErr?.message ?? "Ingredient save failed.", success: null };
+    }
+    ingredientIds.push(ingRow.id);
+  }
+
+  const { error: deleteIngredientsError } = await supabase
+    .from("recipe_ingredients")
+    .delete()
+    .eq("recipe_id", recipeId);
+
+  if (deleteIngredientsError) {
+    return { error: deleteIngredientsError.message, success: null };
+  }
+
+  const { error: riErr } = await supabase.from("recipe_ingredients").insert(
+    ingredientIds.map((ingredientId, sort) => ({
+      recipe_id: recipeId,
+      ingredient_id: ingredientId,
+      quantity: null,
+      sort_order: sort,
+    })),
+  );
+
+  if (riErr) {
+    return { error: riErr.message, success: null };
+  }
+
+  await logEvent(supabase, {
+    type: "recipe_updated",
+    metadata: {
+      recipe_id: recipeId,
+      ingredient_count: ingredientEntries.length,
+    },
+  });
+
+  revalidatePath(`/recipes/${recipeId}`);
+  revalidatePath("/recipes");
+  revalidatePath("/dashboard/analytics");
+  return { error: null, success: "Recipe updated." };
 }

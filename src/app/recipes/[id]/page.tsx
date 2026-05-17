@@ -11,6 +11,7 @@ import { RecipeExperienceForm } from "@/components/recipe/RecipeExperienceForm";
 import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeIncludeAgainButton } from "@/components/recipe/RecipeIncludeAgainButton";
+import { RecipePremiumTools } from "@/components/recipe/RecipePremiumTools";
 import { RecipeCommunityWinePairingsSection } from "@/components/recipe/RecipeCommunityWinePairingsSection";
 import {
   RecipeWinePairingsSection,
@@ -24,7 +25,11 @@ import { CURATED_WINE_TYPES } from "@/lib/wine-types";
 import type { RecipeExperienceRow } from "@/app/actions/recipe-experiences";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import { isAmazonAffiliateProductUrl } from "@/lib/amazon-affiliate-url";
-import { winePairingsUnlockedForPlan, type PlanType } from "@/lib/plan";
+import {
+  isProOrAbove,
+  winePairingsUnlockedForPlan,
+  type PlanType,
+} from "@/lib/plan";
 import { getCurrentUserPlanType } from "@/lib/profile";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -476,6 +481,10 @@ export default async function RecipeDetailPage(props: Props) {
     ? winePairingsUnlockedForPlan(planForWine)
     : false;
   const wineUpgradePlan: PlanType = planForWine ?? "free";
+  const premiumToolsPlan: PlanType = planForWine ?? "free";
+  const premiumToolsUnlocked = isProOrAbove(premiumToolsPlan);
+  const canEditRecipe =
+    currentUserId != null && recipe.created_by === currentUserId;
   const wineTypeLabels = Object.fromEntries(
     CURATED_WINE_TYPES.map((t) => [
       t.slug,
@@ -631,6 +640,36 @@ export default async function RecipeDetailPage(props: Props) {
           {recipe.instructions}
         </div>
       </section>
+
+      <RecipePremiumTools
+        recipe={{
+          id: recipe.id,
+          title: recipe.title,
+          instructions: recipe.instructions,
+        }}
+        ingredients={detailIngredients}
+        planType={premiumToolsPlan}
+        canUseTools={premiumToolsUnlocked}
+        canEdit={canEditRecipe}
+        labels={{
+          heading: dictText(dict, "recipe_tools_heading"),
+          lockedTitle: dictText(dict, "recipe_tools_locked_title"),
+          lockedBody: dictText(dict, "recipe_tools_locked_body"),
+          exportIntro: dictText(dict, "recipe_tools_export_intro"),
+          print: dictText(dict, "recipe_tools_print"),
+          downloadMarkdown: dictText(dict, "recipe_tools_download_markdown"),
+          downloadCsv: dictText(dict, "recipe_tools_download_csv"),
+          editHeading: dictText(dict, "recipe_tools_edit_heading"),
+          titleLabel: dictText(dict, "recipe_tools_title_label"),
+          ingredientsLabel: dictText(dict, "recipe_tools_ingredients_label"),
+          instructionsLabel: dictText(dict, "recipe_tools_instructions_label"),
+          save: dictText(dict, "recipe_tools_save"),
+          saving: dictText(dict, "recipe_tools_saving"),
+          saved: dictText(dict, "recipe_tools_saved"),
+          ownerOnly: dictText(dict, "recipe_tools_owner_only"),
+          planRequiredError: dictText(dict, "recipe_tools_plan_required_error"),
+        }}
+      />
 
       {yt ? (
         <section className="mt-12" aria-labelledby="video-heading">

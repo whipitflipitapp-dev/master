@@ -231,6 +231,26 @@ export function buildGroceryListText(
   return lines.filter((line, index) => line || index > 1).join("\n");
 }
 
+function csvCell(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+export function buildGroceryListCsv(
+  recipes: GroceryListRecipe[],
+  selectedRecipeIds: Set<string>,
+  items: GroceryListItem[],
+): string {
+  const selectedTitles = recipes
+    .filter((recipe) => selectedRecipeIds.has(recipe.id))
+    .map((recipe) => recipe.title)
+    .join("; ");
+  const header = ["checked", "item", "notes", "recipes"].map(csvCell).join(",");
+  const rows = items.map((item) =>
+    ["", item.name, item.notes.join("; "), selectedTitles].map(csvCell).join(","),
+  );
+  return [header, ...rows].join("\n");
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")

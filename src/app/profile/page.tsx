@@ -203,6 +203,12 @@ export default async function ProfilePage() {
                   </Link>
                 </>
               ) : null}
+              <Link
+                href="/dashboard/analytics"
+                className="text-[length:var(--text-caption)] font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+              >
+                {dictText(dict, "profile_creator_analytics_link")}
+              </Link>
             </div>
             {pendingPlan && planChangeEffectiveAt ? (
               <ProfilePendingPlanNotice

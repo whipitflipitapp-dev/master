@@ -144,6 +144,12 @@ export default async function DashboardPage() {
           {dictText(dict, "dashboard_cookbooks")}
         </Link>
         <Link
+          href="/dashboard/analytics"
+          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] shadow-[0_1px_0_rgba(28,25,23,0.04)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))]"
+        >
+          {dictText(dict, "dashboard_creator_analytics")}
+        </Link>
+        <Link
           href="/recipes"
           className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] shadow-[0_1px_0_rgba(28,25,23,0.04)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))]"
         >

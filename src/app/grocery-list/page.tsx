@@ -6,6 +6,7 @@ import { GroceryListBuilder } from "@/components/grocery-list/GroceryListBuilder
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { loadSavedGroceryListRecipes } from "@/lib/grocery-list";
+import { getCurrentProfile } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -49,7 +50,12 @@ export default async function GroceryListPage() {
     redirect("/login?next=/grocery-list");
   }
 
-  const { recipes, error } = await loadSavedGroceryListRecipes(supabase, user.id);
+  const [profileCtx, groceryResult] = await Promise.all([
+    getCurrentProfile(supabase),
+    loadSavedGroceryListRecipes(supabase, user.id),
+  ]);
+  const { recipes, error } = groceryResult;
+  const planType = profileCtx?.profile.plan_type ?? "free";
 
   return (
     <ContentPageBackdrop pageKey="/grocery-list">
@@ -82,6 +88,7 @@ export default async function GroceryListPage() {
         ) : (
           <GroceryListBuilder
             recipes={recipes}
+            planType={planType}
             labels={{
               emptyTitle: dictText(dict, "grocery_list_empty_title"),
               emptyBody: dictText(dict, "grocery_list_empty_body"),
@@ -100,6 +107,12 @@ export default async function GroceryListPage() {
               smsCta: dictText(dict, "grocery_list_sms_cta"),
               smsDisabled: dictText(dict, "grocery_list_no_selection"),
               smsHint: dictText(dict, "grocery_list_sms_hint"),
+              exportHeading: dictText(dict, "grocery_list_export_heading"),
+              exportBody: dictText(dict, "grocery_list_export_body"),
+              exportLocked: dictText(dict, "grocery_list_export_locked"),
+              exportPrint: dictText(dict, "grocery_list_export_print"),
+              exportText: dictText(dict, "grocery_list_export_text"),
+              exportCsv: dictText(dict, "grocery_list_export_csv"),
             }}
           />
         )}

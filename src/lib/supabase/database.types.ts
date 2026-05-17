@@ -370,6 +370,10 @@ export interface Database {
         Args: { p_recipe_id: string };
         Returns: number;
       };
+      creator_analytics_overview: {
+        Args: { p_since?: string };
+        Returns: Json;
+      };
     };
   };
 }

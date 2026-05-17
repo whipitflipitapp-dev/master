@@ -6,6 +6,7 @@ import { useActionState, useMemo, useState } from "react";
 
 import {
   buildGroceryItems,
+  buildGroceryListCsv,
   buildGroceryListText,
   GROCERY_LIST_LOGO_PATH,
   GROCERY_LIST_TITLE,
@@ -15,9 +16,12 @@ import {
   sendGroceryListEmail,
   type SendGroceryListEmailState,
 } from "@/app/actions/grocery-list";
+import { UpgradePitch } from "@/components/billing/UpgradePitch";
+import { isProOrAbove, type PlanType } from "@/lib/plan";
 
 type GroceryListBuilderProps = {
   recipes: GroceryListRecipe[];
+  planType: PlanType;
   labels: {
     emptyTitle: string;
     emptyBody: string;
@@ -36,8 +40,26 @@ type GroceryListBuilderProps = {
     smsCta: string;
     smsDisabled: string;
     smsHint: string;
+    exportHeading: string;
+    exportBody: string;
+    exportLocked: string;
+    exportPrint: string;
+    exportText: string;
+    exportCsv: string;
   };
 };
+
+function downloadTextFile(fileName: string, mimeType: string, text: string) {
+  const blob = new Blob([text], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
 function normalizePhoneForSms(raw: string): string {
   const compact = raw.trim().replace(/[^\d+]/g, "");
@@ -55,6 +77,7 @@ function isPlausiblePhone(raw: string): boolean {
 
 export function GroceryListBuilder({
   recipes,
+  planType,
   labels,
 }: GroceryListBuilderProps) {
   const [selectedIds, setSelectedIds] = useState(
@@ -74,6 +97,12 @@ export function GroceryListBuilder({
     () => buildGroceryListText(recipes, selectedIds, selectedItems),
     [recipes, selectedIds, selectedItems],
   );
+  const csvBody = useMemo(
+    () => buildGroceryListCsv(recipes, selectedIds, selectedItems),
+    [recipes, selectedIds, selectedItems],
+  );
+  const canExport = isProOrAbove(planType);
+  const hasExportableList = selectedIds.size > 0 && selectedItems.length > 0;
   const normalizedPhone = normalizePhoneForSms(phone);
   const canSendSms =
     selectedIds.size > 0 && selectedItems.length > 0 && isPlausiblePhone(phone);
@@ -262,6 +291,59 @@ export function GroceryListBuilder({
             </button>
           )}
         </div>
+      </section>
+
+      <section className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]">
+        <h2 className="text-lg font-semibold text-[var(--text)]">
+          {labels.exportHeading}
+        </h2>
+        <p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">
+          {canExport ? labels.exportBody : labels.exportLocked}
+        </p>
+        {canExport ? (
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              disabled={!hasExportableList}
+              onClick={() => window.print()}
+              className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))] disabled:opacity-60"
+            >
+              {labels.exportPrint}
+            </button>
+            <button
+              type="button"
+              disabled={!hasExportableList}
+              onClick={() =>
+                downloadTextFile(
+                  "whip-it-flip-it-grocery-list.txt",
+                  "text/plain;charset=utf-8",
+                  smsBody,
+                )
+              }
+              className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))] disabled:opacity-60"
+            >
+              {labels.exportText}
+            </button>
+            <button
+              type="button"
+              disabled={!hasExportableList}
+              onClick={() =>
+                downloadTextFile(
+                  "whip-it-flip-it-grocery-list.csv",
+                  "text/csv;charset=utf-8",
+                  csvBody,
+                )
+              }
+              className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))] disabled:opacity-60"
+            >
+              {labels.exportCsv}
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4">
+            <UpgradePitch currentPlan={planType} compact showLogo={false} />
+          </div>
+        )}
       </section>
     </div>
   );
