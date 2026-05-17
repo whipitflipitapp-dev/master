@@ -117,7 +117,7 @@ export const THEMEALDB_ALIASES = {
   "vegan caesar salad": "Caesar salad",
   "sweet potato black bean tacos": "Crock Pot Chicken Baked Tacos",
   "overnight oats": "Oatmeal pancakes",
-  "quinoa tabbouleh": "Tabbouleh",
+  "quinoa tabbouleh": "tabbouleh salad",
   "gf chicken stir-fry": "Beef and Broccoli Stir-Fry",
   "baked cod with tomatoes": "Baked salmon with fennel & tomatoes",
   "stuffed bell peppers": "Stuffed Bell Peppers with Quinoa and Black Beans",
@@ -238,6 +238,7 @@ export const THEMEALDB_MEAL_IDS = {
   "italian wedding soup": "53281",
   "lamb kofta with tzatziki": "53253",
   "peach bbq glaze ribs": "53306",
+  "maple bourbon ribs": "53306",
   "jackfruit carnitas tacos": "52830",
   "garlic butter mussels": "53144",
   "grilled portobello caps": "53074",
@@ -293,6 +294,71 @@ export const WIKIMEDIA_FIRST_TITLES = new Set([
   "breakfast burrito",
   "greek yogurt parfait",
 ]);
+
+/**
+ * Curated Commons URLs (avoids API rate limits; dish-specific).
+ * @type {Record<string, string>}
+ */
+export const WIKIMEDIA_IMAGE_OVERRIDES = {
+  "street corn salad":
+    "https://upload.wikimedia.org/wikipedia/commons/6/67/Elote_recipe.jpg",
+  "caprese stuffed avocados":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Caprese_salad_%283124173264%29.jpg/1280px-Caprese_salad_%283124173264%29.jpg",
+  "chickpea curry":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Chickpea_curry_on_rotini%2C_with_corn%2C_hot_mixed_Indian_pickles%2C_peanuts%2C_curry_powder%2C_and_black_pepper_-_Massachusetts.jpg/1280px-Chickpea_curry_on_rotini%2C_with_corn%2C_hot_mixed_Indian_pickles%2C_peanuts%2C_curry_powder%2C_and_black_pepper_-_Massachusetts.jpg",
+  "quinoa tabbouleh":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Tabouleh_1.JPG/1280px-Tabouleh_1.JPG",
+  "summer watermelon feta salad":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Watermelon_Vegan_Feta_Salad_%2810695235746%29.jpg/1280px-Watermelon_Vegan_Feta_Salad_%2810695235746%29.jpg",
+  "classic caesar salad":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Caesar_salad_with_chicken%2C_homemade_-_Massachusetts.jpg/1280px-Caesar_salad_with_chicken%2C_homemade_-_Massachusetts.jpg",
+  "fluffy scrambled eggs":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Scrambled_Eggs_at_Cracker_Barrel.jpg/1280px-Scrambled_Eggs_at_Cracker_Barrel.jpg",
+  "chocolate chip cookies":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Choc-Chip-Cookie.jpg/1280px-Choc-Chip-Cookie.jpg",
+  "grilled corn with herb butter":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Plaza_Solidaridad_en_Cuauht%C3%A9moc_-_Grilled_corn_-_1.JPG/1280px-Plaza_Solidaridad_en_Cuauht%C3%A9moc_-_Grilled_corn_-_1.JPG",
+  "vegan caesar salad":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Caesar_salad_with_chicken%2C_homemade_-_Massachusetts.jpg/1280px-Caesar_salad_with_chicken%2C_homemade_-_Massachusetts.jpg",
+  "beer-can chicken":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Roasted_chicken_and_potatoes.JPG/1280px-Roasted_chicken_and_potatoes.JPG",
+  "miso soup":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Miso_Soup_001.jpg/1280px-Miso_Soup_001.jpg",
+  "seared scallops":
+    "https://upload.wikimedia.org/wikipedia/commons/c/c1/Scallops_seafood_pasta_food_dinner.jpg",
+  "black bean burgers":
+    "https://upload.wikimedia.org/wikipedia/commons/d/d4/Black_bean_burger_with_home_fries.jpg",
+  "avocado toast":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Avocado_toast_at_the_girl_%26_the_fig_-_Sarah_Stierch.jpg/1280px-Avocado_toast_at_the_girl_%26_the_fig_-_Sarah_Stierch.jpg",
+  "zucchini fritters":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Zucchini_Fritters_-_Lunch_at_Yanyali_Fehmi_Lokantasi_%286421047753%29.jpg/1280px-Zucchini_Fritters_-_Lunch_at_Yanyali_Fehmi_Lokantasi_%286421047753%29.jpg",
+  "cobb salad":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Shrimp_Cobb_salad_-_Massachusetts.jpg/1280px-Shrimp_Cobb_salad_-_Massachusetts.jpg",
+  panzanella:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Panzanella_of_sorts.jpg/1280px-Panzanella_of_sorts.jpg",
+  cornbread:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Piece_of_cornbread_on_plate.jpg/1280px-Piece_of_cornbread_on_plate.jpg",
+  "thai basil chicken":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Khanom_chin_kaeng_kiao_wan_kai.jpg/1280px-Khanom_chin_kaeng_kiao_wan_kai.jpg",
+  "kale apple salad":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Chicken_Apple_Salad_with_Tuscan_Kale_Salad_%288410357038%29.jpg/1280px-Chicken_Apple_Salad_with_Tuscan_Kale_Salad_%288410357038%29.jpg",
+  "roasted cauliflower steaks":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Plated_roasted_cauliflower_10.jpg/1280px-Plated_roasted_cauliflower_10.jpg",
+  "farro beet salad":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Polish_Beetroot_Salad.jpg/1280px-Polish_Beetroot_Salad.jpg",
+  "alabama white bbq chicken":
+    "https://upload.wikimedia.org/wikipedia/commons/5/57/BBQ_Chicken_in_salem.jpg",
+  "overnight chia pudding":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Cup_of_Chia_Seed_Pudding.jpg/1280px-Cup_of_Chia_Seed_Pudding.jpg",
+  "banana bread":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Banana_bread_3.jpg/1280px-Banana_bread_3.jpg",
+  "lemon bars":
+    "https://upload.wikimedia.org/wikipedia/commons/4/48/Cookies_and_Lemon_Bars_on_dark_plate.jpg",
+  "strawberry spinach salad":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Salad_with_strawberries.jpg/1280px-Salad_with_strawberries.jpg",
+  "grilled halloumi skewers":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Grilled_Halloumi.jpg/1280px-Grilled_Halloumi.jpg",
+};
 
 /** Foodish-api.com category slugs (see https://foodish-api.com). */
 export const FOODISH_CATEGORIES = [

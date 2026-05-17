@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
  * Downloads food-matched 800×600 JPEG covers for starter recipes (seq 1–100).
- * Sources (in order): TheMealDB → Foodish → Unsplash (optional UNSPLASH_ACCESS_KEY).
+ * Sources (in order): TheMealDB (ID + search) → Unsplash → Wikimedia Commons → Foodish.
  * Never uses Lorem Picsum or generic stock landscapes.
  *
  *   node scripts/fetch-starter-recipe-covers.mjs
+ *   node scripts/fetch-starter-recipe-covers.mjs 65 12
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { readFileSync, existsSync } from "node:fs";
@@ -13,22 +14,30 @@ import { fileURLToPath } from "node:url";
 import { starterRecipeTitles } from "./starter-recipes-data.mjs";
 import {
   FOODISH_CATEGORIES,
+  THEMEALDB_MEAL_IDS,
+  WIKIMEDIA_FIRST_TITLES,
+  WIKIMEDIA_IMAGE_OVERRIDES,
   foodishCategoryFromTitle,
-  scoreMealNameMatch,
+  pickBestMeal,
   titleToSearchQueries,
   unsplashFoodQuery,
+  wikimediaFoodQuery,
 } from "./recipe-title-to-image-query.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const OUT_DIR = join(ROOT, "public", "recipes");
+const MANIFEST_PATH = join(OUT_DIR, "starter-covers-manifest.json");
 const WIDTH = 800;
 const HEIGHT = 600;
 const DELAY_MS = 180;
 
-const THEMEALDB = "https://www.themealdb.com/api/json/v1/1/search.php?s=";
+const THEMEALDB_SEARCH = "https://www.themealdb.com/api/json/v1/1/search.php?s=";
+const THEMEALDB_LOOKUP = "https://www.themealdb.com/api/json/v1/1/lookup.php?i=";
 const FOODISH = "https://foodish-api.com/api/images";
-const stats = { themealdb: 0, foodish: 0, unsplash: 0, failed: 0 };
+const stats = { themealdb: 0, foodish: 0, unsplash: 0, wikimedia: 0, failed: 0 };
+/** @type {Array<{ seq: number, title: string, source: string, mealName?: string, query?: string, imageUrl: string }>} */
+const manifest = [];
 
 function loadEnvLocal() {
   const path = join(ROOT, ".env.local");
@@ -57,7 +66,39 @@ function sleep(ms) {
  * @param {string} imageUrl
  * @returns {Promise<Buffer>}
  */
+async function writeCover(path, buf) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      await writeFile(path, buf);
+      return;
+    } catch (err) {
+      if (attempt === 3) throw err;
+      await sleep(300 * (attempt + 1));
+    }
+  }
+}
+
 async function fetchResizedJpeg(imageUrl) {
+  if (/upload\.wikimedia\.org/i.test(imageUrl)) {
+    const clean = imageUrl.split("?")[0];
+    await sleep(3200);
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const res = await fetch(clean, {
+        redirect: "follow",
+        headers: { "User-Agent": "WhipItFlipIt/1.0 (starter recipe covers)" },
+      });
+      if (res.status === 429) {
+        await sleep(4000 * (attempt + 1));
+        continue;
+      }
+      if (!res.ok) {
+        throw new Error(`wikimedia HTTP ${res.status}`);
+      }
+      return Buffer.from(await res.arrayBuffer());
+    }
+    throw new Error("wikimedia HTTP 429");
+  }
+
   const encoded = encodeURIComponent(imageUrl.replace(/^https?:\/\//i, ""));
   const proxy = `https://images.weserv.nl/?url=${encoded}&w=${WIDTH}&h=${HEIGHT}&fit=cover&output=jpg`;
   const res = await fetch(proxy, { redirect: "follow" });
@@ -68,46 +109,69 @@ async function fetchResizedJpeg(imageUrl) {
 }
 
 /**
+ * @param {string} mealId
+ * @returns {Promise<{ thumb: string, mealName: string } | null>}
+ */
+async function lookupTheMealDBById(mealId) {
+  const res = await fetch(THEMEALDB_LOOKUP + encodeURIComponent(mealId));
+  if (!res.ok) return null;
+  const data = await res.json();
+  const meal = data?.meals?.[0];
+  if (!meal?.strMealThumb) return null;
+  return { thumb: meal.strMealThumb, mealName: meal.strMeal ?? "" };
+}
+
+/**
  * @param {string} query
  * @param {string} title
- * @returns {Promise<string | null>}
+ * @returns {Promise<{ thumb: string, mealName: string, score: number } | null>}
  */
 async function searchTheMealDB(query, title) {
-  const res = await fetch(THEMEALDB + encodeURIComponent(query));
+  const res = await fetch(THEMEALDB_SEARCH + encodeURIComponent(query));
   if (!res.ok) return null;
   const data = await res.json();
   const meals = data?.meals;
   if (!Array.isArray(meals) || meals.length === 0) return null;
-
-  let best = null;
-  let bestScore = 0;
-  for (const meal of meals) {
-    const score = scoreMealNameMatch(title, meal.strMeal ?? "");
-    if (score > bestScore && meal.strMealThumb) {
-      bestScore = score;
-      best = meal.strMealThumb;
-    }
-  }
-  if (best && bestScore >= 20) return best;
-  if (meals.length === 1 && meals[0]?.strMealThumb) return meals[0].strMealThumb;
-  return best ?? meals[0]?.strMealThumb ?? null;
+  const picked = pickBestMeal(title, meals);
+  if (!picked) return null;
+  return { thumb: picked.thumb, mealName: picked.mealName, score: picked.score };
 }
 
 /**
  * @param {string} title
- * @returns {Promise<string | null>}
+ * @returns {Promise<{ thumb: string, mealName: string, query?: string } | null>}
  */
 async function fetchFromTheMealDB(title) {
+  const lower = title.trim().toLowerCase();
+  const preferWiki = WIKIMEDIA_FIRST_TITLES.has(lower);
+
+  if (!preferWiki) {
+    const mealId = THEMEALDB_MEAL_IDS[lower];
+    if (mealId) {
+      const byId = await lookupTheMealDBById(mealId);
+      if (byId) return { ...byId, query: `id:${mealId}` };
+    }
+  }
+
   for (const q of titleToSearchQueries(title)) {
-    const thumb = await searchTheMealDB(q, title);
-    if (thumb) return thumb;
+    const hit = await searchTheMealDB(q, title);
+    if (hit) return { thumb: hit.thumb, mealName: hit.mealName, query: q };
     await sleep(80);
   }
+
+  if (preferWiki) {
+    const mealId = THEMEALDB_MEAL_IDS[lower];
+    if (mealId) {
+      const byId = await lookupTheMealDBById(mealId);
+      if (byId) return { ...byId, query: `id:${mealId}` };
+    }
+  }
+
   return null;
 }
 
 /**
- * @param {string} pathSuffix e.g. "seafood" or "" for random
+ * @param {string} pathSuffix e.g. "pizza" or "" for random
  * @returns {Promise<string | null>}
  */
 async function fetchFromFoodishPath(pathSuffix) {
@@ -124,6 +188,7 @@ async function fetchFromFoodishPath(pathSuffix) {
  */
 async function fetchFromFoodish(title) {
   const category = foodishCategoryFromTitle(title);
+  if (!category) return null;
   const primary = await fetchFromFoodishPath(category);
   if (primary) return primary;
   for (const cat of FOODISH_CATEGORIES) {
@@ -131,7 +196,7 @@ async function fetchFromFoodish(title) {
     const img = await fetchFromFoodishPath(cat);
     if (img) return img;
   }
-  return fetchFromFoodishPath("");
+  return null;
 }
 
 /**
@@ -159,18 +224,85 @@ async function fetchFromUnsplash(title) {
 }
 
 /**
+ * @param {string} title
+ * @returns {Promise<string | null>}
+ */
+async function fetchFromWikimedia(title) {
+  const override = WIKIMEDIA_IMAGE_OVERRIDES[title.trim().toLowerCase()];
+  if (override) return override;
+
+  const q = wikimediaFoodQuery(title);
+  const api = new URL("https://commons.wikimedia.org/w/api.php");
+  api.searchParams.set("action", "query");
+  api.searchParams.set("generator", "search");
+  api.searchParams.set("gsrsearch", q);
+  api.searchParams.set("gsrnamespace", "6");
+  api.searchParams.set("gsrlimit", "5");
+  api.searchParams.set("prop", "imageinfo");
+  api.searchParams.set("iiprop", "url");
+  api.searchParams.set("iiurlwidth", String(WIDTH));
+  api.searchParams.set("format", "json");
+  api.searchParams.set("origin", "*");
+
+  await sleep(1500);
+
+  const res = await fetch(api, {
+    headers: { "User-Agent": "WhipItFlipIt/1.0 (starter recipe covers)" },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const pages = data?.query?.pages;
+  if (!pages) return null;
+
+  const urls = Object.values(pages)
+    .map((p) => p.imageinfo?.[0]?.thumburl ?? p.imageinfo?.[0]?.url)
+    .filter((u) => typeof u === "string" && /\.(jpg|jpeg|png|webp)(\?|$)/i.test(u));
+
+  return urls[0] ?? null;
+}
+
+/**
  * @param {{ seq: number, title: string }} recipe
- * @returns {Promise<"themealdb" | "foodish" | "unsplash">}
  */
 async function resolveImageUrl(recipe) {
-  const meal = await fetchFromTheMealDB(recipe.title);
-  if (meal) return { source: "themealdb", url: meal };
+  const preferWiki = WIKIMEDIA_FIRST_TITLES.has(recipe.title.trim().toLowerCase());
 
-  const foodish = await fetchFromFoodish(recipe.title);
-  if (foodish) return { source: "foodish", url: foodish };
+  if (!preferWiki) {
+    const meal = await fetchFromTheMealDB(recipe.title);
+    if (meal) {
+      return {
+        source: "themealdb",
+        url: meal.thumb,
+        mealName: meal.mealName,
+        query: meal.query,
+      };
+    }
+  }
 
   const unsplash = await fetchFromUnsplash(recipe.title);
-  if (unsplash) return { source: "unsplash", url: unsplash };
+  if (unsplash) {
+    return { source: "unsplash", url: unsplash, query: unsplashFoodQuery(recipe.title) };
+  }
+
+  const wiki = await fetchFromWikimedia(recipe.title);
+  if (wiki) {
+    return { source: "wikimedia", url: wiki, query: wikimediaFoodQuery(recipe.title) };
+  }
+
+  const meal = await fetchFromTheMealDB(recipe.title);
+  if (meal) {
+    return {
+      source: "themealdb",
+      url: meal.thumb,
+      mealName: meal.mealName,
+      query: meal.query,
+    };
+  }
+
+  const foodish = await fetchFromFoodish(recipe.title);
+  if (foodish) {
+    return { source: "foodish", url: foodish, mealName: foodishCategoryFromTitle(recipe.title) };
+  }
 
   throw new Error(`no image source for "${recipe.title}"`);
 }
@@ -196,12 +328,20 @@ console.log(`Fetching food covers for ${recipes.length} recipes…\n`);
 for (const recipe of recipes) {
   const name = `starter-${String(recipe.seq).padStart(3, "0")}.jpg`;
   try {
-    const { source, url } = await resolveImageUrl(recipe);
-    const buf = await fetchResizedJpeg(url);
-    await writeFile(join(OUT_DIR, name), buf);
-    stats[source] += 1;
+    const resolved = await resolveImageUrl(recipe);
+    const buf = await fetchResizedJpeg(resolved.url);
+    await writeCover(join(OUT_DIR, name), buf);
+    stats[resolved.source] += 1;
+    manifest.push({
+      seq: recipe.seq,
+      title: recipe.title,
+      source: resolved.source,
+      mealName: resolved.mealName,
+      query: resolved.query,
+      imageUrl: resolved.url,
+    });
     process.stdout.write(
-      `\r${name} (${recipe.seq}/100) [${source}] ${recipe.title.slice(0, 40)}`,
+      `\r${name} (${recipe.seq}/100) [${resolved.source}] ${recipe.title.slice(0, 36)}`,
     );
   } catch (err) {
     stats.failed += 1;
@@ -210,15 +350,27 @@ for (const recipe of recipes) {
   await sleep(DELAY_MS);
 }
 
+let mergedManifest = manifest;
+if (onlySeq.length > 0 && existsSync(MANIFEST_PATH)) {
+  try {
+    const prev = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
+    const bySeq = new Map(prev.map((row) => [row.seq, row]));
+    for (const row of manifest) bySeq.set(row.seq, row);
+    mergedManifest = [...bySeq.values()].sort((a, b) => a.seq - b.seq);
+  } catch {
+    mergedManifest = manifest;
+  }
+}
+await writeFile(MANIFEST_PATH, JSON.stringify(mergedManifest, null, 2));
+
 const total = recipes.length;
 console.log("\n\n--- Summary ---");
 console.log(`TheMealDB:  ${stats.themealdb}/${total}`);
-console.log(`Foodish:    ${stats.foodish}/${total} (fallback)`);
-console.log(`Unsplash:   ${stats.unsplash}/${total} (fallback, needs UNSPLASH_ACCESS_KEY)`);
+console.log(`Unsplash:   ${stats.unsplash}/${total} (UNSPLASH_ACCESS_KEY in .env.local)`);
+console.log(`Wikimedia:  ${stats.wikimedia}/${total}`);
+console.log(`Foodish:    ${stats.foodish}/${total} (category match only)`);
 console.log(`Failed:     ${stats.failed}/${total}`);
-console.log(
-  `\nEstimated good dish match rate (TheMealDB + aliases): ~${Math.round((stats.themealdb / total) * 100)}% direct API hits; Foodish category images are approximate.`,
-);
+console.log(`Manifest:   ${MANIFEST_PATH}`);
 
 if (stats.failed > 0) {
   process.exitCode = 1;

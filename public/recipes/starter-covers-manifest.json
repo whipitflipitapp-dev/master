@@ -1,0 +1,773 @@
+[
+  {
+    "seq": 1,
+    "title": "Margherita flatbread",
+    "source": "themealdb",
+    "mealName": "Pizza Express Margherita",
+    "query": "id:53014",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/x0lk931587671540.jpg"
+  },
+  {
+    "seq": 2,
+    "title": "Street corn salad",
+    "source": "wikimedia",
+    "query": "Elote street corn food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/67/Elote_recipe.jpg"
+  },
+  {
+    "seq": 3,
+    "title": "Ginger scallion salmon",
+    "source": "themealdb",
+    "mealName": "Honey Teriyaki Salmon",
+    "query": "id:52773",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/xxyupu1468262513.jpg"
+  },
+  {
+    "seq": 4,
+    "title": "Greek chicken souvlaki",
+    "source": "themealdb",
+    "mealName": "Lamb and Lemon Souvlaki",
+    "query": "id:53009",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/rjhf741585564676.jpg"
+  },
+  {
+    "seq": 5,
+    "title": "Chana masala",
+    "source": "themealdb",
+    "mealName": "Baingan Bharta",
+    "query": "id:52807",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/urtpqw1487341253.jpg"
+  },
+  {
+    "seq": 6,
+    "title": "Classic mac and cheese",
+    "source": "themealdb",
+    "mealName": "Chicken Fajita Mac and Cheese",
+    "query": "id:52818",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/qrqywr1503066605.jpg"
+  },
+  {
+    "seq": 7,
+    "title": "Smoky grilled chicken thighs",
+    "source": "themealdb",
+    "mealName": "Smoky chicken skewers",
+    "query": "id:53264",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/3um6il1763794322.jpg"
+  },
+  {
+    "seq": 8,
+    "title": "Lemon garlic shrimp skewers",
+    "source": "themealdb",
+    "mealName": "Gambas al ajillo",
+    "query": "id:53144",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ze8uwg1763196123.jpg"
+  },
+  {
+    "seq": 9,
+    "title": "Caprese stuffed avocados",
+    "source": "wikimedia",
+    "query": "Caprese salad food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Caprese_salad_%283124173264%29.jpg/1280px-Caprese_salad_%283124173264%29.jpg"
+  },
+  {
+    "seq": 10,
+    "title": "Chickpea curry",
+    "source": "wikimedia",
+    "query": "Chickpea curry food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Chickpea_curry_on_rotini%2C_with_corn%2C_hot_mixed_Indian_pickles%2C_peanuts%2C_curry_powder%2C_and_black_pepper_-_Massachusetts.jpg/1280px-Chickpea_curry_on_rotini%2C_with_corn%2C_hot_mixed_Indian_pickles%2C_peanuts%2C_curry_powder%2C_and_black_pepper_-_Massachusetts.jpg"
+  },
+  {
+    "seq": 11,
+    "title": "Quinoa tabbouleh",
+    "source": "wikimedia",
+    "query": "tabbouleh salad food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Tabouleh_1.JPG/1280px-Tabouleh_1.JPG"
+  },
+  {
+    "seq": 12,
+    "title": "Gazpacho",
+    "source": "themealdb",
+    "mealName": "Quick gazpacho",
+    "query": "id:53173",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/h5qmn31763304965.jpg"
+  },
+  {
+    "seq": 13,
+    "title": "Summer watermelon feta salad",
+    "source": "wikimedia",
+    "query": "Watermelon feta salad food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Watermelon_Vegan_Feta_Salad_%2810695235746%29.jpg/1280px-Watermelon_Vegan_Feta_Salad_%2810695235746%29.jpg"
+  },
+  {
+    "seq": 14,
+    "title": "Spaghetti aglio e olio",
+    "source": "themealdb",
+    "mealName": "Spaghetti alla Carbonara",
+    "query": "id:52982",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/llcbn01574260722.jpg"
+  },
+  {
+    "seq": 15,
+    "title": "Fluffy scrambled eggs",
+    "source": "wikimedia",
+    "query": "Scrambled eggs food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Scrambled_Eggs_at_Cracker_Barrel.jpg/1280px-Scrambled_Eggs_at_Cracker_Barrel.jpg"
+  },
+  {
+    "seq": 16,
+    "title": "Chocolate chip cookies",
+    "source": "wikimedia",
+    "query": "Chocolate chip cookies food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Choc-Chip-Cookie.jpg/1280px-Choc-Chip-Cookie.jpg"
+  },
+  {
+    "seq": 17,
+    "title": "Cacio e pepe",
+    "source": "themealdb",
+    "mealName": "Spaghetti alla Carbonara",
+    "query": "id:52982",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/llcbn01574260722.jpg"
+  },
+  {
+    "seq": 18,
+    "title": "Chicken tinga tacos",
+    "source": "themealdb",
+    "mealName": "Crock Pot Chicken Baked Tacos",
+    "query": "id:52830",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ypxvwv1505333929.jpg"
+  },
+  {
+    "seq": 19,
+    "title": "Chicken noodle soup",
+    "source": "themealdb",
+    "mealName": "Rosol (Polish Chicken Soup)",
+    "query": "id:53020",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/lx1kkj1593349302.jpg"
+  },
+  {
+    "seq": 20,
+    "title": "Horiatiki salad",
+    "source": "themealdb",
+    "mealName": "Chicken Quinoa Greek Salad",
+    "query": "id:53011",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/k29viq1585565980.jpg"
+  },
+  {
+    "seq": 21,
+    "title": "Tandoori-style chicken thighs",
+    "source": "themealdb",
+    "mealName": "Tandoori chicken",
+    "query": "id:52806",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/qptpvt1487339892.jpg"
+  },
+  {
+    "seq": 22,
+    "title": "Lentil walnut Bolognese",
+    "source": "themealdb",
+    "mealName": "Spaghetti Bolognese",
+    "query": "id:52770",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/sutysw1468247559.jpg"
+  },
+  {
+    "seq": 23,
+    "title": "BBQ pulled pork sandwiches",
+    "source": "themealdb",
+    "mealName": "BBQ Pork Sloppy Joes",
+    "query": "id:52995",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/atd5sh1583188467.jpg"
+  },
+  {
+    "seq": 24,
+    "title": "Fish tacos with slaw",
+    "source": "themealdb",
+    "mealName": "Cajun spiced fish tacos",
+    "query": "id:52819",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/uvuyxu1503067369.jpg"
+  },
+  {
+    "seq": 25,
+    "title": "Classic Caesar salad",
+    "source": "wikimedia",
+    "query": "Caesar salad food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Caesar_salad_with_chicken%2C_homemade_-_Massachusetts.jpg/1280px-Caesar_salad_with_chicken%2C_homemade_-_Massachusetts.jpg"
+  },
+  {
+    "seq": 26,
+    "title": "Tofu scramble",
+    "source": "themealdb",
+    "mealName": "Ma Po Tofu",
+    "query": "id:52947",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/1525874812.jpg"
+  },
+  {
+    "seq": 27,
+    "title": "GF chicken stir-fry",
+    "source": "themealdb",
+    "mealName": "Beef and Broccoli Stir-Fry",
+    "query": "id:53366",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/m0p0j81765568742.jpg"
+  },
+  {
+    "seq": 28,
+    "title": "Shakshuka",
+    "source": "themealdb",
+    "mealName": "Shakshuka",
+    "query": "id:52963",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/g373701551450225.jpg"
+  },
+  {
+    "seq": 29,
+    "title": "Asian slaw",
+    "source": "themealdb",
+    "mealName": "Tangy cabbage slaw",
+    "query": "id:53312",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/e2g2r21764367568.jpg"
+  },
+  {
+    "seq": 30,
+    "title": "Penne alla vodka",
+    "source": "themealdb",
+    "mealName": "Spicy Arrabiata Penne",
+    "query": "id:52771",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ustsqw1468250014.jpg"
+  },
+  {
+    "seq": 31,
+    "title": "Grilled corn with herb butter",
+    "source": "wikimedia",
+    "query": "Grilled corn food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Plaza_Solidaridad_en_Cuauht%C3%A9moc_-_Grilled_corn_-_1.JPG/1280px-Plaza_Solidaridad_en_Cuauht%C3%A9moc_-_Grilled_corn_-_1.JPG"
+  },
+  {
+    "seq": 32,
+    "title": "Berry crisp",
+    "source": "themealdb",
+    "mealName": "Apple & Blackberry Crumble",
+    "query": "id:52893",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/xvsurr1511719182.jpg"
+  },
+  {
+    "seq": 33,
+    "title": "Chicken piccata",
+    "source": "themealdb",
+    "mealName": "Chicken Alfredo Primavera",
+    "query": "id:52796",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/syqypv1486981727.jpg"
+  },
+  {
+    "seq": 34,
+    "title": "Clam chowder",
+    "source": "themealdb",
+    "mealName": "Clam chowder",
+    "query": "id:52840",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/rvtvuw1511190488.jpg"
+  },
+  {
+    "seq": 35,
+    "title": "Vegetable fried rice",
+    "source": "themealdb",
+    "mealName": "Chicken Fried Rice",
+    "query": "id:53367",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/wuyd2h1765655837.jpg"
+  },
+  {
+    "seq": 36,
+    "title": "Grilled halloumi skewers",
+    "source": "wikimedia",
+    "query": "Halloumi food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Grilled_Halloumi.jpg/1280px-Grilled_Halloumi.jpg"
+  },
+  {
+    "seq": 37,
+    "title": "Spinach feta pie",
+    "source": "themealdb",
+    "mealName": "Flamiche",
+    "query": "id:52906",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/wssvvs1511785879.jpg"
+  },
+  {
+    "seq": 38,
+    "title": "Meatloaf with glaze",
+    "source": "themealdb",
+    "mealName": "Turkey Meatloaf",
+    "query": "id:52845",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ypuxtw1511297463.jpg"
+  },
+  {
+    "seq": 39,
+    "title": "Beer-can chicken",
+    "source": "wikimedia",
+    "query": "Roast chicken food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Roasted_chicken_and_potatoes.JPG/1280px-Roasted_chicken_and_potatoes.JPG"
+  },
+  {
+    "seq": 40,
+    "title": "Tomato basil soup",
+    "source": "themealdb",
+    "mealName": "Creamy Tomato Soup",
+    "query": "id:52841",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/stpuws1511191310.jpg"
+  },
+  {
+    "seq": 41,
+    "title": "Roasted vegetable grain bowl",
+    "source": "themealdb",
+    "mealName": "Mediterranean Pasta Salad",
+    "query": "id:52777",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/wvqpwt1468339226.jpg"
+  },
+  {
+    "seq": 42,
+    "title": "Vegan Caesar salad",
+    "source": "wikimedia",
+    "query": "Caesar salad food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Caesar_salad_with_chicken%2C_homemade_-_Massachusetts.jpg/1280px-Caesar_salad_with_chicken%2C_homemade_-_Massachusetts.jpg"
+  },
+  {
+    "seq": 43,
+    "title": "Sweet potato black bean tacos",
+    "source": "themealdb",
+    "mealName": "Crock Pot Chicken Baked Tacos",
+    "query": "id:52830",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ypxvwv1505333929.jpg"
+  },
+  {
+    "seq": 44,
+    "title": "Corn chowder",
+    "source": "themealdb",
+    "mealName": "Clam chowder",
+    "query": "id:52840",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/rvtvuw1511190488.jpg"
+  },
+  {
+    "seq": 45,
+    "title": "Nicoise salad",
+    "source": "themealdb",
+    "mealName": "Tuna Nicoise",
+    "query": "id:52852",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/yypwwq1511304979.jpg"
+  },
+  {
+    "seq": 46,
+    "title": "Strawberry spinach salad",
+    "source": "wikimedia",
+    "query": "Strawberry spinach salad food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Salad_with_strawberries.jpg/1280px-Salad_with_strawberries.jpg"
+  },
+  {
+    "seq": 47,
+    "title": "Banana pancakes",
+    "source": "themealdb",
+    "mealName": "Banana Pancakes",
+    "query": "id:52855",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/sywswr1511383814.jpg"
+  },
+  {
+    "seq": 48,
+    "title": "Lemon bars",
+    "source": "wikimedia",
+    "query": "Lemon bars food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/48/Cookies_and_Lemon_Bars_on_dark_plate.jpg"
+  },
+  {
+    "seq": 49,
+    "title": "Baked sea bass with herbs",
+    "source": "themealdb",
+    "mealName": "Sea bass with sizzled ginger, chilli & spring onions",
+    "query": "id:53247",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/tqd7s21763780609.jpg"
+  },
+  {
+    "seq": 50,
+    "title": "Black bean quesadillas",
+    "source": "themealdb",
+    "mealName": "Stuffed Bell Peppers with Quinoa and Black Beans",
+    "query": "id:53067",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/b66myb1683207208.jpg"
+  },
+  {
+    "seq": 51,
+    "title": "Miso soup",
+    "source": "wikimedia",
+    "query": "Miso soup food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Miso_Soup_001.jpg/1280px-Miso_Soup_001.jpg"
+  },
+  {
+    "seq": 52,
+    "title": "Grilled portobello caps",
+    "source": "themealdb",
+    "mealName": "Grilled eggplant with coconut milk",
+    "query": "id:53074",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/bopa2i1683209167.jpg"
+  },
+  {
+    "seq": 53,
+    "title": "Dal tadka",
+    "source": "themealdb",
+    "mealName": "Dal fry",
+    "query": "id:52785",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/wuxrtu1483564410.jpg"
+  },
+  {
+    "seq": 54,
+    "title": "Buttermilk fried chicken",
+    "source": "themealdb",
+    "mealName": "Kentucky Fried Chicken",
+    "query": "id:52813",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/40r49m1763197022.jpg"
+  },
+  {
+    "seq": 55,
+    "title": "Seared scallops",
+    "source": "wikimedia",
+    "query": "Scallops food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Scallops_seafood_pasta_food_dinner.jpg"
+  },
+  {
+    "seq": 56,
+    "title": "Tuna poke bowl",
+    "source": "themealdb",
+    "mealName": "Sushi",
+    "query": "id:53065",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/g046bb1663960946.jpg"
+  },
+  {
+    "seq": 57,
+    "title": "Mushroom risotto",
+    "source": "themealdb",
+    "mealName": "Salmon Prawn Risotto",
+    "query": "id:52823",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/xxrxux1503070723.jpg"
+  },
+  {
+    "seq": 58,
+    "title": "Black bean burgers",
+    "source": "wikimedia",
+    "query": "Black bean burger food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Black_bean_burger_with_home_fries.jpg"
+  },
+  {
+    "seq": 59,
+    "title": "Baked cod with tomatoes",
+    "source": "themealdb",
+    "mealName": "Baked salmon with fennel & tomatoes",
+    "query": "id:52959",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/1548772327.jpg"
+  },
+  {
+    "seq": 60,
+    "title": "Miso ramen bowl",
+    "source": "themealdb",
+    "mealName": "Ramen Noodles with Boiled Egg",
+    "query": "id:53383",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ip5xtp1769779958.jpg"
+  },
+  {
+    "seq": 61,
+    "title": "Lentil soup",
+    "source": "themealdb",
+    "mealName": "Split Pea Soup",
+    "query": "id:52925",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/xxtsvx1511814083.jpg"
+  },
+  {
+    "seq": 62,
+    "title": "Bolognese",
+    "source": "themealdb",
+    "mealName": "Spaghetti Bolognese",
+    "query": "id:52770",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/sutysw1468247559.jpg"
+  },
+  {
+    "seq": 63,
+    "title": "Avocado toast",
+    "source": "wikimedia",
+    "query": "Avocado toast food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Avocado_toast_at_the_girl_%26_the_fig_-_Sarah_Stierch.jpg/1280px-Avocado_toast_at_the_girl_%26_the_fig_-_Sarah_Stierch.jpg"
+  },
+  {
+    "seq": 64,
+    "title": "Overnight oats",
+    "source": "themealdb",
+    "mealName": "Oatmeal pancakes",
+    "query": "id:53331",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/c400ok1764439058.jpg"
+  },
+  {
+    "seq": 65,
+    "title": "Minestrone",
+    "source": "themealdb",
+    "mealName": "Ribollita",
+    "query": "id:52811",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/xrrwpx1487347049.jpg"
+  },
+  {
+    "seq": 66,
+    "title": "Shrimp ceviche",
+    "source": "themealdb",
+    "mealName": "Bang bang prawn salad",
+    "query": "id:53239",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/4xcfai1763765676.jpg"
+  },
+  {
+    "seq": 67,
+    "title": "Cobb salad",
+    "source": "wikimedia",
+    "query": "Cobb salad food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Shrimp_Cobb_salad_-_Massachusetts.jpg/1280px-Shrimp_Cobb_salad_-_Massachusetts.jpg"
+  },
+  {
+    "seq": 68,
+    "title": "Hummus platter",
+    "source": "themealdb",
+    "mealName": "Hummus",
+    "query": "id:53269",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/gpon5u1763801180.jpg"
+  },
+  {
+    "seq": 69,
+    "title": "Vegetable biryani",
+    "source": "themealdb",
+    "mealName": "Lamb Biryani",
+    "query": "id:52805",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/xrttsx1487339558.jpg"
+  },
+  {
+    "seq": 70,
+    "title": "Lamb kofta with tzatziki",
+    "source": "themealdb",
+    "mealName": "Imam bayildi with BBQ lamb & tzatziki",
+    "query": "id:53253",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ampz9v1763787134.jpg"
+  },
+  {
+    "seq": 71,
+    "title": "Peach BBQ glaze ribs",
+    "source": "themealdb",
+    "mealName": "Pork rib bortsch",
+    "query": "id:53306",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/om5hsl1764364721.jpg"
+  },
+  {
+    "seq": 72,
+    "title": "Grilled salmon with dill",
+    "source": "themealdb",
+    "mealName": "Baked salmon with fennel & tomatoes",
+    "query": "id:52959",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/1548772327.jpg"
+  },
+  {
+    "seq": 73,
+    "title": "Grilled vegetable platter",
+    "source": "themealdb",
+    "mealName": "Roast fennel and aubergine paella",
+    "query": "id:52942",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/1520081754.jpg"
+  },
+  {
+    "seq": 74,
+    "title": "Jackfruit carnitas tacos",
+    "source": "themealdb",
+    "mealName": "Crock Pot Chicken Baked Tacos",
+    "query": "id:52830",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ypxvwv1505333929.jpg"
+  },
+  {
+    "seq": 75,
+    "title": "Stuffed bell peppers",
+    "source": "themealdb",
+    "mealName": "Stuffed Bell Peppers with Quinoa and Black Beans",
+    "query": "id:53067",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/b66myb1683207208.jpg"
+  },
+  {
+    "seq": 76,
+    "title": "Garlic butter mussels",
+    "source": "themealdb",
+    "mealName": "Gambas al ajillo",
+    "query": "id:53144",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ze8uwg1763196123.jpg"
+  },
+  {
+    "seq": 77,
+    "title": "Panzanella",
+    "source": "wikimedia",
+    "query": "Panzanella food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Panzanella_of_sorts.jpg/1280px-Panzanella_of_sorts.jpg"
+  },
+  {
+    "seq": 78,
+    "title": "Pesto pasta",
+    "source": "themealdb",
+    "mealName": "Squash linguine",
+    "query": "id:52866",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/wxswxy1511452625.jpg"
+  },
+  {
+    "seq": 79,
+    "title": "Zucchini fritters",
+    "source": "wikimedia",
+    "query": "Zucchini fritters food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Zucchini_Fritters_-_Lunch_at_Yanyali_Fehmi_Lokantasi_%286421047753%29.jpg/1280px-Zucchini_Fritters_-_Lunch_at_Yanyali_Fehmi_Lokantasi_%286421047753%29.jpg"
+  },
+  {
+    "seq": 80,
+    "title": "Banana bread",
+    "source": "wikimedia",
+    "query": "Banana bread food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Banana_bread_3.jpg/1280px-Banana_bread_3.jpg"
+  },
+  {
+    "seq": 81,
+    "title": "Eggplant parmigiana",
+    "source": "themealdb",
+    "mealName": "Crispy Eggplant",
+    "query": "id:53072",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/c7lzrl1683208757.jpg"
+  },
+  {
+    "seq": 82,
+    "title": "Italian wedding soup",
+    "source": "themealdb",
+    "mealName": "Algerian Kefta (Meatballs)",
+    "query": "id:53281",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/8rfd4q1764112993.jpg"
+  },
+  {
+    "seq": 83,
+    "title": "Thai basil chicken",
+    "source": "wikimedia",
+    "query": "Thai green chicken soup food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Khanom_chin_kaeng_kiao_wan_kai.jpg/1280px-Khanom_chin_kaeng_kiao_wan_kai.jpg"
+  },
+  {
+    "seq": 84,
+    "title": "Falafel pita pockets",
+    "source": "themealdb",
+    "mealName": "Falafel Pita Sandwich with Tahini Sauce",
+    "query": "id:53091",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ae6clc1760524712.jpg"
+  },
+  {
+    "seq": 85,
+    "title": "Coconut red lentil dal",
+    "source": "themealdb",
+    "mealName": "Dal fry",
+    "query": "id:52785",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/wuxrtu1483564410.jpg"
+  },
+  {
+    "seq": 86,
+    "title": "Cornbread",
+    "source": "wikimedia",
+    "query": "Cornbread food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Piece_of_cornbread_on_plate.jpg/1280px-Piece_of_cornbread_on_plate.jpg"
+  },
+  {
+    "seq": 87,
+    "title": "Maple bourbon ribs",
+    "source": "themealdb",
+    "mealName": "Pork rib bortsch",
+    "query": "id:53306",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/om5hsl1764364721.jpg"
+  },
+  {
+    "seq": 88,
+    "title": "Kale apple salad",
+    "source": "wikimedia",
+    "query": "Kale apple salad food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Chicken_Apple_Salad_with_Tuscan_Kale_Salad_%288410357038%29.jpg/1280px-Chicken_Apple_Salad_with_Tuscan_Kale_Salad_%288410357038%29.jpg"
+  },
+  {
+    "seq": 89,
+    "title": "Roasted cauliflower steaks",
+    "source": "wikimedia",
+    "query": "Cauliflower steak food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Plated_roasted_cauliflower_10.jpg/1280px-Plated_roasted_cauliflower_10.jpg"
+  },
+  {
+    "seq": 90,
+    "title": "Stuffed sweet potatoes",
+    "source": "themealdb",
+    "mealName": "Vietnamese lamb shanks with sweet potatoes",
+    "query": "id:53231",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/7xte3u1763757761.jpg"
+  },
+  {
+    "seq": 91,
+    "title": "Mediterranean orzo bake",
+    "source": "themealdb",
+    "mealName": "Mediterranean Pasta Salad",
+    "query": "id:52777",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/wvqpwt1468339226.jpg"
+  },
+  {
+    "seq": 92,
+    "title": "Roasted butternut squash soup",
+    "source": "themealdb",
+    "mealName": "Thai pumpkin soup",
+    "query": "id:53210",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/1brbso1763585098.jpg"
+  },
+  {
+    "seq": 93,
+    "title": "Farro beet salad",
+    "source": "wikimedia",
+    "query": "Beetroot salad food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Polish_Beetroot_Salad.jpg/1280px-Polish_Beetroot_Salad.jpg"
+  },
+  {
+    "seq": 94,
+    "title": "Alabama white BBQ chicken",
+    "source": "wikimedia",
+    "query": "BBQ chicken food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/57/BBQ_Chicken_in_salem.jpg"
+  },
+  {
+    "seq": 95,
+    "title": "Overnight chia pudding",
+    "source": "wikimedia",
+    "query": "Chia pudding food",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Cup_of_Chia_Seed_Pudding.jpg/1280px-Cup_of_Chia_Seed_Pudding.jpg"
+  },
+  {
+    "seq": 96,
+    "title": "No-churn vanilla ice cream",
+    "source": "themealdb",
+    "mealName": "No-Churn Rum Raisin Ice Cream",
+    "query": "id:53347",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/s9qyzd1764790772.jpg"
+  },
+  {
+    "seq": 97,
+    "title": "Crab cakes with remoulade",
+    "source": "themealdb",
+    "mealName": "Three Fish Pie",
+    "query": "id:52882",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/spswqs1511558697.jpg"
+  },
+  {
+    "seq": 98,
+    "title": "Pork carnitas bowl",
+    "source": "themealdb",
+    "mealName": "Portuguese barbecued pork (Febras assadas)",
+    "query": "id:53044",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/cybyue1614349443.jpg"
+  },
+  {
+    "seq": 99,
+    "title": "Cucumber sesame salad",
+    "source": "themealdb",
+    "mealName": "Sesame Cucumber Salad",
+    "query": "id:53378",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/93iok31766436070.jpg"
+  },
+  {
+    "seq": 100,
+    "title": "Three-bean chili",
+    "source": "themealdb",
+    "mealName": "Smoky Lentil Chili with Squash",
+    "query": "id:52784",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/uwxqwy1483389553.jpg"
+  }
+]
