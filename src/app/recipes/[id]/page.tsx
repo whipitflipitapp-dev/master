@@ -6,7 +6,9 @@ import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundL
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
+import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
+import { RecipeIncludeAgainButton } from "@/components/recipe/RecipeIncludeAgainButton";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import { isAmazonAffiliateProductUrl } from "@/lib/amazon-affiliate-url";
 import { winePairingsUnlockedForPlan, type PlanType } from "@/lib/plan";
@@ -55,14 +57,24 @@ async function loadRecipe(
   if (rErr || !recipe) return null;
 
   let favoredByUser = false;
+  let excludedByUser = false;
   if (user) {
-    const { data: fav } = await supabase
-      .from("favorites")
-      .select("recipe_id")
-      .eq("recipe_id", id)
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const [{ data: fav }, { data: excl }] = await Promise.all([
+      supabase
+        .from("favorites")
+        .select("recipe_id")
+        .eq("recipe_id", id)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("user_excluded_recipes")
+        .select("recipe_id")
+        .eq("recipe_id", id)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
     favoredByUser = Boolean(fav);
+    excludedByUser = Boolean(excl);
   }
 
   const { data: ri } = await supabase
@@ -246,6 +258,7 @@ async function loadRecipe(
     tags: tagRows,
     planForWine,
     favoredByUser,
+    excludedByUser,
     authenticated: Boolean(user),
     allergyBanner,
     chefProfileHref,
@@ -341,6 +354,7 @@ export default async function RecipeDetailPage(props: Props) {
     tags,
     planForWine,
     favoredByUser,
+    excludedByUser,
     authenticated,
     allergyBanner,
     chefProfileHref,
@@ -423,14 +437,32 @@ export default async function RecipeDetailPage(props: Props) {
           <p className="text-[length:var(--text-meta)] leading-relaxed tracking-tight text-[var(--muted)]">
             {metaSentence}
           </p>
-          <RecipeFavoriteButton
-            key={`${recipe.id}-${favoredByUser}-${recipe.favorites_count}`}
-            recipeId={recipe.id}
-            loginNextPath={`/recipes/${recipe.id}`}
-            authenticated={authenticated}
-            initialFavored={favoredByUser}
-            initialCount={recipe.favorites_count}
-          />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <RecipeFavoriteButton
+              key={`${recipe.id}-${favoredByUser}-${recipe.favorites_count}`}
+              recipeId={recipe.id}
+              loginNextPath={`/recipes/${recipe.id}`}
+              authenticated={authenticated}
+              initialFavored={favoredByUser}
+              initialCount={recipe.favorites_count}
+            />
+            {excludedByUser ? (
+              <RecipeIncludeAgainButton
+                recipeId={recipe.id}
+                label={dictText(dict, "recipe_exclude_include_again")}
+                pendingLabel={dictText(dict, "recipe_exclude_including")}
+              />
+            ) : (
+              <RecipeExcludeButton
+                recipeId={recipe.id}
+                loginNextPath={`/recipes/${recipe.id}`}
+                authenticated={authenticated}
+                redirectAfterExclude="/recipes"
+                label={dictText(dict, "recipe_exclude_hide")}
+                pendingLabel={dictText(dict, "recipe_exclude_hiding")}
+              />
+            )}
+          </div>
         </div>
         {tags.length > 0 ? (
           <ul className="mt-5 flex flex-wrap gap-2">

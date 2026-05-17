@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 
 import { signOut } from "@/app/actions/auth";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
+import { listExcludedRecipes } from "@/app/actions/excluded-recipes";
 import { ProfileAllergiesForm } from "@/components/profile/ProfileAllergiesForm";
+import { ProfileExcludedRecipes } from "@/components/profile/ProfileExcludedRecipes";
 import { ProfileDisplayNameForm } from "@/components/profile/ProfileDisplayNameForm";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
@@ -114,6 +116,11 @@ export default async function ProfilePage() {
     allergyOther,
   } = await loadProfileContent();
 
+  const excludedRecipes =
+    session?.user != null
+      ? (await listExcludedRecipes()).items
+      : [];
+
   const user = session?.user ?? null;
   const profile = session?.profile ?? null;
   const preferredName =
@@ -206,6 +213,26 @@ export default async function ProfilePage() {
           </form>
         </div>
       )}
+
+      {user ? (
+        <section className="mt-8" aria-labelledby="excluded-recipes-heading">
+          <h2
+            id="excluded-recipes-heading"
+            className="text-lg font-semibold text-[var(--text)]"
+          >
+            {dictText(dict, "profile_excluded_heading")}
+          </h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            {dictText(dict, "profile_excluded_intro")}
+          </p>
+          <ProfileExcludedRecipes
+            items={excludedRecipes}
+            includeLabel={dictText(dict, "recipe_exclude_include_again")}
+            includingLabel={dictText(dict, "recipe_exclude_including")}
+            emptyLabel={dictText(dict, "profile_excluded_empty")}
+          />
+        </section>
+      ) : null}
 
       <section className="mt-8" aria-labelledby="allergies-heading">
         <h2

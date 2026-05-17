@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { listRecipes, type RecipesBrowseSort } from "@/app/actions/recipes";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
+import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeListCard } from "@/components/recipe/RecipeListCard";
 import { RecipesBrowseSortSelect } from "@/components/recipe/RecipesBrowseSortSelect";
@@ -318,13 +319,22 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
                 title={r.title}
                 imageUrl={r.image_url}
                 trailing={
-                  <RecipeFavoriteButton
-                    recipeId={r.id}
-                    loginNextPath={recipesLoginNext}
-                    authenticated={isLoggedIn}
-                    initialFavored={favoriteIds.has(r.id)}
-                    initialCount={r.favorites_count}
-                  />
+                  <div className="flex flex-col items-end gap-1.5">
+                    <RecipeFavoriteButton
+                      recipeId={r.id}
+                      loginNextPath={recipesLoginNext}
+                      authenticated={isLoggedIn}
+                      initialFavored={favoriteIds.has(r.id)}
+                      initialCount={r.favorites_count}
+                    />
+                    <RecipeExcludeButton
+                      recipeId={r.id}
+                      loginNextPath={recipesLoginNext}
+                      authenticated={isLoggedIn}
+                      label={dictText(dict, "recipe_exclude_hide")}
+                      pendingLabel={dictText(dict, "recipe_exclude_hiding")}
+                    />
+                  </div>
                 }
                 meta={
                   <>

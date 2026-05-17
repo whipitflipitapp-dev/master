@@ -109,6 +109,7 @@ async function listRecipesBrowseFallback(
   limit: number,
   term: string | null,
   excludeIds: string[],
+  excludedRecipeIds: Set<string>,
 ): Promise<{ rows: RecipeBrowseRow[] | null; errorMessage: string | null }> {
   const ilikePattern = term ? `%${term}%` : null;
 
@@ -152,7 +153,7 @@ async function listRecipesBrowseFallback(
   );
   for (const id of DEMO_RECIPE_IDS_ORDERED) {
     const r = demoById.get(id);
-    if (!r || blocked?.has(r.id)) continue;
+    if (!r || blocked?.has(r.id) || excludedRecipeIds.has(r.id)) continue;
     rows.push(r);
     seen.add(r.id);
     if (rows.length >= limit) {
@@ -187,7 +188,7 @@ async function listRecipesBrowseFallback(
 
     for (const r of batch) {
       if (seen.has(r.id)) continue;
-      if (blocked?.has(r.id)) continue;
+      if (blocked?.has(r.id) || excludedRecipeIds.has(r.id)) continue;
       seen.add(r.id);
       rows.push(r);
       if (rows.length >= limit) break;
@@ -274,6 +275,14 @@ export async function listRecipes(
     return { recipes: [], error: "missing_env" as const };
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const excludedRecipeIds = await getExcludedRecipeIdsForUser(
+    supabase,
+    user?.id,
+  );
+
   const term = sanitizeRecipeSearch(options?.query);
   const excludeIds = options?.excludeAllergenIds?.filter(Boolean) ?? [];
 
@@ -298,6 +307,7 @@ export async function listRecipes(
       limit,
       term,
       excludeIds,
+      excludedRecipeIds,
     );
     if (fb.errorMessage || !fb.rows) {
       return { recipes: [], error: "browse_unavailable" as const };
@@ -318,6 +328,10 @@ export async function listRecipes(
       otherToks,
     );
     rows = rows.filter((r) => !blockedOther.has(r.id));
+  }
+
+  if (excludedRecipeIds.size > 0) {
+    rows = rows.filter((r) => !excludedRecipeIds.has(r.id));
   }
 
   rows = rows.map((r) => ({
@@ -402,6 +416,14 @@ export async function matchRecipesForPantry(
     };
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const excludedRecipeIds = await getExcludedRecipeIdsForUser(
+    supabase,
+    user?.id,
+  );
+
   const phase = await resolvePantryIngredientTokens(supabase, ingredientText);
   if (!phase.ok) {
     return { matches: [], error: phase.error };
@@ -468,6 +490,10 @@ export async function matchRecipesForPantry(
       otherTokens,
     );
     candidateIds = candidateIds.filter((id) => !blockedOther.has(id));
+  }
+
+  if (excludedRecipeIds.size > 0) {
+    candidateIds = candidateIds.filter((id) => !excludedRecipeIds.has(id));
   }
 
   if (candidateIds.length === 0) {
