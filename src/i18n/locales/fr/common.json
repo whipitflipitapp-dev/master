@@ -53,6 +53,8 @@
   "recipe_detail_chef_label": "Chef :",
   "recipe_detail_view_profile": "Voir le profil",
   "recipe_detail_section_ingredients": "Ingrédients",
+  "recipe_detail_ingredients_have_hint": "Cochez les ingrédients que vous avez déjà. Voyez ci-dessous ce qu’il vous reste peut-être à acheter.",
+  "recipe_detail_estimated_to_whip_cost": "Montant estimé pour Whip cette recette : {{amount}}",
   "recipe_detail_section_instructions": "Préparation",
   "recipe_detail_section_video": "Vidéo",
   "recipe_detail_video_frame_title": "Vidéo de la recette",

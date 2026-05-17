@@ -20,7 +20,8 @@ type RecipeDetailIngredientsSectionProps = {
   initialHaveIngredientIds: string[];
   labels: {
     sectionTitle: string;
-    estimatedMissingCost: string;
+    ingredientsHint: string;
+    estimatedToWhipCost: string;
     costDisclaimer: string;
     haveAllIngredients: string;
   };
@@ -68,6 +69,9 @@ export function RecipeDetailIngredientsSection({
       >
         {labels.sectionTitle}
       </h2>
+      <p className="mt-3 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
+        {labels.ingredientsHint}
+      </p>
       <ul className="mt-4 space-y-3">
         {ingredients.map((ing, idx) => (
           <li
@@ -122,7 +126,7 @@ function CostSummary({
   return (
     <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[color-mix(in_srgb,var(--muted)_8%,var(--card))] px-4 py-3">
       <p className="text-sm font-semibold text-[var(--text)]">
-        {labels.estimatedMissingCost.replace("{{amount}}", amount)}
+        {labels.estimatedToWhipCost.replace("{{amount}}", amount)}
       </p>
       <p className="mt-1 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
         {labels.costDisclaimer}

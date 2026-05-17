@@ -569,7 +569,8 @@ export default async function RecipeDetailPage(props: Props) {
         initialHaveIngredientIds={initialHaveIngredientIds}
         labels={{
           sectionTitle: dictText(dict, "recipe_detail_section_ingredients"),
-          estimatedMissingCost: dictText(dict, "help_cook_estimated_missing_cost", {
+          ingredientsHint: dictText(dict, "recipe_detail_ingredients_have_hint"),
+          estimatedToWhipCost: dictText(dict, "recipe_detail_estimated_to_whip_cost", {
             amount: "{{amount}}",
           }),
           costDisclaimer: dictText(dict, "help_cook_cost_estimate_disclaimer"),
