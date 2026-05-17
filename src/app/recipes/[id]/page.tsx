@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
-import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
@@ -12,6 +11,16 @@ import { RecipeExperienceForm } from "@/components/recipe/RecipeExperienceForm";
 import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
 import { RecipeIncludeAgainButton } from "@/components/recipe/RecipeIncludeAgainButton";
+import { RecipeCommunityWinePairingsSection } from "@/components/recipe/RecipeCommunityWinePairingsSection";
+import {
+  RecipeWinePairingsSection,
+  type WinePairingRow,
+} from "@/components/recipe/RecipeWinePairingsSection";
+import {
+  aggregateWineTypeCounts,
+  type UserWinePairingRow,
+} from "@/app/actions/user-wine-pairings";
+import { CURATED_WINE_TYPES } from "@/lib/wine-types";
 import type { RecipeExperienceRow } from "@/app/actions/recipe-experiences";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import { isAmazonAffiliateProductUrl } from "@/lib/amazon-affiliate-url";
@@ -136,12 +145,59 @@ async function loadRecipe(
     }
   }
 
-  const { data: wines } = await supabase
-    .from("wine_pairings")
-    .select("id,wine_type,wine_name,notes,description,purchase_url")
-    .eq("recipe_id", id);
-
   const planForWine = await getCurrentUserPlanType(supabase);
+  const wineUnlockedForLoad = planForWine
+    ? winePairingsUnlockedForPlan(planForWine)
+    : false;
+
+  let wines: WinePairingRow[] = [];
+  let winePairingCount = 0;
+  if (wineUnlockedForLoad) {
+    const { data: wineRows } = await supabase
+      .from("wine_pairings")
+      .select("id,wine_type,wine_name,notes,description,purchase_url")
+      .eq("recipe_id", id)
+      .eq("source", "ai");
+    wines = (wineRows ?? []) as WinePairingRow[];
+  } else {
+    const { count } = await supabase
+      .from("wine_pairings")
+      .select("id", { count: "exact", head: true })
+      .eq("recipe_id", id)
+      .eq("source", "ai");
+    winePairingCount = typeof count === "number" && count > 0 ? count : 0;
+  }
+
+  const { data: communityWineRows } = await supabase
+    .from("wine_pairings")
+    .select(
+      "id,wine_type,wine_type_slug,wine_name,why_blurb,created_at,user_id",
+    )
+    .eq("recipe_id", id)
+    .eq("source", "user")
+    .order("created_at", { ascending: false });
+
+  const communityWines: UserWinePairingRow[] = (communityWineRows ?? []).map(
+    (row: {
+      id: string;
+      wine_type: string;
+      wine_type_slug: string | null;
+      wine_name: string | null;
+      why_blurb: string | null;
+      created_at: string;
+      user_id: string | null;
+    }) => ({
+      id: row.id,
+      wine_type: row.wine_type,
+      wine_type_slug: row.wine_type_slug,
+      wine_name: row.wine_name,
+      why_blurb: row.why_blurb,
+      created_at: row.created_at,
+      user_id: row.user_id ?? "",
+      submitter_name: null,
+    }),
+  );
+  const communityWineTypeCounts = aggregateWineTypeCounts(communityWines);
 
   let allergyBanner: { variant: "strict" | "warn"; names: string[] } | null =
     null;
@@ -281,8 +337,12 @@ async function loadRecipe(
     recipe,
     ingredientsList,
     pantryHaveIngredientIds,
-    wines: wines ?? [],
+    wines,
+    winePairingCount,
+    communityWines,
+    communityWineTypeCounts,
     planForWine,
+    currentUserId: user?.id ?? null,
     favoredByUser,
     excludedByUser,
     authenticated: Boolean(user),
@@ -380,7 +440,11 @@ export default async function RecipeDetailPage(props: Props) {
     ingredientsList,
     pantryHaveIngredientIds,
     wines,
+    winePairingCount,
+    communityWines,
+    communityWineTypeCounts,
     planForWine,
+    currentUserId,
     favoredByUser,
     excludedByUser,
     authenticated,
@@ -412,6 +476,12 @@ export default async function RecipeDetailPage(props: Props) {
     ? winePairingsUnlockedForPlan(planForWine)
     : false;
   const wineUpgradePlan: PlanType = planForWine ?? "free";
+  const wineTypeLabels = Object.fromEntries(
+    CURATED_WINE_TYPES.map((t) => [
+      t.slug,
+      dictText(dict, t.labelKey),
+    ]),
+  );
 
   const difficultyLabel =
     recipe.difficulty && recipe.difficulty.trim()
@@ -584,86 +654,67 @@ export default async function RecipeDetailPage(props: Props) {
         </section>
       ) : null}
 
-      <section className="mt-12" aria-labelledby="wine-heading">
-        <h2
-          id="wine-heading"
-          className="text-xl font-semibold tracking-tight text-[var(--text)]"
-        >
-          {dictText(dict, "recipe_detail_section_wine")}
-        </h2>
-        {wines.length === 0 ? (
-          <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-            {dictText(dict, "recipe_detail_wine_empty")}
-          </p>
-        ) : (
-          <div
-            className={`relative mt-4 rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)] ${wineUnlocked ? "" : "overflow-hidden"}`}
-          >
-            <ul
-              className={`space-y-3 text-sm leading-relaxed ${wineUnlocked ? "" : "blur-sm select-none"}`}
-            >
-              {wines.map(
-                (w: {
-                  id: string;
-                  wine_type: string;
-                  wine_name: string | null;
-                  notes: string | null;
-                  description: string | null;
-                  purchase_url: string | null;
-                }) => {
-                  const buyUrl =
-                    wineUnlocked &&
-                    w.purchase_url &&
-                    isAmazonAffiliateProductUrl(w.purchase_url)
-                      ? w.purchase_url
-                      : null;
-                  return (
-                    <li key={w.id}>
-                      <p className="font-semibold text-[var(--text)]">
-                        {w.wine_type}
-                        {w.wine_name ? ` — ${w.wine_name}` : ""}
-                      </p>
-                      {w.description ? (
-                        <p className="mt-1 text-[var(--muted)]">{w.description}</p>
-                      ) : null}
-                      {w.notes ? (
-                        <p className="mt-1 text-[length:var(--text-caption)] text-[var(--muted)]">
-                          {w.notes}
-                        </p>
-                      ) : null}
-                      {buyUrl ? (
-                        <p className="mt-2">
-                          <AffiliateOutboundLink
-                            href={buyUrl}
-                            recipeId={recipe.id}
-                            linkType="wine_buy"
-                            className="text-sm font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
-                          >
-                            {dictText(dict, "recipe_detail_wine_shop")}
-                          </AffiliateOutboundLink>
-                        </p>
-                      ) : null}
-                    </li>
-                  );
-                },
-              )}
-            </ul>
-            {!wineUnlocked ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-[color-mix(in_srgb,var(--bg)_65%,transparent)] px-4 py-4 text-center backdrop-blur-[2px]">
-                <p className="text-sm font-medium leading-relaxed text-[var(--text)]">
-                  {dictText(dict, "recipe_detail_wine_unlock_prompt")}
-                </p>
-                <UpgradePitch
-                  currentPlan={wineUpgradePlan}
-                  compact
-                  className="max-w-sm"
-                />
-              </div>
-            ) : null}
-          </div>
-        )}
-      </section>
-
+      <RecipeWinePairingsSection
+        recipeId={recipe.id}
+        wineUnlocked={wineUnlocked}
+        wineUpgradePlan={wineUpgradePlan}
+        pairings={wines}
+        lockedPlaceholderCount={winePairingCount}
+        labels={{
+          sectionTitle: dictText(dict, "recipe_detail_section_wine_suggested"),
+          empty: dictText(dict, "recipe_detail_wine_empty"),
+          unlockPrompt: dictText(dict, "recipe_detail_wine_unlock_prompt"),
+          shop: dictText(dict, "recipe_detail_wine_shop"),
+          generate: dictText(dict, "recipe_detail_wine_generate"),
+          regenerate: dictText(dict, "recipe_detail_wine_regenerate"),
+          generating: dictText(dict, "recipe_detail_wine_generating"),
+          errGeneric: dictText(dict, "recipe_detail_wine_generate_err"),
+          errNetwork: dictText(dict, "recipe_detail_wine_generate_err_network"),
+        }}
+      />
+      <RecipeCommunityWinePairingsSection
+        recipeId={recipe.id}
+        authenticated={authenticated}
+        currentUserId={currentUserId}
+        loginNextPath={loginNextPath}
+        pairings={communityWines}
+        typeCounts={communityWineTypeCounts}
+        wineTypeLabels={wineTypeLabels}
+        labels={{
+          sectionTitle: dictText(dict, "recipe_detail_section_wine_community"),
+          empty: dictText(dict, "recipe_detail_wine_community_empty"),
+          popularTypes: dictText(dict, "recipe_detail_wine_popular_types"),
+          expandTypes: dictText(dict, "recipe_detail_wine_expand_types"),
+          collapseTypes: dictText(dict, "recipe_detail_wine_collapse_types"),
+          addYours: dictText(dict, "recipe_detail_wine_add_yours"),
+          wineNameLabel: dictText(dict, "recipe_detail_wine_name_label"),
+          wineNamePlaceholder: dictText(
+            dict,
+            "recipe_detail_wine_name_placeholder",
+          ),
+          whyBlurbLabel: dictText(dict, "recipe_detail_wine_why_label"),
+          whyBlurbPlaceholder: dictText(
+            dict,
+            "recipe_detail_wine_why_placeholder",
+          ),
+          charCounter: dictText(dict, "recipe_detail_wine_why_char_counter"),
+          expandPairing: dictText(dict, "recipe_detail_wine_expand_pairing"),
+          collapsePairing: dictText(
+            dict,
+            "recipe_detail_wine_collapse_pairing",
+          ),
+          whyBlurbHeading: dictText(dict, "recipe_detail_wine_why_heading"),
+          submit: dictText(dict, "recipe_detail_wine_submit"),
+          submitting: dictText(dict, "recipe_detail_wine_submitting"),
+          saved: dictText(dict, "recipe_detail_wine_saved"),
+          signInLink: dictText(dict, "profile_sign_in_link"),
+          signInPrompt: dictText(dict, "recipe_detail_wine_sign_in_prompt"),
+          remove: dictText(dict, "recipe_detail_wine_remove"),
+          selectedType: dictText(dict, "recipe_detail_wine_selected_type"),
+          pickTypeFirst: dictText(dict, "recipe_detail_wine_pick_type_first"),
+          cancel: dictText(dict, "recipe_detail_wine_cancel"),
+        }}
+      />
       {uploaderCookbook ? (
         <section className="mt-12" aria-labelledby="uploader-cookbook-heading">
           <h2

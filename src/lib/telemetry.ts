@@ -3,7 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type AiUsageEventType =
   | "ai_recipe_generated"
   | "ai_substitution_suggested"
-  | "ai_vision_ingredients";
+  | "ai_vision_ingredients"
+  | "ai_wine_pairings_generated";
 
 /** Safe, shallow metadata for JSONB — no arbitrary nested blobs. */
 export function sanitizeEventMetadata(

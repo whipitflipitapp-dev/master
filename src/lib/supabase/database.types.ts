@@ -224,6 +224,11 @@ export interface Database {
           notes: string | null;
           description: string | null;
           purchase_url: string | null;
+          source: "ai" | "user";
+          user_id: string | null;
+          created_at: string;
+          wine_type_slug: string | null;
+          why_blurb: string | null;
         };
         Insert: {
           id?: string;
@@ -233,6 +238,11 @@ export interface Database {
           notes?: string | null;
           description?: string | null;
           purchase_url?: string | null;
+          source?: "ai" | "user";
+          user_id?: string | null;
+          created_at?: string;
+          wine_type_slug?: string | null;
+          why_blurb?: string | null;
         };
         Update: {
           wine_type?: string;
@@ -240,6 +250,11 @@ export interface Database {
           notes?: string | null;
           description?: string | null;
           purchase_url?: string | null;
+          source?: "ai" | "user";
+          user_id?: string | null;
+          created_at?: string;
+          wine_type_slug?: string | null;
+          why_blurb?: string | null;
         };
       };
       cookbooks: {
