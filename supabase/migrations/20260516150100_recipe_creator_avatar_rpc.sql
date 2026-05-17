@@ -1,4 +1,7 @@
 -- Browse cards: creator id + avatar for chef profile links and round avatars.
+-- Return type changed from (recipe_id, creator_name) — must drop before recreate (42P13).
+
+DROP FUNCTION IF EXISTS public.recipe_creator_names_for(uuid[]);
 
 CREATE OR REPLACE FUNCTION public.recipe_creator_names_for(recipe_ids uuid[])
   RETURNS TABLE (
