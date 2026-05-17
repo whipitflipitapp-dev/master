@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { CheckoutTierForm } from "@/components/billing/CheckoutTierForm";
+import { UpgradeTierActions } from "@/components/billing/UpgradeTierActions";
 import { UpgradeSignedInTelemetry } from "@/components/billing/UpgradeSignedInTelemetry";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { type PlanType } from "@/lib/plan";
@@ -44,6 +44,7 @@ export default async function UpgradePage({
   const session = await getCurrentProfile();
   const isSignedIn = !!session?.user;
   const currentPlan: PlanType = session?.profile.plan_type ?? "free";
+  const pendingPlan: PlanType | null = session?.profile.pending_plan_type ?? null;
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--bg)] text-[var(--text)]">
@@ -96,12 +97,14 @@ export default async function UpgradePage({
             ))}
           </ul>
 
-          <CheckoutTierForm
+          <UpgradeTierActions
             tier="pro"
             monthlyLabel={pro.monthlyLabel}
             yearlyLabel={pro.yearlyLabel}
             isSignedIn={isSignedIn}
-            isCurrent={currentPlan === "pro"}
+            currentPlan={currentPlan}
+            pendingPlan={pendingPlan}
+            dict={dict}
           />
         </section>
 
@@ -124,12 +127,14 @@ export default async function UpgradePage({
             ))}
           </ul>
 
-          <CheckoutTierForm
+          <UpgradeTierActions
             tier="ai_chef"
             monthlyLabel={aiChef.monthlyLabel}
             yearlyLabel={aiChef.yearlyLabel}
             isSignedIn={isSignedIn}
-            isCurrent={currentPlan === "ai_chef"}
+            currentPlan={currentPlan}
+            pendingPlan={pendingPlan}
+            dict={dict}
           />
         </section>
 

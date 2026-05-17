@@ -1,11 +1,11 @@
-import { dictText, type Dictionary } from "@/lib/i18n/server";
+import { dictText, type CommonJson } from "@/lib/i18n/server";
 import { planTypeBadgeLabel, type PlanType } from "@/lib/plan";
 
 type Props = {
   pendingPlan: PlanType;
   effectiveAt: string;
   locale: string;
-  dict: Dictionary;
+  dict: CommonJson;
 };
 
 function formatEffectiveDate(iso: string, locale: string): string {

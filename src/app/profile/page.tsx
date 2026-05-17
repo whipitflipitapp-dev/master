@@ -11,6 +11,7 @@ import { ProfileWhippedRecipes } from "@/components/profile/ProfileWhippedRecipe
 import { ProfileAvatarUpload } from "@/components/profile/ProfileAvatarUpload";
 import { ProfileDisplayNameForm } from "@/components/profile/ProfileDisplayNameForm";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { ProfilePendingPlanNotice } from "@/components/billing/ProfilePendingPlanNotice";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { planTypeBadgeLabel, type PlanType } from "@/lib/plan";
 import { getCurrentProfile } from "@/lib/profile";
@@ -144,6 +145,8 @@ export default async function ProfilePage() {
     user?.id ||
     "";
   const plan: PlanType = profile?.plan_type ?? "free";
+  const pendingPlan = profile?.pending_plan_type ?? null;
+  const planChangeEffectiveAt = profile?.plan_change_effective_at ?? null;
   const showUpgradePitch = !!user && plan !== "ai_chef";
   const welcomeName =
     firstName ||
@@ -201,6 +204,14 @@ export default async function ProfilePage() {
                 </>
               ) : null}
             </div>
+            {pendingPlan && planChangeEffectiveAt ? (
+              <ProfilePendingPlanNotice
+                pendingPlan={pendingPlan}
+                effectiveAt={planChangeEffectiveAt}
+                locale={locale}
+                dict={dict}
+              />
+            ) : null}
             <p className="mt-3">
               <span className="text-[var(--muted)]">
                 {dictText(dict, "profile_signed_in_as")}{" "}

@@ -1,6 +1,6 @@
 import { CheckoutTierForm, type CheckoutTier } from "@/components/billing/CheckoutTierForm";
 import { PlanDowngradeForm } from "@/components/billing/PlanDowngradeForm";
-import { dictText, type Dictionary } from "@/lib/i18n/server";
+import { dictText, type CommonJson } from "@/lib/i18n/server";
 import { hasTier, type PlanType } from "@/lib/plan";
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
   isSignedIn: boolean;
   currentPlan: PlanType;
   pendingPlan: PlanType | null;
-  dict: Dictionary;
+  dict: CommonJson;
 };
 
 export function UpgradeTierActions({
@@ -28,9 +28,6 @@ export function UpgradeTierActions({
 
   if (isCurrent) {
     const cancelPending = pendingPlan === "free";
-    if (currentPlan === "free") {
-      return null;
-    }
     return (
       <PlanDowngradeForm
         targetPlan="free"
@@ -43,11 +40,11 @@ export function UpgradeTierActions({
     );
   }
 
-  if (isDowngradeTarget) {
+  if (isDowngradeTarget && tier === "pro") {
     const downgradePending = pendingPlan === tier;
     return (
       <PlanDowngradeForm
-        targetPlan={tier}
+        targetPlan="pro"
         isSignedIn={isSignedIn}
         isPending={downgradePending}
         label={dictText(dict, "upgrade_downgrade_to_pro")}
