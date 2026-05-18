@@ -4,10 +4,42 @@ import { redirect } from "next/navigation";
 
 import { RecipeUploadQuotaNotice } from "@/components/billing/RecipeUploadQuotaNotice";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
+import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
+import type { CommonJson } from "@/lib/i18n/server";
 import { getRecipeUploadQuotaForUi } from "@/lib/recipe-upload-limit";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import { isProOrAbove } from "@/lib/plan";
 import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+type DashboardRecipeRow = {
+  id: string;
+  title: string;
+  image_url: string | null;
+  favorites_count: number | null;
+  difficulty: string | null;
+  cook_time_minutes: number | null;
+  created_at: string;
+};
+
+function formatRecipeDate(value: string, locale: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function difficultyLabel(dict: CommonJson, difficulty: string | null): string | null {
+  const normalized = difficulty?.trim().toLowerCase();
+  if (!normalized) return null;
+  if (normalized === "easy" || normalized === "medium" || normalized === "hard") {
+    return dictText(dict, `add_recipe_difficulty_${normalized}`);
+  }
+  return `${normalized.slice(0, 1).toUpperCase()}${normalized.slice(1)}`;
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveAppLocale();
@@ -53,7 +85,13 @@ export default async function DashboardPage() {
       .from("favorites")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id),
-    supabase.from("recipes").select("favorites_count").eq("created_by", user.id),
+    supabase
+      .from("recipes")
+      .select(
+        "id,title,image_url,favorites_count,difficulty,cook_time_minutes,created_at",
+      )
+      .eq("created_by", user.id)
+      .order("created_at", { ascending: false }),
     getRecipeUploadQuotaForUi(supabase, user.id),
   ]);
 
@@ -91,11 +129,11 @@ export default async function DashboardPage() {
 
   const savedCount =
     typeof favCountRes.count === "number" ? favCountRes.count : 0;
-  const authored = authoredRes.data;
+  const authored = (authoredRes.data ?? []) as DashboardRecipeRow[];
+  const canEditUploadedRecipes = isProOrAbove(uploadQuota.plan);
 
   let savesReceivedTotal = 0;
-  const rows = authored ?? [];
-  for (const row of rows as { favorites_count: number }[]) {
+  for (const row of authored) {
     savesReceivedTotal +=
       typeof row.favorites_count === "number" ? row.favorites_count : 0;
   }
@@ -165,6 +203,139 @@ export default async function DashboardPage() {
           {dictText(dict, "dashboard_add_recipe")}
         </Link>
       </nav>
+
+      <section
+        className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]"
+        aria-labelledby="dashboard-my-recipes-heading"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2
+              id="dashboard-my-recipes-heading"
+              className="text-xl font-semibold tracking-tight text-[var(--text)]"
+            >
+              {dictText(dict, "dashboard_my_recipes_title")}
+            </h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">
+              {dictText(dict, "dashboard_my_recipes_subtitle")}
+            </p>
+          </div>
+          <Link
+            href="/add"
+            className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm font-semibold text-[var(--text)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))]"
+          >
+            {dictText(dict, "dashboard_my_recipes_add")}
+          </Link>
+        </div>
+
+        {authored.length > 0 ? (
+          <ul className="mt-5 grid gap-3">
+            {authored.map((recipe) => {
+              const imageUrl = resolveRecipeDisplayImageUrl(
+                recipe.id,
+                recipe.image_url,
+              );
+              const detailHref = `/recipes/${recipe.id}`;
+              const editHref = `${detailHref}#premium-tools`;
+              const metaParts = [
+                difficultyLabel(dict, recipe.difficulty),
+                recipe.cook_time_minutes != null
+                  ? dictText(dict, "dashboard_my_recipes_cook_time", {
+                      minutes: recipe.cook_time_minutes,
+                    })
+                  : null,
+                dictText(dict, "dashboard_my_recipes_created", {
+                  date: formatRecipeDate(recipe.created_at, locale),
+                }),
+                (recipe.favorites_count ?? 0) === 1
+                  ? dictText(dict, "dashboard_my_recipes_favorite_one", {
+                      count: 1,
+                    })
+                  : dictText(dict, "dashboard_my_recipes_favorite_many", {
+                      count: recipe.favorites_count ?? 0,
+                    }),
+              ].filter((item): item is string => Boolean(item));
+
+              return (
+                <li
+                  key={recipe.id}
+                  className="flex gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3"
+                >
+                  <Link
+                    href={detailHref}
+                    className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[color-mix(in_srgb,var(--muted)_12%,var(--card))]"
+                    aria-label={dictText(dict, "dashboard_my_recipes_view_named", {
+                      title: recipe.title,
+                    })}
+                  >
+                    {imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- Recipe images are user-provided Supabase URLs.
+                      <img
+                        src={imageUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="flex h-full w-full items-center justify-center text-2xl opacity-40"
+                        aria-hidden
+                      >
+                        W
+                      </span>
+                    )}
+                  </Link>
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={detailHref}
+                      className="line-clamp-2 font-semibold leading-snug text-[var(--text)] underline-offset-4 hover:underline"
+                    >
+                      {recipe.title}
+                    </Link>
+                    <p className="mt-1.5 text-xs leading-relaxed text-[var(--muted)]">
+                      {metaParts.join(" · ")}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Link
+                        href={detailHref}
+                        className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-semibold text-[var(--text)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))]"
+                      >
+                        {dictText(dict, "dashboard_my_recipes_view")}
+                      </Link>
+                      {canEditUploadedRecipes ? (
+                        <Link
+                          href={editHref}
+                          className="rounded-lg bg-[var(--primary)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--primary-hover)]"
+                        >
+                          {dictText(dict, "dashboard_my_recipes_edit")}
+                        </Link>
+                      ) : (
+                        <span className="text-xs leading-relaxed text-[var(--muted)]">
+                          {dictText(dict, "dashboard_my_recipes_edit_locked")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="mt-5 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-5">
+            <p className="font-semibold text-[var(--text)]">
+              {dictText(dict, "dashboard_my_recipes_empty_title")}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+              {dictText(dict, "dashboard_my_recipes_empty_body")}
+            </p>
+            <Link
+              href="/add"
+              className="mt-4 inline-flex rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--primary-hover)]"
+            >
+              {dictText(dict, "dashboard_my_recipes_empty_cta")}
+            </Link>
+          </div>
+        )}
+      </section>
     </main>
     </ContentPageBackdrop>
   );

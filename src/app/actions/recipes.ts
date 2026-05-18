@@ -1341,6 +1341,7 @@ export async function updateRecipe(
 
   revalidatePath(`/recipes/${recipeId}`);
   revalidatePath("/recipes");
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/analytics");
   return { error: null, success: "Recipe updated." };
 }

@@ -142,7 +142,10 @@ export function RecipePremiumTools({
 
   if (!canUseTools) {
     return (
-      <section className="mt-12 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]">
+      <section
+        id="premium-tools"
+        className="mt-12 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]"
+      >
         <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
           {labels.heading}
         </h2>
@@ -160,7 +163,10 @@ export function RecipePremiumTools({
   }
 
   return (
-    <section className="mt-12 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]">
+    <section
+      id="premium-tools"
+      className="mt-12 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]"
+    >
       <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
         {labels.heading}
       </h2>
