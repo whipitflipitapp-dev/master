@@ -52,3 +52,62 @@ body {
   color: var(--text);
   font-family: var(--font-inter), system-ui, sans-serif;
 }
+
+@keyframes recipe-save-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.75);
+  }
+  35% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-1.15rem) scale(1.1);
+  }
+}
+
+@keyframes recipe-save-stir {
+  0%,
+  100% {
+    transform: rotate(-9deg);
+  }
+  50% {
+    transform: rotate(12deg) translateY(-0.125rem);
+  }
+}
+
+@keyframes recipe-save-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+.recipe-save-steam {
+  animation: recipe-save-steam 1.65s ease-in-out infinite;
+}
+
+.recipe-save-ladle {
+  animation: recipe-save-stir 1.25s ease-in-out infinite;
+}
+
+.recipe-save-progress {
+  animation: recipe-save-progress 1.45s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipe-save-steam,
+  .recipe-save-ladle,
+  .recipe-save-progress {
+    animation: none;
+  }
+
+  .recipe-save-progress {
+    opacity: 0.55;
+    transform: none;
+    width: 100%;
+  }
+}

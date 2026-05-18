@@ -163,6 +163,26 @@ export default async function AddRecipePage({
         extraTagsLabel={dictText(dict, "add_recipe_extra_tags_label")}
         extraTagsHint={dictText(dict, "add_recipe_extra_tags_hint")}
         extraTagsPlaceholder={dictText(dict, "add_recipe_extra_tags_placeholder")}
+        saveProgressTitle={dictText(dict, "add_recipe_save_progress_title")}
+        saveProgressCheckingAccountLabel={dictText(
+          dict,
+          "add_recipe_save_progress_checking",
+        )}
+        saveProgressUploadingImageLabel={dictText(
+          dict,
+          "add_recipe_save_progress_uploading_image",
+        )}
+        saveProgressSavingRecipeLabel={dictText(
+          dict,
+          "add_recipe_save_progress_saving_recipe",
+        )}
+        saveProgressFinishingLabel={dictText(
+          dict,
+          "add_recipe_save_progress_finishing",
+        )}
+        saveProgressNote={dictText(dict, "add_recipe_save_progress_note")}
+        saveButtonLabel={dictText(dict, "add_recipe_save_button")}
+        savingButtonLabel={dictText(dict, "add_recipe_saving_button")}
         initialError={decodedError}
         atLimit={atLimit}
         limitNotice={limitNotice}

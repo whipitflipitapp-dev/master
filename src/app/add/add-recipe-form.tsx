@@ -31,6 +31,7 @@ const ADD_RECIPE_DRAFT_VERSION = 1;
 
 type RecipeDifficulty = (typeof DIFFICULTY_VALUES)[number];
 type DraftDifficulty = "" | RecipeDifficulty;
+type SavePhase = "idle" | "checking" | "uploading" | "saving" | "finishing";
 
 type AddRecipeDraft = {
   version: typeof ADD_RECIPE_DRAFT_VERSION;
@@ -83,6 +84,61 @@ function hasRecipeDraftContent(draft: AddRecipeDraft) {
   );
 }
 
+function RecipeSaveProgress({
+  title,
+  phaseLabel,
+  note,
+}: {
+  title: string;
+  phaseLabel: string;
+  note: string;
+}) {
+  return (
+    <section
+      aria-busy="true"
+      aria-live="polite"
+      className="overflow-hidden rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--primary-muted)_74%,var(--card)),var(--card))] p-4 shadow-[var(--shadow-card)]"
+      role="status"
+    >
+      <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+        <div
+          aria-hidden="true"
+          className="relative h-24 w-28 shrink-0 overflow-hidden rounded-3xl bg-[color-mix(in_srgb,var(--primary-muted)_70%,white)]"
+        >
+          <div className="absolute left-1/2 top-3 h-8 w-14 -translate-x-1/2">
+            <span className="absolute left-0 top-3 h-6 w-6 rounded-full border border-white/80 bg-white shadow-sm" />
+            <span className="absolute left-4 top-0 h-8 w-8 rounded-full border border-white/80 bg-white shadow-sm" />
+            <span className="absolute right-0 top-3 h-6 w-6 rounded-full border border-white/80 bg-white shadow-sm" />
+          </div>
+          <div className="absolute left-1/2 top-10 h-9 w-10 -translate-x-1/2 rounded-full bg-[color-mix(in_srgb,var(--accent)_28%,white)] shadow-sm" />
+          <div className="absolute left-1/2 top-[3.65rem] h-6 w-14 -translate-x-1/2 rounded-t-full bg-[var(--primary)]" />
+          <div className="absolute bottom-5 left-1/2 h-8 w-16 -translate-x-1/2 rounded-b-2xl rounded-t-lg border border-[color-mix(in_srgb,var(--text)_18%,transparent)] bg-[color-mix(in_srgb,var(--text)_82%,var(--primary))] shadow-md" />
+          <div className="absolute bottom-[3.05rem] left-1/2 h-2 w-20 -translate-x-1/2 rounded-full bg-[color-mix(in_srgb,var(--text)_75%,var(--primary))]" />
+          <span className="recipe-save-steam absolute bottom-14 left-9 h-5 w-2 rounded-full bg-white/80" />
+          <span className="recipe-save-steam absolute bottom-14 left-14 h-6 w-2 rounded-full bg-white/80 [animation-delay:180ms]" />
+          <span className="recipe-save-steam absolute bottom-14 left-[4.4rem] h-5 w-2 rounded-full bg-white/80 [animation-delay:360ms]" />
+          <div className="recipe-save-ladle absolute bottom-9 right-4 h-9 w-1 origin-bottom rounded-full bg-[color-mix(in_srgb,var(--text)_70%,white)]">
+            <span className="absolute -left-2 -top-2 h-4 w-5 rounded-full border-2 border-[color-mix(in_srgb,var(--text)_70%,white)]" />
+          </div>
+        </div>
+
+        <div className="w-full min-w-0">
+          <p className="text-sm font-semibold text-[var(--text)]">{title}</p>
+          <p className="mt-1 text-[length:var(--text-meta)] text-[var(--primary)]">
+            {phaseLabel}
+          </p>
+          <p className="mt-1 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
+            {note}
+          </p>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--primary)_16%,var(--border))]">
+            <span className="recipe-save-progress block h-full w-1/3 rounded-full bg-[linear-gradient(90deg,var(--primary),var(--accent),var(--primary))]" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function AddRecipeForm({
   userId,
   allergens,
@@ -101,6 +157,14 @@ export function AddRecipeForm({
   extraTagsLabel,
   extraTagsHint,
   extraTagsPlaceholder,
+  saveProgressTitle,
+  saveProgressCheckingAccountLabel,
+  saveProgressUploadingImageLabel,
+  saveProgressSavingRecipeLabel,
+  saveProgressFinishingLabel,
+  saveProgressNote,
+  saveButtonLabel,
+  savingButtonLabel,
   initialError,
   atLimit,
   limitNotice,
@@ -124,6 +188,14 @@ export function AddRecipeForm({
   extraTagsLabel: string;
   extraTagsHint: string;
   extraTagsPlaceholder: string;
+  saveProgressTitle: string;
+  saveProgressCheckingAccountLabel: string;
+  saveProgressUploadingImageLabel: string;
+  saveProgressSavingRecipeLabel: string;
+  saveProgressFinishingLabel: string;
+  saveProgressNote: string;
+  saveButtonLabel: string;
+  savingButtonLabel: string;
   /** Already decoded route error query (if present). */
   initialError: string | null;
   /** Free tier reached monthly recipe cap (server); disables submit. */
@@ -139,6 +211,7 @@ export function AddRecipeForm({
   const [preview, setPreview] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [savePhase, setSavePhase] = useState<SavePhase>("idle");
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [imageReselectNeeded, setImageReselectNeeded] = useState(false);
@@ -176,6 +249,16 @@ export function AddRecipeForm({
   }, [suggestionIds, allergens]);
 
   const busy = submitting;
+  const savePhaseLabel =
+    savePhase === "checking"
+      ? saveProgressCheckingAccountLabel
+      : savePhase === "uploading"
+        ? saveProgressUploadingImageLabel
+        : savePhase === "saving"
+          ? saveProgressSavingRecipeLabel
+          : savePhase === "finishing"
+            ? saveProgressFinishingLabel
+            : saveProgressSavingRecipeLabel;
   const capped = Boolean(atLimit);
   const pitchPlan = planForPitch ?? "free";
   const allergensPresentLabelId = useId();
@@ -359,6 +442,7 @@ export function AddRecipeForm({
     if (capped || busy) return;
     setLocalError(null);
     setSubmitting(true);
+    setSavePhase("checking");
 
     const form = ev.currentTarget;
     const formData = new FormData(form);
@@ -374,6 +458,7 @@ export function AddRecipeForm({
       }
 
       if (file) {
+        setSavePhase("uploading");
         const mimeErr = validateRecipeImageFile(file);
         if (mimeErr) {
           setLocalError(mimeErr);
@@ -406,11 +491,13 @@ export function AddRecipeForm({
         formData.delete("image_object_path");
       }
 
+      setSavePhase("saving");
       const result = await createRecipeFromForm(formData);
       if (result?.error) {
         setLocalError(result.error);
         return;
       }
+      setSavePhase("finishing");
       clearDraftStorage();
     } catch (e: unknown) {
       if (isRedirectError(e)) {
@@ -420,6 +507,7 @@ export function AddRecipeForm({
       setLocalError(GENERIC_SAVE_ERROR);
     } finally {
       setSubmitting(false);
+      setSavePhase("idle");
     }
   }
 
@@ -533,6 +621,14 @@ export function AddRecipeForm({
           )}
         </div>
       </section>
+
+      {busy ? (
+        <RecipeSaveProgress
+          title={saveProgressTitle}
+          phaseLabel={savePhaseLabel}
+          note={saveProgressNote}
+        />
+      ) : null}
 
       <div className="flex flex-col gap-2">
         <label htmlFor="title" className="text-sm font-medium text-[var(--text)]">
@@ -797,8 +893,8 @@ export function AddRecipeForm({
           {capped
             ? (submitBlockedLabel ?? "Monthly limit reached")
             : busy
-              ? "Saving recipe…"
-              : "Save recipe"}
+              ? savingButtonLabel
+              : saveButtonLabel}
         </button>
       </div>
     </form>
