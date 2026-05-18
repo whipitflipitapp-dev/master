@@ -143,10 +143,23 @@ export default async function AddRecipePage({
       ) : null}
 
       <AddRecipeForm
+        userId={user.id}
         allergens={allergens}
         categoryOptions={categoryOptions}
         categoriesLabel={dictText(dict, "add_recipe_categories_label")}
         categoriesHint={dictText(dict, "add_recipe_categories_hint")}
+        detailsLabel={dictText(dict, "add_recipe_details_label")}
+        detailsHint={dictText(dict, "add_recipe_details_hint")}
+        difficultyLabel={dictText(dict, "add_recipe_difficulty_label")}
+        difficultyUnspecifiedLabel={dictText(
+          dict,
+          "add_recipe_difficulty_unspecified",
+        )}
+        difficultyEasyLabel={dictText(dict, "add_recipe_difficulty_easy")}
+        difficultyMediumLabel={dictText(dict, "add_recipe_difficulty_medium")}
+        difficultyHardLabel={dictText(dict, "add_recipe_difficulty_hard")}
+        cookTimeLabel={dictText(dict, "add_recipe_cook_time_label")}
+        cookTimePlaceholder={dictText(dict, "add_recipe_cook_time_placeholder")}
         extraTagsLabel={dictText(dict, "add_recipe_extra_tags_label")}
         extraTagsHint={dictText(dict, "add_recipe_extra_tags_hint")}
         extraTagsPlaceholder={dictText(dict, "add_recipe_extra_tags_placeholder")}

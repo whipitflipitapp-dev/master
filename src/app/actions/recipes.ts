@@ -21,6 +21,8 @@ import {
   resolveRecipeDisplayImageUrl,
 } from "@/lib/demo-recipe-cover-images";
 import {
+  RECIPE_IMAGE_BUCKET,
+  validateRecipeImageObjectPath,
   validateRecipeImageUploadMeta,
   validateStoredRecipeImageUrl,
 } from "@/lib/recipe-image";
@@ -50,6 +52,31 @@ const RECIPE_TAGS_TEXT_MAX = 1000;
 const RECIPE_VIDEO_URL_MAX = 2048;
 const RECIPE_ALLERGEN_MAX_COUNT = 32;
 const RECIPE_CATEGORY_MAX_COUNT = 8;
+const RECIPE_COOK_TIME_MINUTES_MIN = 1;
+const RECIPE_COOK_TIME_MINUTES_MAX = 1440;
+const RECIPE_DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;
+type RecipeDifficulty = (typeof RECIPE_DIFFICULTY_VALUES)[number];
+const MONTHLY_RECIPE_LIMIT_ERROR =
+  "You've reached this month's recipe upload limit. Upgrade for unlimited recipe uploads.";
+
+async function cleanupUploadedRecipeImage(
+  supabase: SupabaseClient,
+  objectPath: string | null,
+) {
+  if (!objectPath) return;
+
+  const { error } = await supabase.storage
+    .from(RECIPE_IMAGE_BUCKET)
+    .remove([objectPath]);
+
+  if (error) {
+    logServerError("recipes.cleanup_uploaded_image", error);
+  }
+}
+
+function isMonthlyRecipeLimitRpcError(error: { message?: string } | null): boolean {
+  return error?.message === "monthly_recipe_limit";
+}
 
 export type RecipeListItem = {
   id: string;
@@ -832,7 +859,11 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
   const gate = await checkMonthlyRecipeUploadAllowed(supabase, user.id);
   if (!gate.allowed) {
     if (gate.reason === "monthly_limit") {
-      return { error: null, recipeId: null, code: "monthly_recipe_limit" };
+      return {
+        error: MONTHLY_RECIPE_LIMIT_ERROR,
+        recipeId: null,
+        code: "monthly_recipe_limit",
+      };
     }
     return { error: gate.message, recipeId: null };
   }
@@ -861,6 +892,12 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
   const video_url = videoUrlRaw ? videoUrlRaw : null;
   const ingredientBlock = String(formData.get("ingredients") ?? "");
   const tagRaw = String(formData.get("tags") ?? "");
+  const difficultyRaw = String(formData.get("difficulty") ?? "")
+    .trim()
+    .toLowerCase();
+  const difficulty = difficultyRaw ? (difficultyRaw as RecipeDifficulty) : null;
+  const cookTimeRaw = String(formData.get("cook_time_minutes") ?? "").trim();
+  let cook_time_minutes: number | null = null;
   const categorySlugs = formData
     .getAll("recipe_category")
     .map(String)
@@ -871,28 +908,63 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     return { error: "Title and instructions are required.", recipeId: null };
   }
   if (title.length > RECIPE_TITLE_MAX) {
-    return { error: `Title must be at most ${RECIPE_TITLE_MAX} characters.`, recipeId: null };
+    return {
+      error: `Recipe title must be at most ${RECIPE_TITLE_MAX} characters.`,
+      recipeId: null,
+    };
   }
   if (instructions.length > RECIPE_INSTRUCTIONS_MAX) {
     return {
-      error: `Instructions must be at most ${RECIPE_INSTRUCTIONS_MAX} characters.`,
+      error: `Directions must be at most ${RECIPE_INSTRUCTIONS_MAX} characters.`,
       recipeId: null,
     };
   }
   if (ingredientBlock.length > RECIPE_INGREDIENTS_TEXT_MAX) {
-    return { error: "Ingredient list is too long.", recipeId: null };
+    return {
+      error: `Ingredient list must be at most ${RECIPE_INGREDIENTS_TEXT_MAX} characters.`,
+      recipeId: null,
+    };
   }
   if (tagRaw.length > RECIPE_TAGS_TEXT_MAX) {
-    return { error: "Tags are too long.", recipeId: null };
+    return {
+      error: `Extra tags must be at most ${RECIPE_TAGS_TEXT_MAX} characters.`,
+      recipeId: null,
+    };
   }
   if (videoUrlRaw.length > RECIPE_VIDEO_URL_MAX) {
     return { error: "Video URL is too long.", recipeId: null };
   }
+  if (
+    difficulty !== null &&
+    !RECIPE_DIFFICULTY_VALUES.includes(difficulty)
+  ) {
+    return { error: "Choose a valid difficulty.", recipeId: null };
+  }
+  if (cookTimeRaw) {
+    const parsedCookTime = Number(cookTimeRaw);
+    if (
+      !Number.isInteger(parsedCookTime) ||
+      parsedCookTime < RECIPE_COOK_TIME_MINUTES_MIN ||
+      parsedCookTime > RECIPE_COOK_TIME_MINUTES_MAX
+    ) {
+      return {
+        error: `Cook time must be a whole number from ${RECIPE_COOK_TIME_MINUTES_MIN} to ${RECIPE_COOK_TIME_MINUTES_MAX} minutes.`,
+        recipeId: null,
+      };
+    }
+    cook_time_minutes = parsedCookTime;
+  }
   if (categorySlugs.length > RECIPE_CATEGORY_MAX_COUNT) {
-    return { error: "Choose fewer recipe categories.", recipeId: null };
+    return {
+      error: `Choose up to ${RECIPE_CATEGORY_MAX_COUNT} recipe categories.`,
+      recipeId: null,
+    };
   }
   if (allergenIds.length > RECIPE_ALLERGEN_MAX_COUNT) {
-    return { error: "Choose fewer allergens.", recipeId: null };
+    return {
+      error: `Choose up to ${RECIPE_ALLERGEN_MAX_COUNT} allergens.`,
+      recipeId: null,
+    };
   }
 
   const ingredientEntries = parseIngredientLinesForRecipe(ingredientBlock);
@@ -900,11 +972,24 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     return { error: "Add at least one ingredient.", recipeId: null };
   }
   if (ingredientEntries.length > RECIPE_INGREDIENT_MAX_COUNT) {
-    return { error: "Use fewer ingredients.", recipeId: null };
+    return {
+      error: `Use ${RECIPE_INGREDIENT_MAX_COUNT} ingredients or fewer.`,
+      recipeId: null,
+    };
   }
+
+  const uploadedImagePathCheck = validateRecipeImageObjectPath({
+    objectPathRaw: String(formData.get("image_object_path") ?? "").trim(),
+    userId: user.id,
+  });
+  if (!uploadedImagePathCheck.ok) {
+    return { error: uploadedImagePathCheck.message, recipeId: null };
+  }
+  const uploadedImageObjectPath = uploadedImagePathCheck.objectPath;
 
   const projectOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!projectOrigin) {
+    await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
     return { error: "Supabase is not configured.", recipeId: null };
   }
 
@@ -915,58 +1000,18 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     rejectPlainDataUrls: process.env.NODE_ENV === "production",
   });
   if (!imageCheck.ok) {
+    await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
     return { error: imageCheck.message, recipeId: null };
   }
 
-  const { data: recipe, error: recipeError } = await supabase
-    .from("recipes")
-    .insert({
-      title,
-      instructions,
-      image_url: imageCheck.url,
-      video_url,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
-
-  if (recipeError || !recipe) {
-    if (recipeError) {
-      logServerError("recipes.create_recipe", recipeError);
+  if (uploadedImageObjectPath) {
+    if (!imageCheck.url || !("objectPath" in imageCheck)) {
+      await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
+      return { error: "Invalid recipe image URL.", recipeId: null };
     }
-    return {
-      error: GENERIC_SERVER_ERROR,
-      recipeId: null,
-    };
-  }
-
-  const recipeId = recipe.id;
-  let sort = 0;
-
-  for (const { canonical } of ingredientEntries) {
-    const { data: ingRow, error: ingErr } = await supabase
-      .from("ingredients")
-      .upsert({ name: canonical }, { onConflict: "name" })
-      .select("id")
-      .single();
-
-    if (ingErr || !ingRow) {
-      if (ingErr) {
-        logServerError("recipes.create_ingredient_upsert", ingErr);
-      }
-      return { error: GENERIC_SERVER_ERROR, recipeId };
-    }
-
-    const { error: riErr } = await supabase.from("recipe_ingredients").insert({
-      recipe_id: recipeId,
-      ingredient_id: ingRow.id,
-      quantity: null,
-      sort_order: sort++,
-    });
-
-    if (riErr) {
-      logServerError("recipes.create_recipe_ingredient", riErr);
-      return { error: GENERIC_SERVER_ERROR, recipeId };
+    if (imageCheck.objectPath !== uploadedImageObjectPath) {
+      await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
+      return { error: "Recipe image URL does not match the uploaded image.", recipeId: null };
     }
   }
 
@@ -980,40 +1025,41 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     ]),
   ];
 
-  for (const tagName of tagNames) {
-    const { data: tagRow, error: tagErr } = await supabase
-      .from("tags")
-      .upsert({ name: tagName }, { onConflict: "name" })
-      .select("id")
-      .single();
+  const { data: recipeId, error: recipeError } = await supabase.rpc(
+    "create_recipe_atomic",
+    {
+      p_title: title,
+      p_instructions: instructions,
+      p_image_url: imageCheck.url,
+      p_video_url: video_url,
+      p_difficulty: difficulty,
+      p_cook_time_minutes: cook_time_minutes,
+      p_ingredients: ingredientEntries.map(({ canonical }, sort_order) => ({
+        name: canonical,
+        quantity: null,
+        sort_order,
+      })),
+      p_allergen_ids: allergenIds,
+      p_tag_names: tagNames,
+    },
+  );
 
-    if (tagErr || !tagRow) {
-      if (tagErr) {
-        logServerError("recipes.create_tag_upsert", tagErr);
-      }
-      return { error: GENERIC_SERVER_ERROR, recipeId };
+  if (recipeError || !recipeId) {
+    await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
+    if (isMonthlyRecipeLimitRpcError(recipeError)) {
+      return {
+        error: MONTHLY_RECIPE_LIMIT_ERROR,
+        recipeId: null,
+        code: "monthly_recipe_limit",
+      };
     }
-
-    const { error: rtErr } = await supabase.from("recipe_tags").insert({
-      recipe_id: recipeId,
-      tag_id: tagRow.id,
-    });
-
-    if (rtErr) {
-      logServerError("recipes.create_recipe_tag", rtErr);
-      return { error: GENERIC_SERVER_ERROR, recipeId };
+    if (recipeError) {
+      logServerError("recipes.create_recipe_atomic", recipeError);
     }
-  }
-
-  for (const aid of allergenIds) {
-    const { error: raErr } = await supabase.from("recipe_allergens").insert({
-      recipe_id: recipeId,
-      allergen_id: aid,
-    });
-    if (raErr) {
-      logServerError("recipes.create_recipe_allergen", raErr);
-      return { error: GENERIC_SERVER_ERROR, recipeId };
-    }
+    return {
+      error: GENERIC_SERVER_ERROR,
+      recipeId: null,
+    };
   }
 
   await logEvent(supabase, {
@@ -1155,17 +1201,21 @@ export async function toggleFavorite(recipeId: string): Promise<{
 }
 
 export async function createRecipeFromForm(formData: FormData) {
-  const result = await createRecipe(formData);
-  if (result.code === "monthly_recipe_limit") {
-    redirect("/add?recipeLimit=1");
+  let result: CreateRecipeResult;
+  try {
+    result = await createRecipe(formData);
+  } catch (error) {
+    logServerError("recipes.create_recipe_unhandled", error);
+    return { error: GENERIC_SERVER_ERROR, recipeId: null };
   }
+
   if (result.error) {
-    redirect(`/add?error=${encodeURIComponent(result.error)}`);
+    return result;
   }
   if (result.recipeId) {
     redirect(`/recipes/${result.recipeId}`);
   }
-  redirect("/add");
+  return { error: GENERIC_SERVER_ERROR, recipeId: null };
 }
 
 export async function updateRecipe(

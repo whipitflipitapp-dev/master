@@ -59,6 +59,49 @@ export function validateRecipeImageFile(file: File): string | null {
   });
 }
 
+export function validateRecipeImageObjectPath(args: {
+  objectPathRaw: string | null | undefined;
+  userId: string;
+}):
+  | { ok: true; objectPath: string | null }
+  | { ok: false; message: string } {
+  const objectPath = args.objectPathRaw?.trim();
+  if (!objectPath) {
+    return { ok: true, objectPath: null };
+  }
+
+  if (
+    objectPath.includes("..")
+    || objectPath.includes("//")
+    || objectPath.includes("\\")
+    || DISALLOWED_EXT.test(objectPath)
+  ) {
+    return { ok: false, message: "Invalid recipe image path." };
+  }
+
+  const firstSlash = objectPath.indexOf("/");
+  if (firstSlash < 0) {
+    return { ok: false, message: "Recipe images must live under your user folder." };
+  }
+
+  const folder = objectPath.slice(0, firstSlash);
+  if (folder !== args.userId) {
+    return { ok: false, message: "Recipe image must belong to your upload folder." };
+  }
+
+  const rest = objectPath.slice(firstSlash + 1);
+  if (!rest) {
+    return { ok: false, message: "Invalid recipe image path." };
+  }
+
+  const ext = extensionFromFileName(rest);
+  if (!isAllowedRecipeImageExtension(ext)) {
+    return { ok: false, message: "Recipe image must be PNG or JPEG." };
+  }
+
+  return { ok: true, objectPath };
+}
+
 /** Public object URL segment after hostname for our bucket */
 const storagePublicPathRegex = /^\/storage\/v1\/object\/public\/recipe-images\/([^?#]+)$/;
 
@@ -73,6 +116,7 @@ export function validateStoredRecipeImageUrl(args: {
   rejectPlainDataUrls: boolean;
 }):
   | { ok: true; url: string | null }
+  | { ok: true; url: string; objectPath: string }
   | { ok: false; message: string } {
   const trimmed = args.imageUrlRaw?.trim();
   if (!trimmed) {
@@ -115,35 +159,13 @@ export function validateStoredRecipeImageUrl(args: {
     };
   }
 
-  const objectPath = decodeURIComponent(m[1]);
-  if (
-    objectPath.includes("..")
-    || objectPath.includes("//")
-    || objectPath.includes("\\")
-    || DISALLOWED_EXT.test(objectPath)
-  ) {
-    return { ok: false, message: "Invalid recipe image path." };
+  const pathCheck = validateRecipeImageObjectPath({
+    objectPathRaw: decodeURIComponent(m[1]),
+    userId: args.userId,
+  });
+  if (!pathCheck.ok) {
+    return pathCheck;
   }
 
-  const firstSlash = objectPath.indexOf("/");
-  if (firstSlash < 0) {
-    return { ok: false, message: "Recipe images must live under your user folder." };
-  }
-
-  const folder = objectPath.slice(0, firstSlash);
-  if (folder !== args.userId) {
-    return { ok: false, message: "Recipe image must belong to your upload folder." };
-  }
-
-  const rest = objectPath.slice(firstSlash + 1);
-  if (!rest) {
-    return { ok: false, message: "Invalid recipe image path." };
-  }
-
-  const ext = extensionFromFileName(rest);
-  if (!isAllowedRecipeImageExtension(ext)) {
-    return { ok: false, message: "Recipe image must be PNG or JPEG." };
-  }
-
-  return { ok: true, url: trimmed };
+  return { ok: true, url: trimmed, objectPath: pathCheck.objectPath! };
 }

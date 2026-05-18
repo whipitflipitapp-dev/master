@@ -366,6 +366,20 @@ export interface Database {
           created_at: string;
         }[];
       };
+      create_recipe_atomic: {
+        Args: {
+          p_title: string;
+          p_instructions: string;
+          p_image_url?: string | null;
+          p_video_url?: string | null;
+          p_difficulty?: string | null;
+          p_cook_time_minutes?: number | null;
+          p_ingredients?: Json;
+          p_allergen_ids?: string[];
+          p_tag_names?: string[];
+        };
+        Returns: string;
+      };
       recipe_whip_flip_count: {
         Args: { p_recipe_id: string };
         Returns: number;

@@ -339,9 +339,23 @@ export function AiChefWorkbench(props: Props) {
     formData.set("title", recipeResult.title || t("ai_chef_result_suggested_recipe"));
     formData.set("ingredients", recipeResult.ingredients.join("\n"));
     formData.set("instructions", recipeResult.steps.join("\n\n"));
+    if (
+      Number.isInteger(recipeResult.cook_time_minutes) &&
+      recipeResult.cook_time_minutes > 0
+    ) {
+      formData.set("cook_time_minutes", String(recipeResult.cook_time_minutes));
+    }
+    const normalizedDifficulty = difficulty.trim().toLowerCase();
+    if (["easy", "medium", "hard"].includes(normalizedDifficulty)) {
+      formData.set("difficulty", normalizedDifficulty);
+    }
     formData.set("tags", "AI Chef");
     try {
-      await createRecipeFromForm(formData);
+      const result = await createRecipeFromForm(formData);
+      if (result?.error) {
+        setRecipeErr(result.error);
+        setSaveBusy(false);
+      }
     } catch (err) {
       if (!isRedirectError(err)) {
         setRecipeErr(t("ai_chef_err_save_recipe"));
