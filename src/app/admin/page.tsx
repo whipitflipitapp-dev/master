@@ -16,6 +16,17 @@ export const metadata: Metadata = {
 };
 
 const EVENTS_PAGE_SIZE = 50;
+const SUGGESTIONS_LIMIT = 25;
+
+type AdminSuggestionRow = {
+  id: string;
+  user_id: string;
+  suggestion: string;
+  submitter_email: string;
+  submitter_name: string | null;
+  status: string;
+  created_at: string;
+};
 
 function cardClass() {
   return "rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-5 shadow-sm";
@@ -39,14 +50,22 @@ export default async function AdminPage({
   sinceDate.setUTCDate(sinceDate.getUTCDate() - 7);
   const sinceIso = sinceDate.toISOString();
 
-  const [overviewRes, eventsRes, affiliateLinkTypesRes] = await Promise.all([
-    supabase.rpc("admin_metrics_overview", { p_since: sinceIso }),
-    supabase.rpc("admin_recent_events", {
-      p_limit: EVENTS_PAGE_SIZE,
-      p_offset: offset,
-    }),
-    supabase.rpc("admin_affiliate_link_types_recent", { p_since: sinceIso }),
-  ]);
+  const [overviewRes, eventsRes, affiliateLinkTypesRes, suggestionsRes] =
+    await Promise.all([
+      supabase.rpc("admin_metrics_overview", { p_since: sinceIso }),
+      supabase.rpc("admin_recent_events", {
+        p_limit: EVENTS_PAGE_SIZE,
+        p_offset: offset,
+      }),
+      supabase.rpc("admin_affiliate_link_types_recent", { p_since: sinceIso }),
+      supabase
+        .from("suggestions")
+        .select(
+          "id,user_id,suggestion,submitter_email,submitter_name,status,created_at",
+        )
+        .order("created_at", { ascending: false })
+        .limit(SUGGESTIONS_LIMIT),
+    ]);
 
   const metrics = parseAdminMetricsOverview(overviewRes.data);
   const recentEvents = parseAdminRecentEvents(eventsRes.data);
@@ -56,10 +75,15 @@ export default async function AdminPage({
   const overviewError = Boolean(overviewRes.error);
   const eventsError = Boolean(eventsRes.error);
   const affiliateLinkTypesError = Boolean(affiliateLinkTypesRes.error);
+  const suggestionsError = Boolean(suggestionsRes.error);
+  const suggestions = (suggestionsRes.data ?? []) as AdminSuggestionRow[];
   if (overviewRes.error) logServerError("admin.metrics_overview", overviewRes.error);
   if (eventsRes.error) logServerError("admin.recent_events", eventsRes.error);
   if (affiliateLinkTypesRes.error) {
     logServerError("admin.affiliate_link_types", affiliateLinkTypesRes.error);
+  }
+  if (suggestionsRes.error) {
+    logServerError("admin.suggestions", suggestionsRes.error);
   }
 
   const exportSince = encodeURIComponent(sinceIso);
@@ -210,6 +234,82 @@ export default async function AdminPage({
           definitions.
         </p>
       )}
+
+      <section className="mt-10" aria-labelledby="suggestions-heading">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2
+              id="suggestions-heading"
+              className="text-base font-semibold text-[var(--text)]"
+            >
+              Suggestion Box
+            </h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Latest user suggestions with submitter snapshots.
+            </p>
+          </div>
+          <span className="text-xs font-medium text-[var(--muted)]">
+            Showing latest {SUGGESTIONS_LIMIT}
+          </span>
+        </div>
+        {suggestionsError ? (
+          <p className="mt-3 text-sm text-[var(--muted)]">
+            Could not load suggestions.
+          </p>
+        ) : suggestions.length === 0 ? (
+          <p className="mt-3 text-sm text-[var(--muted)]">No suggestions yet.</p>
+        ) : (
+          <div className="mt-3 overflow-x-auto rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] shadow-sm">
+            <table className="w-full min-w-[720px] border-collapse text-left text-[length:var(--text-caption)]">
+              <thead className="border-b border-[color-mix(in_srgb,var(--muted)_35%,transparent)] text-[var(--muted)]">
+                <tr>
+                  <th className="whitespace-nowrap px-4 py-2.5 font-semibold">
+                    Time
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-2.5 font-semibold">
+                    Submitter
+                  </th>
+                  <th className="min-w-[18rem] px-4 py-2.5 font-semibold">
+                    Suggestion
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-2.5 font-semibold">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {suggestions.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="border-b border-[color-mix(in_srgb,var(--muted)_18%,transparent)] last:border-b-0"
+                  >
+                    <td className="whitespace-nowrap px-4 py-2 tabular-nums text-[var(--text)]">
+                      {new Date(item.created_at)
+                        .toISOString()
+                        .replace("T", " ")
+                        .slice(0, 19)}
+                    </td>
+                    <td className="max-w-[14rem] px-4 py-2 text-[var(--text)]">
+                      <span className="block truncate font-medium">
+                        {item.submitter_name || "Unnamed user"}
+                      </span>
+                      <span className="block truncate text-[var(--muted)]">
+                        {item.submitter_email || item.user_id}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-[var(--text)]">
+                      {item.suggestion}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-[var(--muted)]">
+                      {item.status}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section className="mt-10" aria-labelledby="recent-events-heading">
         <h2

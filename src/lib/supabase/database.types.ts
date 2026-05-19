@@ -287,6 +287,35 @@ export interface Database {
           external_link?: string | null;
         };
       };
+      suggestions: {
+        Row: {
+          id: string;
+          user_id: string;
+          suggestion: string;
+          submitter_email: string;
+          submitter_name: string | null;
+          status: "new" | "reviewed" | "dismissed";
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          suggestion: string;
+          submitter_email?: string;
+          submitter_name?: string | null;
+          status?: "new" | "reviewed" | "dismissed";
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          suggestion?: string;
+          submitter_email?: string;
+          submitter_name?: string | null;
+          status?: "new" | "reviewed" | "dismissed";
+          reviewed_at?: string | null;
+        };
+      };
       events: {
         Row: {
           id: string;

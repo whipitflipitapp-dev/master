@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { RecipeUploadQuotaNotice } from "@/components/billing/RecipeUploadQuotaNotice";
+import { SuggestionBox } from "@/components/dashboard/SuggestionBox";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import type { CommonJson } from "@/lib/i18n/server";
@@ -203,6 +204,30 @@ export default async function DashboardPage() {
           {dictText(dict, "dashboard_add_recipe")}
         </Link>
       </nav>
+
+      <SuggestionBox
+        labels={{
+          title: dictText(dict, "dashboard_suggestion_title"),
+          subtitle: dictText(dict, "dashboard_suggestion_subtitle"),
+          label: dictText(dict, "dashboard_suggestion_label"),
+          placeholder: dictText(dict, "dashboard_suggestion_placeholder"),
+          counter: dictText(dict, "dashboard_suggestion_counter", {
+            count: "{{count}}",
+            max: 300,
+          }),
+          submit: dictText(dict, "dashboard_suggestion_submit"),
+          submitting: dictText(dict, "dashboard_suggestion_submitting"),
+          success: dictText(dict, "dashboard_suggestion_success"),
+          errors: {
+            auth: dictText(dict, "dashboard_suggestion_error_auth"),
+            config: dictText(dict, "dashboard_suggestion_error_config"),
+            empty: dictText(dict, "dashboard_suggestion_error_empty"),
+            generic: dictText(dict, "dashboard_suggestion_error_generic"),
+            rate_limited: dictText(dict, "dashboard_suggestion_error_rate_limited"),
+            too_long: dictText(dict, "dashboard_suggestion_error_too_long"),
+          },
+        }}
+      />
 
       <section
         className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]"
