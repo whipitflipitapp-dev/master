@@ -17,6 +17,7 @@ type RecipePremiumToolsProps = {
     id: string;
     title: string;
     instructions: string;
+    videoUrl?: string | null;
   };
   ingredients: RecipeToolIngredient[];
   planType: PlanType;
@@ -34,6 +35,9 @@ type RecipePremiumToolsProps = {
     titleLabel: string;
     ingredientsLabel: string;
     instructionsLabel: string;
+    videoLabel: string;
+    videoHint: string;
+    videoPlaceholder: string;
     save: string;
     saving: string;
     saved: string;
@@ -237,6 +241,20 @@ export function RecipePremiumTools({
                 maxLength={12000}
                 defaultValue={recipe.instructions}
                 className="mt-1.5 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)]"
+              />
+            </label>
+            <label className="block text-sm font-semibold text-[var(--text)]">
+              {labels.videoLabel}
+              <span className="mt-1 block text-[length:var(--text-caption)] font-normal text-[var(--muted)]">
+                {labels.videoHint}
+              </span>
+              <input
+                name="video_url"
+                type="url"
+                maxLength={2048}
+                defaultValue={recipe.videoUrl ?? ""}
+                placeholder={labels.videoPlaceholder}
+                className="mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)]"
               />
             </label>
             {errorDisplay ? (

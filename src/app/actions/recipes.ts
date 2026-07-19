@@ -43,13 +43,19 @@ import {
   type RecipeCategory,
 } from "@/lib/recipe-categories";
 import { getExcludedRecipeIdsForUser } from "@/lib/user-excluded-recipes";
+import {
+  isInstagramReelVideoUrl,
+  normalizeRecipeVideoUrlInput,
+  parseInstagramPermalink,
+  resolveRecipeCardPreviewImage,
+  type HomeInstagramReelItem,
+} from "@/lib/video-url";
 
 const RECIPE_TITLE_MAX = 200;
 const RECIPE_INSTRUCTIONS_MAX = 12000;
 const RECIPE_INGREDIENTS_TEXT_MAX = 8000;
 const RECIPE_INGREDIENT_MAX_COUNT = 80;
 const RECIPE_TAGS_TEXT_MAX = 1000;
-const RECIPE_VIDEO_URL_MAX = 2048;
 const RECIPE_ALLERGEN_MAX_COUNT = 32;
 const RECIPE_CATEGORY_MAX_COUNT = 8;
 const RECIPE_COOK_TIME_MINUTES_MIN = 1;
@@ -82,6 +88,7 @@ export type RecipeListItem = {
   id: string;
   title: string;
   image_url: string | null;
+  video_url: string | null;
   favorites_count: number;
   difficulty: string | null;
   cook_time_minutes: number | null;
@@ -90,6 +97,8 @@ export type RecipeListItem = {
   creator_id: string | null;
   creator_avatar_url: string | null;
 };
+
+export type { HomeInstagramReelItem } from "@/lib/video-url";
 
 type RecipeBrowseRow = Omit<
   RecipeListItem,
@@ -112,6 +121,7 @@ function coerceRecipeBrowseRow(row: unknown): RecipeBrowseRow | null {
   if (typeof r.id !== "string" || typeof r.title !== "string") return null;
 
   const rawImg = r.image_url ?? r.imageUrl;
+  const rawVideo = r.video_url ?? r.videoUrl;
   const favoritesRaw = r.favorites_count;
   const favoritesCount =
     typeof favoritesRaw === "number" && Number.isFinite(favoritesRaw)
@@ -138,10 +148,14 @@ function coerceRecipeBrowseRow(row: unknown): RecipeBrowseRow | null {
         ? String(r.created_at)
         : "";
 
+  const videoTrimmed =
+    rawVideo == null ? null : String(rawVideo).trim() || null;
+
   return {
     id: r.id,
     title: r.title,
     image_url: trimRecipeImageUrl(rawImg),
+    video_url: videoTrimmed,
     favorites_count,
     difficulty,
     cook_time_minutes,
@@ -214,7 +228,7 @@ async function listRecipesBrowseFallback(
   let demoQ = supabase
     .from("recipes")
     .select(
-      "id,title,image_url,favorites_count,difficulty,cook_time_minutes,created_at",
+      "id,title,image_url,video_url,favorites_count,difficulty,cook_time_minutes,created_at",
     )
     .in("id", [...DEMO_RECIPE_IDS_ORDERED]);
 
@@ -248,6 +262,42 @@ async function listRecipesBrowseFallback(
     }
   }
 
+  let reelQ = supabase
+    .from("recipes")
+    .select(
+      "id,title,image_url,video_url,favorites_count,difficulty,cook_time_minutes,created_at",
+    )
+    .ilike("video_url", "%instagram.com/reel/%")
+    .order("created_at", { ascending: false });
+
+  if (ilikePattern) {
+    reelQ = reelQ.ilike("title", ilikePattern);
+  }
+
+  const { data: reelData, error: reelErr } = await reelQ;
+
+  if (reelErr) {
+    logServerError("recipes.browse_instagram_reels", reelErr);
+    return { rows: null, errorMessage: GENERIC_SERVER_ERROR };
+  }
+
+  for (const r of (reelData ?? []) as RecipeBrowseRow[]) {
+    if (
+      seen.has(r.id) ||
+      blocked?.has(r.id) ||
+      excludedRecipeIds.has(r.id) ||
+      !matchesTagFilter(r.id) ||
+      !isInstagramReelVideoUrl(r.video_url)
+    ) {
+      continue;
+    }
+    rows.push(r);
+    seen.add(r.id);
+    if (rows.length >= limit) {
+      return { rows, errorMessage: null };
+    }
+  }
+
   const PAGE = 80;
   const MAX_SCAN = 4000;
   let offset = 0;
@@ -256,7 +306,7 @@ async function listRecipesBrowseFallback(
     let q = supabase
       .from("recipes")
       .select(
-        "id,title,image_url,favorites_count,difficulty,cook_time_minutes,created_at",
+        "id,title,image_url,video_url,favorites_count,difficulty,cook_time_minutes,created_at",
       )
       .order("created_at", { ascending: false });
 
@@ -449,10 +499,16 @@ export async function listRecipes(
     rows = rows.filter((r) => !excludedRecipeIds.has(r.id));
   }
 
-  rows = rows.map((r) => ({
-    ...r,
-    image_url: resolveRecipeDisplayImageUrl(r.id, r.image_url),
-  }));
+  rows = rows.map((r) => {
+    const preview = resolveRecipeCardPreviewImage({
+      imageUrl: resolveRecipeDisplayImageUrl(r.id, r.image_url),
+      videoUrl: r.video_url,
+    });
+    return {
+      ...r,
+      image_url: preview.imageUrl,
+    };
+  });
 
   type CreatorMeta = {
     name: string | null;
@@ -889,7 +945,11 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
   const instructions = String(formData.get("instructions") ?? "").trim();
   const imageUrlRaw = String(formData.get("image_url") ?? "").trim();
   const videoUrlRaw = String(formData.get("video_url") ?? "").trim();
-  const video_url = videoUrlRaw ? videoUrlRaw : null;
+  const videoNormalized = normalizeRecipeVideoUrlInput(videoUrlRaw);
+  if (!videoNormalized.ok) {
+    return { error: videoNormalized.error, recipeId: null };
+  }
+  const video_url = videoNormalized.video_url;
   const ingredientBlock = String(formData.get("ingredients") ?? "");
   const tagRaw = String(formData.get("tags") ?? "");
   const difficultyRaw = String(formData.get("difficulty") ?? "")
@@ -930,9 +990,6 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
       error: `Extra tags must be at most ${RECIPE_TAGS_TEXT_MAX} characters.`,
       recipeId: null,
     };
-  }
-  if (videoUrlRaw.length > RECIPE_VIDEO_URL_MAX) {
-    return { error: "Video URL is too long.", recipeId: null };
   }
   if (
     difficulty !== null &&
@@ -1249,6 +1306,13 @@ export async function updateRecipe(
     0,
     RECIPE_INGREDIENTS_TEXT_MAX,
   );
+  const videoNormalized = normalizeRecipeVideoUrlInput(
+    String(formData.get("video_url") ?? ""),
+  );
+  if (!videoNormalized.ok) {
+    return { error: videoNormalized.error, success: null };
+  }
+  const video_url = videoNormalized.video_url;
   const ingredientEntries = parseIngredientLinesForRecipe(ingredientBlock);
 
   if (!recipeId) {
@@ -1281,7 +1345,7 @@ export async function updateRecipe(
 
   const { error: recipeError } = await supabase
     .from("recipes")
-    .update({ title, instructions })
+    .update({ title, instructions, video_url })
     .eq("id", recipeId)
     .eq("created_by", ctx.user.id);
 
@@ -1341,7 +1405,56 @@ export async function updateRecipe(
 
   revalidatePath(`/recipes/${recipeId}`);
   revalidatePath("/recipes");
+  revalidatePath("/");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/analytics");
   return { error: null, success: "Recipe updated." };
+}
+
+const HOME_INSTAGRAM_REELS_LIMIT = 12;
+const HOME_INSTAGRAM_REELS_SCAN = 48;
+
+/**
+ * Latest recipes with an Instagram Reel permalink, newest first.
+ * Used by the homepage strip; returns [] when none (caller should hide UI).
+ */
+export async function listLatestInstagramRecipeReels(
+  limit = HOME_INSTAGRAM_REELS_LIMIT,
+): Promise<HomeInstagramReelItem[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+
+  const take = Math.min(Math.max(1, limit), HOME_INSTAGRAM_REELS_LIMIT);
+  const { data, error } = await supabase
+    .from("recipes")
+    .select("id,title,image_url,video_url,created_at")
+    .not("video_url", "is", null)
+    .ilike("video_url", "%instagram.com/reel/%")
+    .order("created_at", { ascending: false })
+    .limit(HOME_INSTAGRAM_REELS_SCAN);
+
+  if (error) {
+    logServerError("recipes.home_instagram_reels", error);
+    return [];
+  }
+
+  const items: HomeInstagramReelItem[] = [];
+  for (const row of data ?? []) {
+    const ig = parseInstagramPermalink(
+      typeof row.video_url === "string" ? row.video_url : null,
+    );
+    if (!ig || ig.type !== "reel") continue;
+    items.push({
+      recipeId: row.id,
+      title: row.title,
+      imageUrl: resolveRecipeDisplayImageUrl(
+        row.id,
+        trimRecipeImageUrl(row.image_url),
+      ),
+      permalink: ig.permalink,
+      createdAt: row.created_at,
+    });
+    if (items.length >= take) break;
+  }
+  return items;
 }

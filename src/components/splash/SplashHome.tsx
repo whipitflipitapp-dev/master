@@ -6,7 +6,9 @@ import { motion } from "framer-motion";
 import { useTransition } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { HomeInstagramReelItem } from "@/lib/video-url";
 import { setProfileLanguage } from "@/app/actions/profile";
+import { HomeInstagramReelsFeed } from "@/components/splash/HomeInstagramReelsFeed";
 
 const LOCALES = [
   { code: "en", label: "EN" },
@@ -14,7 +16,15 @@ const LOCALES = [
   { code: "fr", label: "FR" },
 ] as const;
 
-export function SplashHome() {
+type SplashHomeProps = {
+  instagramReels?: HomeInstagramReelItem[];
+  reelsHeading?: string;
+};
+
+export function SplashHome({
+  instagramReels = [],
+  reelsHeading = "",
+}: SplashHomeProps) {
   const { t, i18n } = useTranslation("common");
   const [localePending, startLocale] = useTransition();
 
@@ -135,6 +145,13 @@ export function SplashHome() {
             <span aria-hidden>✨</span>
             {t("cta_help")}
           </Link>
+        </div>
+
+        <div className="mx-auto w-full max-w-md">
+          <HomeInstagramReelsFeed
+            items={instagramReels}
+            heading={reelsHeading || t("home_reels_heading")}
+          />
         </div>
       </motion.main>
     </div>

@@ -371,6 +371,7 @@ export default async function RecipesBrowsePage({ searchParams }: RecipesPagePro
                 href={`/recipes/${r.id}`}
                 title={r.title}
                 imageUrl={r.image_url}
+                hasVideo={Boolean(r.video_url?.trim())}
                 trailing={
                   <div className="flex flex-col items-end gap-1.5">
                     <RecipeFavoriteButton

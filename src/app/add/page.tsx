@@ -183,6 +183,9 @@ export default async function AddRecipePage({
         saveProgressNote={dictText(dict, "add_recipe_save_progress_note")}
         saveButtonLabel={dictText(dict, "add_recipe_save_button")}
         savingButtonLabel={dictText(dict, "add_recipe_saving_button")}
+        videoUrlLabel={dictText(dict, "add_recipe_video_label")}
+        videoUrlHint={dictText(dict, "add_recipe_video_hint")}
+        videoUrlPlaceholder={dictText(dict, "add_recipe_video_placeholder")}
         initialError={decodedError}
         atLimit={atLimit}
         limitNotice={limitNotice}

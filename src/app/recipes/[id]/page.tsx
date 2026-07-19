@@ -5,8 +5,8 @@ import { notFound } from "next/navigation";
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
-import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
 import { RecipeDetailIngredientsSection } from "@/components/recipe/RecipeDetailIngredientsSection";
+import { RecipeDetailMedia } from "@/components/recipe/RecipeDetailMedia";
 import { RecipeExperienceForm } from "@/components/recipe/RecipeExperienceForm";
 import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
@@ -39,7 +39,8 @@ import {
   parseOtherAllergenTokens,
 } from "@/lib/allergy-other";
 import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
-import { parseYoutubeVideoId } from "@/lib/youtube";
+import { RecipeVideoSection } from "@/components/recipe/RecipeVideoSection";
+import { parseRecipeVideoUrl } from "@/lib/video-url";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -468,7 +469,7 @@ export default async function RecipeDetailPage(props: Props) {
     recipe.id,
     recipe.image_url,
   );
-  const yt = parseYoutubeVideoId(recipe.video_url);
+  const recipeVideo = parseRecipeVideoUrl(recipe.video_url);
   const wineUnlocked = planForWine
     ? winePairingsUnlockedForPlan(planForWine)
     : false;
@@ -518,7 +519,7 @@ export default async function RecipeDetailPage(props: Props) {
     <ContentPageBackdrop pageKey={`/recipes/detail|${id}`}>
     <article className="mx-auto w-full max-w-2xl flex-1 px-5 pb-12 pt-8">
       <RecipeViewTelemetry recipeId={recipe.id} />
-      <RecipeDetailHero
+      <RecipeDetailMedia
         title={recipe.title}
         imageUrl={displayImageUrl}
         imageAlt={
@@ -526,6 +527,9 @@ export default async function RecipeDetailPage(props: Props) {
             ? dictText(dict, "recipe_detail_photo_alt", { title: recipe.title })
             : ""
         }
+        video={recipeVideo}
+        videoFrameTitle={dictText(dict, "recipe_detail_video_frame_title")}
+        tapForSoundHint={dictText(dict, "recipe_detail_video_tap_for_sound")}
       />
 
       {allergyBanner ? (
@@ -639,6 +643,7 @@ export default async function RecipeDetailPage(props: Props) {
           id: recipe.id,
           title: recipe.title,
           instructions: recipe.instructions,
+          videoUrl: recipe.video_url,
         }}
         ingredients={detailIngredients}
         planType={premiumToolsPlan}
@@ -656,6 +661,9 @@ export default async function RecipeDetailPage(props: Props) {
           titleLabel: dictText(dict, "recipe_tools_title_label"),
           ingredientsLabel: dictText(dict, "recipe_tools_ingredients_label"),
           instructionsLabel: dictText(dict, "recipe_tools_instructions_label"),
+          videoLabel: dictText(dict, "recipe_tools_video_label"),
+          videoHint: dictText(dict, "recipe_tools_video_hint"),
+          videoPlaceholder: dictText(dict, "recipe_tools_video_placeholder"),
           save: dictText(dict, "recipe_tools_save"),
           saving: dictText(dict, "recipe_tools_saving"),
           saved: dictText(dict, "recipe_tools_saved"),
@@ -664,26 +672,13 @@ export default async function RecipeDetailPage(props: Props) {
         }}
       />
 
-      {yt ? (
-        <section className="mt-12" aria-labelledby="video-heading">
-          <h2
-            id="video-heading"
-            className="text-xl font-semibold tracking-tight text-[var(--text)]"
-          >
-            {dictText(dict, "recipe_detail_section_video")}
-          </h2>
-          <div className="mt-4 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-black shadow-[var(--shadow-card)]">
-            <div className="aspect-video w-full">
-              <iframe
-                title={dictText(dict, "recipe_detail_video_frame_title")}
-                src={`https://www.youtube.com/embed/${yt}`}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </section>
+      {recipeVideo?.provider === "youtube" ? (
+        <RecipeVideoSection
+          video={recipeVideo}
+          heading={dictText(dict, "recipe_detail_section_video")}
+          frameTitle={dictText(dict, "recipe_detail_video_frame_title")}
+          tapForSoundHint={dictText(dict, "recipe_detail_video_tap_for_sound")}
+        />
       ) : null}
 
       <RecipeWinePairingsSection

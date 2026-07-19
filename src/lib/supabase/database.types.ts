@@ -389,6 +389,7 @@ export interface Database {
           id: string;
           title: string;
           image_url: string | null;
+          video_url: string | null;
           favorites_count: number;
           difficulty: string | null;
           cook_time_minutes: number | null;

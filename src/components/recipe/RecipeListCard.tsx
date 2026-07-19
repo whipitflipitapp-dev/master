@@ -7,6 +7,8 @@ type RecipeListCardProps = {
   href: string;
   title: string;
   imageUrl?: string | null;
+  /** When true, show a play affordance on the cover (YouTube / Instagram). */
+  hasVideo?: boolean;
   meta?: ReactNode;
   trailing?: ReactNode;
   footer?: ReactNode;
@@ -16,6 +18,7 @@ export function RecipeListCard({
   href,
   title,
   imageUrl,
+  hasVideo = false,
   meta,
   trailing,
   footer,
@@ -38,6 +41,13 @@ export function RecipeListCard({
             alt=""
             className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover/card:scale-[1.03] motion-reduce:group-hover/card:scale-100"
           />
+        ) : hasVideo ? (
+          <div
+            className="flex h-full w-full items-center justify-center bg-[linear-gradient(160deg,color-mix(in_srgb,var(--muted)_22%,var(--card))_0%,color-mix(in_srgb,var(--primary)_18%,var(--card))_100%)] text-4xl text-[var(--muted)]"
+            aria-hidden
+          >
+            ▶
+          </div>
         ) : (
           <div
             className="flex h-full w-full items-center justify-center text-4xl opacity-[0.35]"
@@ -46,6 +56,14 @@ export function RecipeListCard({
             🍳
           </div>
         )}
+        {hasVideo ? (
+          <span
+            className="pointer-events-none absolute left-2.5 bottom-2.5 flex h-9 w-9 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--border)_70%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] text-[0.85rem] text-[var(--text)] shadow-[0_1px_2px_rgba(28,25,23,0.06)] backdrop-blur-[2px]"
+            aria-hidden
+          >
+            ▶
+          </span>
+        ) : null}
         {!trailing ? (
           <span
             className="pointer-events-none absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--border)_70%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] text-[1.05rem] text-[var(--muted-light)] shadow-[0_1px_2px_rgba(28,25,23,0.06)] backdrop-blur-[2px]"

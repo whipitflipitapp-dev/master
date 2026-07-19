@@ -165,6 +165,9 @@ export function AddRecipeForm({
   saveProgressNote,
   saveButtonLabel,
   savingButtonLabel,
+  videoUrlLabel,
+  videoUrlHint,
+  videoUrlPlaceholder,
   initialError,
   atLimit,
   limitNotice,
@@ -196,6 +199,9 @@ export function AddRecipeForm({
   saveProgressNote: string;
   saveButtonLabel: string;
   savingButtonLabel: string;
+  videoUrlLabel: string;
+  videoUrlHint: string;
+  videoUrlPlaceholder: string;
   /** Already decoded route error query (if present). */
   initialError: string | null;
   /** Free tier reached monthly recipe cap (server); disables submit. */
@@ -684,10 +690,10 @@ export function AddRecipeForm({
 
       <div className="flex flex-col gap-2">
         <label htmlFor="video_url" className="text-sm font-medium text-[var(--text)]">
-          YouTube URL
+          {videoUrlLabel}
         </label>
         <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
-          Paste only a YouTube link — there is no video upload field.
+          {videoUrlHint}
         </p>
         <input
           id="video_url"
@@ -696,7 +702,7 @@ export function AddRecipeForm({
           disabled={busy || capped}
           value={videoUrlDraft}
           onChange={(e) => setVideoUrlDraft(e.target.value)}
-          placeholder="https://www.youtube.com/watch?v=..."
+          placeholder={videoUrlPlaceholder}
           className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/30 focus:ring-2"
         />
       </div>
