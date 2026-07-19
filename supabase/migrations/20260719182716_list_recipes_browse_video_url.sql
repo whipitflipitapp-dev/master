@@ -1,6 +1,9 @@
 -- Include video_url in browse results so list cards can show video previews.
 -- Boost recipes with Instagram Reel permalinks in browse/search ordering.
 
+-- Postgres cannot change RETURNS TABLE via CREATE OR REPLACE (SQLSTATE 42P13).
+DROP FUNCTION IF EXISTS public.list_recipes_for_browse (integer, text, uuid[], text[]);
+
 CREATE OR REPLACE FUNCTION public.list_recipes_for_browse(
   p_limit integer,
   p_title_search text,
