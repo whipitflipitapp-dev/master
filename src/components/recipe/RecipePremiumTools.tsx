@@ -16,6 +16,7 @@ import { validateRecipeReelFileDuration } from "@/lib/recipe-reel-duration-clien
 import { attachHostedReelToFormData } from "@/lib/recipe-reel-upload-client";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { formatIngredientLineForRecipeInput } from "@/lib/ingredients";
+import { parseRecipeVideoUrl } from "@/lib/video-url";
 
 type RecipeToolIngredient = {
   name: string;
@@ -151,6 +152,13 @@ export function RecipePremiumTools({
         .join("\n"),
     [ingredients],
   );
+
+  const videoUrlFieldDefault = useMemo(() => {
+    const raw = recipe.videoUrl?.trim() ?? "";
+    if (!raw) return "";
+    const parsed = parseRecipeVideoUrl(raw);
+    return parsed?.provider === "youtube" ? parsed.canonicalUrl : "";
+  }, [recipe.videoUrl]);
 
   const markdown = useMemo(
     () =>
@@ -396,9 +404,11 @@ export function RecipePremiumTools({
               </span>
               <input
                 name="video_url"
-                type="url"
+                type="text"
+                inputMode="url"
+                autoComplete="off"
                 maxLength={2048}
-                defaultValue={recipe.videoUrl ?? ""}
+                defaultValue={videoUrlFieldDefault}
                 placeholder={labels.videoPlaceholder}
                 className="mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)]"
               />

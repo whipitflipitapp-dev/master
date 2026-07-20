@@ -60,6 +60,7 @@ import { getExcludedRecipeIdsForUser } from "@/lib/user-excluded-recipes";
 import {
   isInstagramReelVideoUrl,
   normalizeRecipeVideoUrlInput,
+  normalizeRecipeVideoUrlForUpdate,
   parseInstagramPermalink,
   resolveRecipeCardPreviewImage,
   type HomeInstagramReelItem,
@@ -1624,7 +1625,7 @@ export async function updateRecipe(
     0,
     RECIPE_INGREDIENTS_TEXT_MAX,
   );
-  const videoNormalized = normalizeRecipeVideoUrlInput(
+  const videoNormalized = normalizeRecipeVideoUrlForUpdate(
     String(formData.get("video_url") ?? ""),
   );
   if (!videoNormalized.ok) {

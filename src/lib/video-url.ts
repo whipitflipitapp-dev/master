@@ -165,6 +165,23 @@ export function normalizeRecipeVideoUrlInput(
   return { ok: true, video_url: parsed.canonicalUrl };
 }
 
+/**
+ * Recipe edit: empty or legacy Instagram → clear `video_url`. Only YouTube may remain set.
+ */
+export function normalizeRecipeVideoUrlForUpdate(
+  raw: string,
+): { ok: true; video_url: string | null } | { ok: false; error: string } {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { ok: true, video_url: null };
+  }
+  const parsed = parseRecipeVideoUrl(trimmed);
+  if (parsed?.provider === "instagram") {
+    return { ok: true, video_url: null };
+  }
+  return normalizeRecipeVideoUrlInput(trimmed);
+}
+
 /** YouTube hqdefault thumbnail when a recipe has no cover image. */
 export function youtubeThumbnailUrl(youtubeId: string): string {
   return `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
