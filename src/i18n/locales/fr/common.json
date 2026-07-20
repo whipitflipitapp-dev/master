@@ -317,6 +317,7 @@
   "dashboard_env_hint": "Configurez les variables Supabase pour une vue personnalisée.",
   "dashboard_subtitle": "Synthèse des sauvegardes et de la réception sur vos recettes.",
   "dashboard_stat_saved": "Recettes enregistrées",
+  "dashboard_stat_uploaded": "Recettes que vous avez publiées",
   "dashboard_stat_saves_on_yours": "Sauvegardes sur vos recettes",
   "dashboard_open_saved": "Voir les favoris",
   "dashboard_cookbooks": "Livres de recettes",

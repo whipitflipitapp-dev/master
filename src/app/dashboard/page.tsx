@@ -154,12 +154,20 @@ export default async function DashboardPage() {
       <RecipeUploadQuotaNotice dict={dict} quota={uploadQuota} />
 
       <dl className="grid gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]">
-        <div className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
+        <div className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-3">
           <dt className="text-sm font-semibold text-[var(--text)]">
             {dictText(dict, "dashboard_stat_saved")}
           </dt>
           <dd className="text-lg font-bold tabular-nums text-[var(--primary)]">
             {savedCount}
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-3">
+          <dt className="text-sm font-semibold text-[var(--text)]">
+            {dictText(dict, "dashboard_stat_uploaded")}
+          </dt>
+          <dd className="text-lg font-bold tabular-nums text-[var(--primary)]">
+            {authored.length}
           </dd>
         </div>
         <div className="flex items-baseline justify-between gap-3">
@@ -262,7 +270,7 @@ export default async function DashboardPage() {
                 recipe.image_url,
               );
               const detailHref = `/recipes/${recipe.id}`;
-              const editHref = `${detailHref}#premium-tools`;
+              const editHref = `${detailHref}?edit=1`;
               const metaParts = [
                 difficultyLabel(dict, recipe.difficulty),
                 recipe.cook_time_minutes != null

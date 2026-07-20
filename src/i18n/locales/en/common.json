@@ -317,6 +317,7 @@
   "dashboard_env_hint": "Configure Supabase environment variables for a personalized overview.",
   "dashboard_subtitle": "Snapshot of saves and recognition on your recipes.",
   "dashboard_stat_saved": "Recipes you saved",
+  "dashboard_stat_uploaded": "Recipes you uploaded",
   "dashboard_stat_saves_on_yours": "Saves on your recipes",
   "dashboard_open_saved": "Open saved",
   "dashboard_cookbooks": "Cookbooks",

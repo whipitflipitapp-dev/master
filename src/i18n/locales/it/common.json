@@ -346,6 +346,7 @@
   "dashboard_env_hint": "Configura le variabili Supabase per una panoramica personalizzata.",
   "dashboard_subtitle": "Snapshot di salvataggi e riconoscimenti sulle tue ricette.",
   "dashboard_stat_saved": "Ricette salvate",
+  "dashboard_stat_uploaded": "Ricette che hai pubblicato",
   "dashboard_stat_saves_on_yours": "Salvataggi sulle tue ricette",
   "dashboard_open_saved": "Apri salvate",
   "dashboard_cookbooks": "Raccolte",
