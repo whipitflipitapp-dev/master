@@ -1,6 +1,5 @@
-import { InstagramEmbed } from "@/components/recipe/InstagramEmbed";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
-import { RecipeHostedReelPlayer } from "@/components/recipe/RecipeHostedReelPlayer";
+import { RecipeDetailReelSection } from "@/components/recipe/RecipeDetailReelSection";
 import {
   RecipeMediaGallery,
   type RecipeMediaSlide,
@@ -40,7 +39,7 @@ function photoSlides(photos: string[]): RecipeMediaSlide[] {
   return photos.map((url) => ({ kind: "image", url }));
 }
 
-/** Recipe detail: hosted reel (Pro) or Instagram embed, plus photo gallery below. */
+/** Recipe detail: photos first, compact reel (hosted or Instagram) below. */
 export function RecipeDetailMedia({
   title,
   imageUrl,
@@ -58,11 +57,9 @@ export function RecipeDetailMedia({
   const hosted = hostedReelUrl?.trim() || null;
   const instagram =
     !hosted && instagramEmbedSrc?.trim() ? instagramEmbedSrc.trim() : null;
-  const poster =
-    reelPosterUrl?.trim() || photos[0]?.trim() || imageUrl?.trim() || null;
+  const hasReelBlock = Boolean(hosted || instagram);
 
   const slides = photoSlides(photos);
-  const hasReelBlock = Boolean(hosted || instagram);
 
   if (!hasReelBlock && slides.length === 0) {
     return (
@@ -72,43 +69,31 @@ export function RecipeDetailMedia({
 
   return (
     <div className="flex flex-col gap-4">
-      {hosted ? (
-        <div className="space-y-2">
-          <RecipeHostedReelPlayer
-            src={hosted}
-            title={videoFrameTitle}
-            posterUrl={poster}
-          />
-          {hostedReelHint ? (
-            <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
-              {hostedReelHint}
-            </p>
-          ) : null}
-        </div>
-      ) : instagram ? (
-        <InstagramEmbed
-          embedSrc={instagram}
-          title={videoFrameTitle}
-          priority
-          variant="reel"
-          inAppHint={instagramInAppHint}
-          tapForSoundHint={instagramTapForSoundHint}
-        />
-      ) : null}
-
       {slides.length === 0 ? null : slides.length === 1 && !hasReelBlock ? (
         <RecipeDetailHero
           title={title}
           imageUrl={slides[0]!.url}
           imageAlt={imageAlt}
         />
-      ) : (
+      ) : slides.length > 0 ? (
         <RecipeMediaGallery
           title={title}
           imageAlt={imageAlt}
           slides={slides}
         />
-      )}
+      ) : null}
+
+      {hasReelBlock ? (
+        <RecipeDetailReelSection
+          videoFrameTitle={videoFrameTitle}
+          posterUrl={reelPosterUrl}
+          hostedReelUrl={hosted}
+          hostedReelHint={hostedReelHint}
+          instagramEmbedSrc={instagram}
+          instagramInAppHint={instagramInAppHint}
+          instagramTapForSoundHint={instagramTapForSoundHint}
+        />
+      ) : null}
     </div>
   );
 }

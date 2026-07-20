@@ -10,6 +10,8 @@ type InstagramEmbedProps = {
   /** Shown under player — use in-frame controls, not “Open in Instagram” when possible. */
   inAppHint?: string;
   variant?: "default" | "reel";
+  /** Reel under photos — half width (200px cap). */
+  compact?: boolean;
   /** When false, iframe is not mounted (carousel off-screen slides). */
   active?: boolean;
 };
@@ -24,9 +26,11 @@ export function InstagramEmbed({
   tapForSoundHint,
   inAppHint,
   variant = "default",
+  compact = false,
   active = true,
 }: InstagramEmbedProps) {
   const src = buildInstagramEmbedIframeSrc(embedSrc);
+  const reelMaxW = compact ? "min(100%,200px)" : "min(100%,400px)";
 
   const frame = active ? (
     <iframe
@@ -56,7 +60,10 @@ export function InstagramEmbed({
     <div className="space-y-2">
       <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-black shadow-[var(--shadow-card)]">
         {variant === "reel" ? (
-          <div className="relative mx-auto aspect-[9/16] w-full max-w-[min(100%,400px)]">
+          <div
+            className="relative mx-auto aspect-[9/16] w-full"
+            style={{ maxWidth: reelMaxW }}
+          >
             {frame}
           </div>
         ) : (
