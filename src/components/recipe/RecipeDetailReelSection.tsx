@@ -16,6 +16,8 @@ type RecipeDetailReelSectionProps = {
   instagramEmbedSrc?: string | null;
   instagramInAppHint?: string;
   instagramTapForSoundHint?: string;
+  youtubeId?: string | null;
+  youtubeTapForSoundHint?: string;
 };
 
 export function RecipeDetailReelSection({
@@ -26,11 +28,14 @@ export function RecipeDetailReelSection({
   instagramEmbedSrc,
   instagramInAppHint,
   instagramTapForSoundHint,
+  youtubeId,
+  youtubeTapForSoundHint,
 }: RecipeDetailReelSectionProps) {
   const { t } = useTranslation();
   const hosted = hostedReelUrl?.trim() || null;
   const instagram =
     !hosted && instagramEmbedSrc?.trim() ? instagramEmbedSrc.trim() : null;
+  const youtube = youtubeId?.trim() || null;
   const poster = posterUrl?.trim() || null;
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -46,11 +51,11 @@ export function RecipeDetailReelSection({
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxOpen, closeLightbox]);
 
-  if (!hosted && !instagram) return null;
+  if (!hosted && !instagram && !youtube) return null;
 
   return (
     <section
-      className="mx-auto mt-8 w-full space-y-2"
+      className="mx-auto mt-8 flex w-full flex-col gap-4"
       style={{ maxWidth: REEL_MAX }}
       aria-label={videoFrameTitle}
     >
@@ -98,16 +103,35 @@ export function RecipeDetailReelSection({
             </p>
           )}
         </>
-      ) : (
+      ) : instagram ? (
         <InstagramEmbed
-          embedSrc={instagram!}
+          embedSrc={instagram}
           title={videoFrameTitle}
           priority
           variant="reel"
           inAppHint={instagramInAppHint}
           tapForSoundHint={instagramTapForSoundHint}
         />
-      )}
+      ) : null}
+
+      {youtube ? (
+        <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-black shadow-[var(--shadow-card)]">
+          <div className="aspect-video w-full">
+            <iframe
+              title={videoFrameTitle}
+              src={`https://www.youtube.com/embed/${youtube}?autoplay=1&mute=1&playsinline=1`}
+              className="h-full w-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+          {youtubeTapForSoundHint ? (
+            <p className="border-t border-white/10 px-3 py-2 text-[length:var(--text-caption)] text-white/70">
+              {youtubeTapForSoundHint}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {lightboxOpen && hosted ? (
         <div

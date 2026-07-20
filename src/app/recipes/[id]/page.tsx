@@ -40,7 +40,6 @@ import {
   parseOtherAllergenTokens,
 } from "@/lib/allergy-other";
 import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
-import { RecipeVideoSection } from "@/components/recipe/RecipeVideoSection";
 import { parseRecipeVideoUrl } from "@/lib/video-url";
 
 type Props = {
@@ -697,6 +696,13 @@ export default async function RecipeDetailPage(props: Props) {
           dict,
           "recipe_detail_video_tap_for_sound",
         )}
+        youtubeId={
+          recipeVideo?.provider === "youtube" ? recipeVideo.youtubeId : null
+        }
+        youtubeTapForSoundHint={dictText(
+          dict,
+          "recipe_detail_video_tap_for_sound",
+        )}
       />
 
       <RecipeDetailIngredientsSection
@@ -780,15 +786,6 @@ export default async function RecipeDetailPage(props: Props) {
           uploadRetry: dictText(dict, "add_recipe_upload_retry"),
         }}
       />
-
-      {recipeVideo?.provider === "youtube" ? (
-        <RecipeVideoSection
-          video={recipeVideo}
-          heading={dictText(dict, "recipe_detail_section_video")}
-          frameTitle={dictText(dict, "recipe_detail_video_frame_title")}
-          tapForSoundHint={dictText(dict, "recipe_detail_video_tap_for_sound")}
-        />
-      ) : null}
 
       <RecipeWinePairingsSection
         recipeId={recipe.id}
