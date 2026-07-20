@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  evaluateUserGeneratedText,
+  USER_TEXT_PROFANITY_BLOCK_ERROR,
+} from "@/lib/moderation/profanity";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/server-error";
 import {
@@ -41,6 +45,11 @@ export async function submitSuggestion(
   }
   if (suggestion.length > SUGGESTION_MAX_LENGTH) {
     return { ok: false, errorCode: "too_long" };
+  }
+
+  const suggestionModeration = evaluateUserGeneratedText(suggestion);
+  if (suggestionModeration.blocked) {
+    return { ok: false, errorCode: "profanity" };
   }
 
   const limit = consumeRateLimit({

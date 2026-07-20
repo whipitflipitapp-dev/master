@@ -7,6 +7,7 @@ export type SubmitSuggestionErrorCode =
   | "config"
   | "empty"
   | "generic"
+  | "profanity"
   | "rate_limited"
   | "too_long";
 

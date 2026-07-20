@@ -83,6 +83,30 @@ export async function proxy(request: NextRequest) {
   const { search } = request.nextUrl;
 
   if (user && !isOnboardingExempt(pathname)) {
+    const bannedExempt =
+      pathname === "/banned" ||
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/signup");
+    if (!bannedExempt) {
+      const { data: banProfile } = await supabase
+        .from("profiles")
+        .select("banned_at")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (banProfile?.banned_at) {
+        return NextResponse.redirect(new URL("/banned", request.url));
+      }
+      const email = user.email?.trim().toLowerCase() ?? "";
+      if (email) {
+        const { data: emailBanned } = await supabase.rpc("is_email_banned", {
+          p_email: email,
+        });
+        if (emailBanned) {
+          return NextResponse.redirect(new URL("/banned", request.url));
+        }
+      }
+    }
+
     const { data: ob, error: obErr } = await supabase
       .from("profiles")
       .select("onboarding_completed_at")

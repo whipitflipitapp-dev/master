@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  contentModerationStatusForUserText,
+  evaluateUserGeneratedTextFields,
+  USER_TEXT_PENDING_REVIEW_NOTICE,
+  USER_TEXT_PROFANITY_BLOCK_ERROR,
+} from "@/lib/moderation/profanity";
+import {
   isCuratedWineTypeSlug,
   WINE_TYPE_CANONICAL_LABEL,
 } from "@/lib/wine-types";
@@ -31,29 +37,29 @@ function revalidateRecipeWinePaths(recipeId: string) {
 }
 
 export async function submitUserWinePairing(
-  _prev: { ok: boolean; error: string | null },
+  _prev: { ok: boolean; error: string | null; notice: string | null },
   formData: FormData,
-): Promise<{ ok: boolean; error: string | null }> {
+): Promise<{ ok: boolean; error: string | null; notice: string | null }> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
-    return { ok: false, error: "Supabase is not configured." };
+    return { ok: false, error: "Supabase is not configured.", notice: null };
   }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { ok: false, error: "Sign in to add your wine pairing." };
+    return { ok: false, error: "Sign in to add your wine pairing.", notice: null };
   }
 
   const recipeId = String(formData.get("recipe_id") ?? "").trim();
   if (!UUID_RE.test(recipeId)) {
-    return { ok: false, error: "Invalid recipe." };
+    return { ok: false, error: "Invalid recipe.", notice: null };
   }
 
   const slugRaw = String(formData.get("wine_type_slug") ?? "").trim();
   if (!isCuratedWineTypeSlug(slugRaw)) {
-    return { ok: false, error: "Choose a wine type from the list." };
+    return { ok: false, error: "Choose a wine type from the list.", notice: null };
   }
 
   const wineName = trimOptional(formData.get("wine_name"), MAX_WINE_NAME);
@@ -62,9 +68,25 @@ export async function submitUserWinePairing(
     return {
       ok: false,
       error: `Why this wine must be ${MAX_WHY_BLURB} characters or fewer.`,
+      notice: null,
     };
   }
   const why_blurb = trimOptional(whyBlurbRaw, MAX_WHY_BLURB);
+
+  const textModeration = evaluateUserGeneratedTextFields([
+    wineName ?? "",
+    why_blurb ?? "",
+  ]);
+  if (textModeration.blocked) {
+    return {
+      ok: false,
+      error: textModeration.error ?? USER_TEXT_PROFANITY_BLOCK_ERROR,
+      notice: null,
+    };
+  }
+  const moderation_status = contentModerationStatusForUserText(
+    textModeration.pendingReview,
+  );
 
   const { data: recipe, error: recipeErr } = await supabase
     .from("recipes")
@@ -76,7 +98,7 @@ export async function submitUserWinePairing(
     if (recipeErr) {
       logServerError("user_wine_pairings.recipe_lookup", recipeErr);
     }
-    return { ok: false, error: "Recipe not found." };
+    return { ok: false, error: "Recipe not found.", notice: null };
   }
 
   const payload = {
@@ -86,6 +108,7 @@ export async function submitUserWinePairing(
     notes: null,
     description: null,
     purchase_url: null,
+    moderation_status,
   };
 
   const { data: existing } = await supabase
@@ -104,7 +127,7 @@ export async function submitUserWinePairing(
       .eq("id", existing.id);
     if (updErr) {
       logServerError("user_wine_pairings.update", updErr);
-      return { ok: false, error: GENERIC_SERVER_ERROR };
+      return { ok: false, error: GENERIC_SERVER_ERROR, notice: null };
     }
   } else {
     const { error: insErr } = await supabase.from("wine_pairings").insert({
@@ -116,12 +139,16 @@ export async function submitUserWinePairing(
     });
     if (insErr) {
       logServerError("user_wine_pairings.insert", insErr);
-      return { ok: false, error: GENERIC_SERVER_ERROR };
+      return { ok: false, error: GENERIC_SERVER_ERROR, notice: null };
     }
   }
 
   revalidateRecipeWinePaths(recipeId);
-  return { ok: true, error: null };
+  return {
+    ok: true,
+    error: null,
+    notice: textModeration.pendingReview ? USER_TEXT_PENDING_REVIEW_NOTICE : null,
+  };
 }
 
 export async function deleteUserWinePairing(pairingId: string): Promise<{

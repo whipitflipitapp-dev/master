@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
+import {
+  contentModerationStatusForUserText,
+  evaluateUserGeneratedText,
+  USER_TEXT_PENDING_REVIEW_NOTICE,
+  USER_TEXT_PROFANITY_BLOCK_ERROR,
+} from "@/lib/moderation/profanity";
 import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -10,7 +16,11 @@ export type RecipeExperienceRow = {
   madeRecipe: boolean;
   rating: number | null;
   spentCents: number | null;
+  reviewText: string | null;
+  reviewPendingReview: boolean;
 };
+
+const MAX_REVIEW_TEXT = 2000;
 
 export type WhippedRecipeListItem = {
   recipeId: string;
@@ -45,25 +55,42 @@ function parseSpentCentsFromDollars(raw: string | null): number | null {
 }
 
 export async function saveRecipeExperience(
-  _prev: { ok: boolean; error: string | null },
+  _prev: { ok: boolean; error: string | null; notice: string | null },
   formData: FormData,
-): Promise<{ ok: boolean; error: string | null }> {
+): Promise<{ ok: boolean; error: string | null; notice: string | null }> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
-    return { ok: false, error: "Supabase is not configured." };
+    return { ok: false, error: "Supabase is not configured.", notice: null };
   }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { ok: false, error: "Sign in to save your feedback." };
+    return { ok: false, error: "Sign in to save your feedback.", notice: null };
   }
 
   const recipeId = String(formData.get("recipe_id") ?? "").trim();
   if (!recipeId) {
-    return { ok: false, error: "Invalid recipe." };
+    return { ok: false, error: "Invalid recipe.", notice: null };
   }
+
+  const reviewRaw = formData.get("review_text");
+  const reviewText =
+    typeof reviewRaw === "string"
+      ? reviewRaw.trim().replace(/\s+/g, " ").slice(0, MAX_REVIEW_TEXT)
+      : "";
+  const reviewModeration = evaluateUserGeneratedText(reviewText);
+  if (reviewModeration.blocked) {
+    return {
+      ok: false,
+      error: reviewModeration.error ?? USER_TEXT_PROFANITY_BLOCK_ERROR,
+      notice: null,
+    };
+  }
+  const review_moderation_status = contentModerationStatusForUserText(
+    reviewModeration.pendingReview,
+  );
 
   const madeRecipe = formData.get("made_recipe") === "on";
   const ratingRaw = formData.get("rating");
@@ -77,7 +104,7 @@ export async function saveRecipeExperience(
     String(ratingRaw).trim() !== "" &&
     parsedRating === null
   ) {
-    return { ok: false, error: "Rating must be a whole number from 1 to 10." };
+    return { ok: false, error: "Rating must be a whole number from 1 to 10.", notice: null };
   }
 
   const spentRaw = formData.get("spent_usd");
@@ -89,7 +116,7 @@ export async function saveRecipeExperience(
     String(spentRaw).trim() !== "" &&
     spentCents === null
   ) {
-    return { ok: false, error: "Amount spent must be zero or greater." };
+    return { ok: false, error: "Amount spent must be zero or greater.", notice: null };
   }
 
   const now = new Date().toISOString();
@@ -100,6 +127,8 @@ export async function saveRecipeExperience(
       made_recipe: madeRecipe,
       rating,
       spent_cents: spentCents,
+      review_text: reviewText || null,
+      review_moderation_status: reviewText ? review_moderation_status : "published",
       updated_at: now,
     },
     { onConflict: "user_id,recipe_id" },
@@ -107,11 +136,15 @@ export async function saveRecipeExperience(
 
   if (error) {
     logServerError("recipe_experiences.save", error);
-    return { ok: false, error: GENERIC_SERVER_ERROR };
+    return { ok: false, error: GENERIC_SERVER_ERROR, notice: null };
   }
 
   revalidateExperiencePaths(recipeId);
-  return { ok: true, error: null };
+  return {
+    ok: true,
+    error: null,
+    notice: reviewModeration.pendingReview ? USER_TEXT_PENDING_REVIEW_NOTICE : null,
+  };
 }
 
 export async function listMyRecipeExperiences(): Promise<{

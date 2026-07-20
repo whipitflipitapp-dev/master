@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { sanitizeOtherAllergenInput } from "@/lib/allergy-other";
 import { validateStoredAvatarUrl } from "@/lib/avatar-image";
+import { displayNameProfanityError } from "@/lib/moderation/profanity";
 import { LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n/locale";
 import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -70,6 +71,11 @@ export async function updateDisplayName(
   }
   if (name.length > DISPLAY_NAME_MAX_LEN) {
     return { error: `Use at most ${DISPLAY_NAME_MAX_LEN} characters.` };
+  }
+
+  const profanityError = displayNameProfanityError(name);
+  if (profanityError) {
+    return { error: profanityError };
   }
 
   const { error } = await supabase

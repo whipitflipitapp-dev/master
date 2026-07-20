@@ -90,6 +90,19 @@ async function findUserIdByCustomerId(
   return (data?.id as string | undefined) ?? null;
 }
 
+async function profileUsesComplimentaryPlan(userId: string): Promise<boolean> {
+  const supabase = createSupabaseServiceRoleClient();
+  if (!supabase) {
+    return false;
+  }
+  const { data } = await supabase
+    .from("profiles")
+    .select("plan_billing_source")
+    .eq("id", userId)
+    .maybeSingle();
+  return data?.plan_billing_source === "complimentary";
+}
+
 async function applyProfilePatch(
   userId: string,
   patch: ProfilePatch,
@@ -97,6 +110,21 @@ async function applyProfilePatch(
   if (Object.keys(patch).length === 0) {
     return { ok: true };
   }
+
+  let effectivePatch = patch;
+  if (await profileUsesComplimentaryPlan(userId)) {
+    const {
+      plan_type: _p,
+      pending_plan_type: _pp,
+      plan_change_effective_at: _pe,
+      ...rest
+    } = patch;
+    effectivePatch = rest;
+    if (Object.keys(effectivePatch).length === 0) {
+      return { ok: true };
+    }
+  }
+
   const supabase = createSupabaseServiceRoleClient();
   if (!supabase) {
     return {
@@ -106,7 +134,7 @@ async function applyProfilePatch(
   }
   const { error } = await supabase
     .from("profiles")
-    .update(patch)
+    .update(effectivePatch)
     .eq("id", userId);
   if (error) {
     return { ok: false, error: WEBHOOK_PROCESSING_ERROR };

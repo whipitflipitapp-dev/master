@@ -44,7 +44,7 @@ import { parseRecipeVideoUrl } from "@/lib/video-url";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; review?: string }>;
 };
 
 function summarizeForMeta(text: string, max = 160): string {
@@ -68,7 +68,7 @@ async function loadRecipe(
   const { data: recipe, error: rErr } = await supabase
     .from("recipes")
     .select(
-      "id,title,instructions,image_url,video_url,favorites_count,difficulty,cook_time_minutes,created_at,created_by",
+      "id,title,instructions,image_url,video_url,favorites_count,difficulty,cook_time_minutes,created_at,created_by,moderation_status,moderation_reason",
     )
     .eq("id", id)
     .maybeSingle();
@@ -274,7 +274,7 @@ async function loadRecipe(
   if (user) {
     const { data: expRow } = await supabase
       .from("user_recipe_experiences")
-      .select("made_recipe, rating, spent_cents")
+      .select("made_recipe, rating, spent_cents, review_text, review_moderation_status")
       .eq("user_id", user.id)
       .eq("recipe_id", id)
       .maybeSingle();
@@ -291,6 +291,11 @@ async function loadRecipe(
           typeof expRow.spent_cents === "number" && expRow.spent_cents >= 0
             ? expRow.spent_cents
             : null,
+        reviewText:
+          typeof expRow.review_text === "string" && expRow.review_text.trim()
+            ? expRow.review_text.trim()
+            : null,
+        reviewPendingReview: expRow.review_moderation_status === "pending_review",
       };
     }
 
@@ -466,6 +471,10 @@ export default async function RecipeDetailPage(props: Props) {
     whipFlipCount,
     galleryImageUrls,
   } = payload;
+  const showReviewPendingBanner =
+    sp.review === "pending" ||
+    (recipe as { moderation_status?: string }).moderation_status ===
+      "pending_review";
   const loginNextPath =
     qRaw.length > 0 ? `/recipes/${recipe.id}?q=${encodeURIComponent(qRaw)}` : `/recipes/${recipe.id}`;
   const detailIngredients = ingredientsList.map((ing) => ({
@@ -574,6 +583,21 @@ export default async function RecipeDetailPage(props: Props) {
             {allergyBanner.variant === "strict"
               ? ` ${dictText(dict, "recipe_detail_allergen_strict_note")}`
               : ` ${dictText(dict, "recipe_detail_allergen_warn_note")}`}
+          </p>
+        </div>
+      ) : null}
+
+      {showReviewPendingBanner && canEditRecipe ? (
+        <div
+          className="mt-6 rounded-xl border border-[color-mix(in_srgb,var(--primary)_35%,var(--border))] bg-[var(--primary-muted)] px-4 py-3 text-sm leading-relaxed text-[var(--text)]"
+          role="status"
+        >
+          <p className="font-semibold text-[var(--primary-hover)]">
+            Pending review
+          </p>
+          <p className="mt-1 text-[var(--muted)]">
+            This recipe is saved but hidden from browse and search until an admin
+            approves the language. You can still view and edit it here.
           </p>
         </div>
       ) : null}
@@ -826,6 +850,10 @@ export default async function RecipeDetailPage(props: Props) {
           ratingHint: dictText(dict, "recipe_experience_rating_hint"),
           spentLabel: dictText(dict, "recipe_experience_spent_label"),
           spentHint: dictText(dict, "recipe_experience_spent_hint"),
+          reviewLabel: dictText(dict, "recipe_experience_review_label"),
+          reviewHint: dictText(dict, "recipe_experience_review_hint"),
+          reviewPlaceholder: dictText(dict, "recipe_experience_review_placeholder"),
+          pendingReview: dictText(dict, "recipe_experience_pending_review"),
           save: dictText(dict, "recipe_experience_save"),
           saving: dictText(dict, "recipe_experience_saving"),
           signInPrompt: dictText(dict, "recipe_experience_sign_in_suffix"),

@@ -35,6 +35,9 @@ import {
 import { checkMonthlyRecipeUploadAllowed } from "@/lib/recipe-upload-limit";
 import { PREMIUM_RECIPE_TOOLS_PLAN_REQUIRED_ERROR } from "@/lib/premium-recipe-tools-plan-gate";
 import { getCurrentProfile } from "@/lib/profile";
+import { getAccountAccessDenial } from "@/lib/moderation/session-enforcement";
+import { applyRecipeProfanityHoldIfNeeded } from "@/lib/moderation/recipe-profanity-hold";
+import { RECIPE_HELD_FOR_REVIEW_MESSAGE } from "@/lib/moderation/profanity";
 import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { logEvent } from "@/lib/telemetry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -920,6 +923,9 @@ export type CreateRecipeResult = {
   recipeId: string | null;
   /** Set when a free-tier user has reached the monthly recipe creation cap. */
   code?: "monthly_recipe_limit";
+  /** Recipe saved but hidden pending admin language review. */
+  pendingReview?: boolean;
+  reviewNotice?: string;
 };
 
 export async function createRecipe(formData: FormData): Promise<CreateRecipeResult> {
@@ -933,6 +939,14 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
   } = await supabase.auth.getUser();
   if (!user) {
     return { error: "Sign in required to add a recipe.", recipeId: null };
+  }
+
+  const accessDenial = await getAccountAccessDenial(supabase, user);
+  if (accessDenial) {
+    return {
+      error: "Your account cannot add recipes. Contact support if you need help.",
+      recipeId: null,
+    };
   }
 
   const gate = await checkMonthlyRecipeUploadAllowed(supabase, user.id);
@@ -1176,11 +1190,33 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     },
   });
 
+  const profanityFields = [
+    title,
+    instructions,
+    ingredientBlock,
+    tagRaw,
+    ...ingredientEntries.map((e) => e.raw),
+  ];
+  const { held: pendingReview } = await applyRecipeProfanityHoldIfNeeded(
+    supabase,
+    recipeId as string,
+    profanityFields,
+  );
+
   revalidatePath("/");
   revalidatePath("/recipes");
   revalidatePath("/add");
   revalidatePath("/help-me-cook");
-  return { error: null, recipeId };
+  return {
+    error: null,
+    recipeId,
+    ...(pendingReview
+      ? {
+          pendingReview: true,
+          reviewNotice: RECIPE_HELD_FOR_REVIEW_MESSAGE,
+        }
+      : {}),
+  };
 }
 
 async function fetchRecipeFavoritesCount(
@@ -1317,7 +1353,8 @@ export async function createRecipeFromForm(formData: FormData) {
     return result;
   }
   if (result.recipeId) {
-    redirect(`/recipes/${result.recipeId}`);
+    const suffix = result.pendingReview ? "?review=pending" : "";
+    redirect(`/recipes/${result.recipeId}${suffix}`);
   }
   return { error: GENERIC_SERVER_ERROR, recipeId: null };
 }
@@ -1450,12 +1487,28 @@ export async function updateRecipe(
     },
   });
 
+  const { held: pendingReview } = await applyRecipeProfanityHoldIfNeeded(
+    supabase,
+    recipeId,
+    [
+      title,
+      instructions,
+      ingredientBlock,
+      ...ingredientEntries.map((e) => e.raw),
+    ],
+  );
+
   revalidatePath(`/recipes/${recipeId}`);
   revalidatePath("/recipes");
   revalidatePath("/");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/analytics");
-  return { error: null, success: "Recipe updated." };
+  return {
+    error: null,
+    success: pendingReview
+      ? RECIPE_HELD_FOR_REVIEW_MESSAGE
+      : "Recipe updated.",
+  };
 }
 
 const HOME_INSTAGRAM_REELS_LIMIT = 12;
@@ -1476,6 +1529,7 @@ export async function listLatestInstagramRecipeReels(
     .from("recipes")
     .select("id,title,image_url,video_url,created_at")
     .not("video_url", "is", null)
+    .eq("moderation_status", "published")
     .ilike("video_url", "%instagram.com/reel/%")
     .order("created_at", { ascending: false })
     .limit(HOME_INSTAGRAM_REELS_SCAN);

@@ -35,6 +35,10 @@ export interface Database {
           cooks_per_week: number | null;
           allergy_other: string | null;
           referral_source: string | null;
+          banned_at: string | null;
+          ban_reason: string | null;
+          banned_by: string | null;
+          plan_billing_source: "self" | "complimentary";
         };
         Insert: {
           id: string;
@@ -58,6 +62,10 @@ export interface Database {
           cooks_per_week?: number | null;
           allergy_other?: string | null;
           referral_source?: string | null;
+          banned_at?: string | null;
+          ban_reason?: string | null;
+          banned_by?: string | null;
+          plan_billing_source?: "self" | "complimentary";
         };
         Update: {
           display_name?: string | null;
@@ -79,6 +87,31 @@ export interface Database {
           cooks_per_week?: number | null;
           allergy_other?: string | null;
           referral_source?: string | null;
+          banned_at?: string | null;
+          ban_reason?: string | null;
+          banned_by?: string | null;
+          plan_billing_source?: "self" | "complimentary";
+        };
+      };
+      banned_emails: {
+        Row: {
+          id: string;
+          email: string;
+          reason: string | null;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          reason?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          email?: string;
+          reason?: string | null;
+          created_by?: string | null;
         };
       };
       recipes: {
@@ -93,6 +126,14 @@ export interface Database {
           difficulty: string | null;
           cook_time_minutes: number | null;
           created_at: string;
+          moderation_status:
+            | "published"
+            | "pending_review"
+            | "hidden"
+            | "removed";
+          moderation_reason: string | null;
+          moderated_at: string | null;
+          moderated_by: string | null;
         };
         Insert: {
           id?: string;
@@ -105,6 +146,14 @@ export interface Database {
           difficulty?: string | null;
           cook_time_minutes?: number | null;
           created_at?: string;
+          moderation_status?:
+            | "published"
+            | "pending_review"
+            | "hidden"
+            | "removed";
+          moderation_reason?: string | null;
+          moderated_at?: string | null;
+          moderated_by?: string | null;
         };
         Update: {
           title?: string;
@@ -113,6 +162,14 @@ export interface Database {
           video_url?: string | null;
           difficulty?: string | null;
           cook_time_minutes?: number | null;
+          moderation_status?:
+            | "published"
+            | "pending_review"
+            | "hidden"
+            | "removed";
+          moderation_reason?: string | null;
+          moderated_at?: string | null;
+          moderated_by?: string | null;
         };
       };
       ingredients: {
@@ -228,6 +285,8 @@ export interface Database {
           spent_cents: number | null;
           created_at: string;
           updated_at: string;
+          review_text: string | null;
+          review_moderation_status: "published" | "pending_review" | "hidden";
         };
         Insert: {
           user_id: string;
@@ -237,12 +296,16 @@ export interface Database {
           spent_cents?: number | null;
           created_at?: string;
           updated_at?: string;
+          review_text?: string | null;
+          review_moderation_status?: "published" | "pending_review" | "hidden";
         };
         Update: {
           made_recipe?: boolean;
           rating?: number | null;
           spent_cents?: number | null;
           updated_at?: string;
+          review_text?: string | null;
+          review_moderation_status?: "published" | "pending_review" | "hidden";
         };
       };
       allergens: {
@@ -284,6 +347,7 @@ export interface Database {
           created_at: string;
           wine_type_slug: string | null;
           why_blurb: string | null;
+          moderation_status: "published" | "pending_review" | "hidden";
         };
         Insert: {
           id?: string;
@@ -298,6 +362,7 @@ export interface Database {
           created_at?: string;
           wine_type_slug?: string | null;
           why_blurb?: string | null;
+          moderation_status?: "published" | "pending_review" | "hidden";
         };
         Update: {
           wine_type?: string;
@@ -310,6 +375,7 @@ export interface Database {
           created_at?: string;
           wine_type_slug?: string | null;
           why_blurb?: string | null;
+          moderation_status?: "published" | "pending_review" | "hidden";
         };
       };
       cookbooks: {
@@ -432,6 +498,41 @@ export interface Database {
       admin_billing_ledger_summary: {
         Args: { p_since?: string };
         Returns: Json;
+      };
+      admin_search_users: {
+        Args: { p_query?: string; p_limit?: number; p_offset?: number };
+        Returns: {
+          id: string;
+          email: string;
+          display_name: string | null;
+          plan_type: string;
+          plan_billing_source: string;
+          is_admin: boolean;
+          banned_at: string | null;
+          ban_reason: string | null;
+          created_at: string;
+        }[];
+      };
+      admin_search_recipes: {
+        Args: {
+          p_query?: string;
+          p_status?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: {
+          id: string;
+          title: string;
+          moderation_status: string;
+          moderation_reason: string | null;
+          created_by: string | null;
+          creator_email: string | null;
+          created_at: string;
+        }[];
+      };
+      is_email_banned: {
+        Args: { p_email: string };
+        Returns: boolean;
       };
       chef_public_profile: {
         Args: { p_user_id: string };

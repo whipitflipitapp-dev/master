@@ -225,6 +225,7 @@ export default async function DashboardPage() {
             generic: dictText(dict, "dashboard_suggestion_error_generic"),
             rate_limited: dictText(dict, "dashboard_suggestion_error_rate_limited"),
             too_long: dictText(dict, "dashboard_suggestion_error_too_long"),
+            profanity: dictText(dict, "dashboard_suggestion_error_profanity"),
           },
         }}
       />

@@ -20,6 +20,10 @@ type RecipeExperienceFormProps = {
     ratingHint: string;
     spentLabel: string;
     spentHint: string;
+    reviewLabel: string;
+    reviewHint: string;
+    reviewPlaceholder: string;
+    pendingReview: string;
     save: string;
     saving: string;
     signInPrompt: string;
@@ -43,6 +47,7 @@ export function RecipeExperienceForm({
   const [state, formAction, pending] = useActionState(saveRecipeExperience, {
     ok: false,
     error: null as string | null,
+    notice: null as string | null,
   });
 
   if (!authenticated) {
@@ -144,6 +149,32 @@ export function RecipeExperienceForm({
           </p>
         </div>
 
+        <div className="space-y-1.5">
+          <label
+            htmlFor="recipe-experience-review"
+            className="block text-sm font-medium text-[var(--text)]"
+          >
+            {labels.reviewLabel}
+          </label>
+          <textarea
+            id="recipe-experience-review"
+            name="review_text"
+            rows={4}
+            maxLength={2000}
+            defaultValue={initial?.reviewText ?? ""}
+            placeholder={labels.reviewPlaceholder}
+            className="w-full rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)] shadow-[var(--shadow-card)] outline-none transition-[border-color] focus:border-[color-mix(in_srgb,var(--primary)_45%,var(--border))]"
+          />
+          <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
+            {labels.reviewHint}
+          </p>
+          {initial?.reviewPendingReview ? (
+            <p className="text-[length:var(--text-caption)] font-medium text-[var(--primary)]">
+              {labels.pendingReview}
+            </p>
+          ) : null}
+        </div>
+
         {state.error ? (
           <p className="text-xs font-medium text-[var(--danger)]" role="alert">
             {state.error}
@@ -151,7 +182,12 @@ export function RecipeExperienceForm({
         ) : null}
         {state.ok ? (
           <p className="text-xs font-medium text-[var(--success)]" role="status">
-            {labels.saved}
+            {state.notice ?? labels.saved}
+          </p>
+        ) : null}
+        {state.notice && !state.ok ? (
+          <p className="text-xs font-medium text-[var(--primary)]" role="status">
+            {state.notice}
           </p>
         ) : null}
 

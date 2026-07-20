@@ -2,9 +2,14 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { AdminDailyLineChart } from "@/components/admin/AdminDailyLineChart";
+import { AdminModerationPanel } from "@/components/admin/AdminModerationPanel";
 import { AdminPlanMixChart } from "@/components/admin/AdminPlanMixChart";
 import { AdminRevenueCharts } from "@/components/admin/AdminRevenueCharts";
 import { AdminSignupsChart } from "@/components/admin/AdminSignupsChart";
+import {
+  adminMetricCardClass,
+  adminSectionShellClass,
+} from "@/components/admin/admin-section-styles";
 import { formatUsdFromCents } from "@/lib/admin/format-usd";
 import {
   parseAdminAffiliateLinkTypes,
@@ -16,7 +21,7 @@ import { fetchAdminStripeBusinessMetrics } from "@/lib/admin/stripe-metrics";
 import { logServerError } from "@/lib/server-error";
 
 export const metadata: Metadata = {
-  title: "Admin | Whip It Flip It",
+  title: "Business command center | Whip It Flip It",
   robots: { index: false, follow: false },
 };
 
@@ -34,7 +39,7 @@ type AdminSuggestionRow = {
 };
 
 function cardClass() {
-  return "rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-5 shadow-sm";
+  return adminMetricCardClass();
 }
 
 export default async function AdminPage({
@@ -97,39 +102,14 @@ export default async function AdminPage({
   const nextPage = recentEvents.length === EVENTS_PAGE_SIZE ? page + 1 : null;
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8">
-      <header className="max-w-3xl">
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">
-          Business command center
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Revenue from Stripe (live API). Product metrics from admin-only database
-          RPCs — last 7 days for activity cards unless noted. No service role keys in
-          the browser.
-        </p>
-        <nav className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-[var(--primary)]">
-          <a href="#revenue" className="underline-offset-4 hover:underline">
-            Revenue
-          </a>
-          <a href="#subscribers" className="underline-offset-4 hover:underline">
-            Subscribers
-          </a>
-          <a href="#growth" className="underline-offset-4 hover:underline">
-            Growth
-          </a>
-          <a href="#engagement" className="underline-offset-4 hover:underline">
-            Engagement
-          </a>
-          <a href="#support" className="underline-offset-4 hover:underline">
-            Support
-          </a>
-          <a href="#events-log" className="underline-offset-4 hover:underline">
-            Event log
-          </a>
-        </nav>
-      </header>
+    <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-6">
+      <p className="max-w-3xl text-sm leading-relaxed text-[var(--muted)]">
+        Revenue from Stripe (live API). Product metrics from admin-only database
+        RPCs — last 7 days for activity cards unless noted. No service role keys in
+        the browser.
+      </p>
 
-      <section id="revenue" className="mt-10 scroll-mt-6">
+      <section id="revenue" className={`mt-8 ${adminSectionShellClass("revenue")}`}>
         <h2 className="text-lg font-semibold text-[var(--text)]">
           Revenue & subscriptions
         </h2>
@@ -188,14 +168,14 @@ export default async function AdminPage({
               </li>
             </ul>
 
-            <div className="mt-6 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4 shadow-sm">
+            <div className="mt-6 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_22%,transparent)] bg-[color-mix(in_srgb,var(--bg)_90%,var(--card))] p-4 shadow-sm">
               <AdminRevenueCharts
                 revenueByDay30d={stripeMetrics.revenueByDay30d}
                 revenueByType={stripeMetrics.revenueByType}
               />
             </div>
 
-            <div className="mt-4 overflow-x-auto rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] shadow-sm">
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-[color-mix(in_srgb,var(--muted)_22%,transparent)] bg-[color-mix(in_srgb,var(--bg)_90%,var(--card))] shadow-sm">
               <table className="w-full min-w-[640px] border-collapse text-left text-sm">
                 <thead className="border-b border-[color-mix(in_srgb,var(--muted)_35%,transparent)] text-[var(--muted)]">
                   <tr>
@@ -255,7 +235,7 @@ export default async function AdminPage({
         </p>
       ) : metrics ? (
         <>
-          <section id="subscribers" className="mt-12 scroll-mt-6">
+          <section id="subscribers" className={`mt-8 ${adminSectionShellClass("subscribers")}`}>
             <h2 className="text-lg font-semibold text-[var(--text)]">
               Subscribers & plan mix (database)
             </h2>
@@ -281,7 +261,7 @@ export default async function AdminPage({
                 </p>
               </li>
             </ul>
-            <div className="mt-4 max-w-md rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 shadow-sm">
+            <div className="mt-4 max-w-md rounded-2xl border border-[color-mix(in_srgb,var(--muted)_22%,transparent)] bg-[color-mix(in_srgb,var(--bg)_90%,var(--card))] px-3 py-2 shadow-sm">
               <AdminPlanMixChart
                 free={metrics.plan_free_count}
                 pro={metrics.plan_pro_count}
@@ -290,7 +270,7 @@ export default async function AdminPage({
             </div>
           </section>
 
-          <section id="growth" className="mt-12 scroll-mt-6">
+          <section id="growth" className={`mt-8 ${adminSectionShellClass("growth")}`}>
             <h2 className="text-lg font-semibold text-[var(--text)]">Product & growth</h2>
             <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <li className={cardClass()}>
@@ -332,7 +312,7 @@ export default async function AdminPage({
                 <h3 className="text-base font-semibold text-[var(--text)]">
                   User signups (~30 days)
                 </h3>
-                <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 shadow-sm">
+                <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_22%,transparent)] bg-[color-mix(in_srgb,var(--bg)_90%,var(--card))] px-3 py-2 shadow-sm">
                   <AdminSignupsChart data={metrics.user_signups_by_day} />
                 </div>
               </div>
@@ -340,7 +320,7 @@ export default async function AdminPage({
                 <h3 className="text-base font-semibold text-[var(--text)]">
                   Recipes created (~30 days)
                 </h3>
-                <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 shadow-sm">
+                <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_22%,transparent)] bg-[color-mix(in_srgb,var(--bg)_90%,var(--card))] px-3 py-2 shadow-sm">
                   <AdminDailyLineChart
                     data={metrics.recipes_created_by_day}
                     seriesName="Recipes"
@@ -352,7 +332,7 @@ export default async function AdminPage({
             </div>
           </section>
 
-          <section id="engagement" className="mt-12 scroll-mt-6">
+          <section id="engagement" className={`mt-8 ${adminSectionShellClass("engagement")}`}>
             <h2 className="text-lg font-semibold text-[var(--text)]">
               Engagement & monetization adjacency
             </h2>
@@ -387,7 +367,7 @@ export default async function AdminPage({
               <h3 className="text-base font-semibold text-[var(--text)]">
                 Recipe views (~30 days)
               </h3>
-              <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 shadow-sm">
+              <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_22%,transparent)] bg-[color-mix(in_srgb,var(--bg)_90%,var(--card))] px-3 py-2 shadow-sm">
                 <AdminDailyLineChart
                   data={metrics.recipe_views_by_day}
                   seriesName="Views"
@@ -501,7 +481,33 @@ export default async function AdminPage({
         </p>
       )}
 
-      <section id="support" className="mt-10 scroll-mt-6" aria-labelledby="suggestions-heading">
+      <section
+        id="moderation"
+        className={`mt-8 ${adminSectionShellClass("moderation")}`}
+        aria-labelledby="moderation-heading"
+      >
+        <h2
+          id="moderation-heading"
+          className="text-lg font-semibold text-[var(--text)]"
+        >
+          Users, plans & moderation
+        </h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Manage accounts, complimentary chef access, email blocklist, and recipe
+          takedowns. Requires{" "}
+          <code className="text-[10px]">SUPABASE_SERVICE_ROLE_KEY</code> on the
+          server (same as Stripe webhooks).
+        </p>
+        <div className="mt-5">
+          <AdminModerationPanel />
+        </div>
+      </section>
+
+      <section
+        id="support"
+        className={`mt-8 ${adminSectionShellClass("support")}`}
+        aria-labelledby="suggestions-heading"
+      >
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2
@@ -586,7 +592,11 @@ export default async function AdminPage({
         )}
       </section>
 
-      <section id="events-log" className="mt-10 scroll-mt-6" aria-labelledby="recent-events-heading">
+      <section
+        id="events-log"
+        className={`mt-8 ${adminSectionShellClass("events")}`}
+        aria-labelledby="recent-events-heading"
+      >
         <h2
           id="recent-events-heading"
           className="text-base font-semibold text-[var(--text)]"

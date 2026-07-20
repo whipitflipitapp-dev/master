@@ -8,6 +8,7 @@ import {
   REFERRAL_SOURCE_VALUES,
   type OnboardingInput,
 } from "@/lib/onboarding";
+import { displayNameProfanityError } from "@/lib/moderation/profanity";
 import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -162,6 +163,19 @@ export async function completeOnboarding(
       if (combined) {
         update.display_name = combined.slice(0, NAME_MAX_LEN);
       }
+    }
+  }
+
+  const nameCandidates = [
+    firstName,
+    lastName,
+    typeof update.display_name === "string" ? update.display_name : undefined,
+  ].filter(Boolean) as string[];
+
+  for (const candidate of nameCandidates) {
+    const profanityError = displayNameProfanityError(candidate);
+    if (profanityError) {
+      return { error: profanityError };
     }
   }
 

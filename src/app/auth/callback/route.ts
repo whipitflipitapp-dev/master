@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
+import { getAccountAccessDenial } from "@/lib/moderation/session-enforcement";
 
 export async function GET(request: Request) {
   const urlRaw = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -46,6 +47,18 @@ export async function GET(request: Request) {
     return NextResponse.redirect(
       `${origin}/login?error=${encodeURIComponent("Could not sign you in.")}`,
     );
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const denial = await getAccountAccessDenial(supabase, user);
+    if (denial) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(`${origin}/banned`);
+    }
   }
 
   return NextResponse.redirect(`${origin}${next}`);

@@ -174,6 +174,7 @@ export function RecipeCommunityWinePairingsSection({
   const [state, formAction, pending] = useActionState(submitUserWinePairing, {
     ok: false,
     error: null as string | null,
+    notice: null as string | null,
   });
 
   const countBySlug = new Map(typeCounts.map((c) => [c.slug, c.count]));
@@ -368,7 +369,7 @@ export function RecipeCommunityWinePairingsSection({
           ) : null}
           {state.ok ? (
             <p className="text-sm font-medium text-[var(--primary)]" role="status">
-              {labels.saved}
+              {state.notice ?? labels.saved}
             </p>
           ) : null}
 
