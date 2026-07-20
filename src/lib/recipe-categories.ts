@@ -45,6 +45,23 @@ export function parseRecipeCategoryParam(
   return v;
 }
 
+/** Normalize free-text to a canonical category slug (spaces/hyphens → underscores). */
+export function normalizeRecipeCategorySlug(raw: string): string {
+  return raw.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+/**
+ * When the browse search box contains only a category name/slug (e.g. "Seafood", "gluten free"),
+ * treat it as a category filter rather than a title search.
+ */
+export function recipeCategoryFromSearchTerm(
+  raw: string,
+): RecipeCategory | null {
+  const slug = normalizeRecipeCategorySlug(raw);
+  if (!slug || !isRecipeCategory(slug)) return null;
+  return slug;
+}
+
 /** Max custom "Other" category labels per recipe (comma-separated in the form). */
 export const RECIPE_CUSTOM_CATEGORY_MAX_COUNT = 3;
 

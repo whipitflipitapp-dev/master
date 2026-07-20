@@ -53,6 +53,7 @@ import { isProOrAbove } from "@/lib/plan";
 import {
   isRecipeCategory,
   parseCustomRecipeCategoryInput,
+  recipeCategoryFromSearchTerm,
   type RecipeCategory,
 } from "@/lib/recipe-categories";
 import { getExcludedRecipeIdsForUser } from "@/lib/user-excluded-recipes";
@@ -570,9 +571,18 @@ export async function listRecipes(
     user?.id,
   );
 
-  const term = sanitizeRecipeSearch(options?.query);
+  let term = sanitizeRecipeSearch(options?.query);
   const excludeIds = options?.excludeAllergenIds?.filter(Boolean) ?? [];
-  const category = options?.category ?? null;
+  let category = options?.category ?? null;
+
+  if (!category && term) {
+    const fromSearch = recipeCategoryFromSearchTerm(term);
+    if (fromSearch) {
+      category = fromSearch;
+      term = null;
+    }
+  }
+
   const tagNames = category ? [category] : null;
 
   const tagFilterIds =
