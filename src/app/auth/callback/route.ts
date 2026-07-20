@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
+import { redeemComplimentaryGrantForUser } from "@/lib/billing/complimentary-grants";
 import { getAccountAccessDenial } from "@/lib/moderation/session-enforcement";
 
 export async function GET(request: Request) {
@@ -59,6 +60,7 @@ export async function GET(request: Request) {
       await supabase.auth.signOut();
       return NextResponse.redirect(`${origin}/banned`);
     }
+    await redeemComplimentaryGrantForUser(user.id);
   }
 
   return NextResponse.redirect(`${origin}${next}`);

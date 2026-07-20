@@ -114,6 +114,36 @@ export interface Database {
           created_by?: string | null;
         };
       };
+      complimentary_email_grants: {
+        Row: {
+          id: string;
+          email: string;
+          plan_type: "free" | "pro" | "ai_chef";
+          note: string | null;
+          created_at: string;
+          created_by: string | null;
+          redeemed_at: string | null;
+          redeemed_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          plan_type?: "free" | "pro" | "ai_chef";
+          note?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          redeemed_at?: string | null;
+          redeemed_by?: string | null;
+        };
+        Update: {
+          email?: string;
+          plan_type?: "free" | "pro" | "ai_chef";
+          note?: string | null;
+          created_by?: string | null;
+          redeemed_at?: string | null;
+          redeemed_by?: string | null;
+        };
+      };
       recipes: {
         Row: {
           id: string;
@@ -529,6 +559,14 @@ export interface Database {
           creator_email: string | null;
           created_at: string;
         }[];
+      };
+      try_redeem_complimentary_grant_for_user: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
+      auth_user_id_for_email: {
+        Args: { p_email: string };
+        Returns: string | null;
       };
       is_email_banned: {
         Args: { p_email: string };

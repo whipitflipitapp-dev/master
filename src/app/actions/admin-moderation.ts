@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/service-role-for-admin";
 import { normalizeEmailForBanList } from "@/lib/moderation/access-control";
 import { parsePlanType, type PlanType } from "@/lib/plan";
+import { redeemComplimentaryGrantForUser } from "@/lib/billing/complimentary-grants";
 
 export type AdminUserRow = {
   id: string;
@@ -37,6 +38,16 @@ export type BannedEmailRow = {
   email: string;
   reason: string | null;
   created_at: string;
+};
+
+export type ComplimentaryGrantRow = {
+  id: string;
+  email: string;
+  plan_type: string;
+  note: string | null;
+  created_at: string;
+  redeemed_at: string | null;
+  redeemed_by: string | null;
 };
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -259,6 +270,112 @@ export async function adminSetRecipeModeration(input: {
     revalidatePath("/admin");
     revalidatePath("/recipes");
     revalidatePath(`/recipes/${input.recipeId}`);
+    return { ok: true };
+  } catch (err) {
+    return actionError(err);
+  }
+}
+
+export async function adminListComplimentaryGrants(): Promise<
+  { ok: true; rows: ComplimentaryGrantRow[] } | { ok: false; error: string }
+> {
+  try {
+    const { supabase } = await createAdminServiceRoleContext();
+    const { data, error } = await supabase
+      .from("complimentary_email_grants")
+      .select("id,email,plan_type,note,created_at,redeemed_at,redeemed_by")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+    return { ok: true, rows: (data ?? []) as ComplimentaryGrantRow[] };
+  } catch (err) {
+    return actionError(err);
+  }
+}
+
+export async function adminAddComplimentaryGrant(input: {
+  email: string;
+  planType: PlanType;
+  note: string;
+}): Promise<
+  { ok: true; appliedToExistingUser: boolean } | { ok: false; error: string }
+> {
+  const email = normalizeEmailForBanList(input.email);
+  if (!email.includes("@")) {
+    return { ok: false, error: "Enter a valid email." };
+  }
+  const plan = parsePlanType(input.planType);
+  if (!plan) {
+    return { ok: false, error: "Invalid plan." };
+  }
+  try {
+    const { supabase, adminUserId } = await createAdminServiceRoleContext();
+    const { error } = await supabase.from("complimentary_email_grants").insert({
+      email,
+      plan_type: plan,
+      note: input.note.trim() || null,
+      created_by: adminUserId,
+    });
+    if (error) {
+      if (error.code === "23505") {
+        return {
+          ok: false,
+          error: "That email already has a pending complimentary invite.",
+        };
+      }
+      return { ok: false, error: error.message };
+    }
+
+    let appliedToExistingUser = false;
+    const { data: userId } = await supabase.rpc("auth_user_id_for_email", {
+      p_email: email,
+    });
+    if (typeof userId === "string" && userId) {
+      appliedToExistingUser = await redeemComplimentaryGrantForUser(userId);
+    }
+
+    revalidatePath("/admin");
+    return { ok: true, appliedToExistingUser };
+  } catch (err) {
+    return actionError(err);
+  }
+}
+
+export async function adminRemoveComplimentaryGrant(
+  id: string,
+): Promise<ActionResult> {
+  if (!id.trim()) {
+    return { ok: false, error: "Missing invite." };
+  }
+  try {
+    const { supabase } = await createAdminServiceRoleContext();
+    const { data: row, error: fetchError } = await supabase
+      .from("complimentary_email_grants")
+      .select("redeemed_at")
+      .eq("id", id)
+      .maybeSingle();
+    if (fetchError) {
+      return { ok: false, error: fetchError.message };
+    }
+    if (!row) {
+      return { ok: false, error: "Invite not found." };
+    }
+    if (row.redeemed_at) {
+      return {
+        ok: false,
+        error: "Cannot remove an invite that was already used.",
+      };
+    }
+    const { error } = await supabase
+      .from("complimentary_email_grants")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+    revalidatePath("/admin");
     return { ok: true };
   } catch (err) {
     return actionError(err);

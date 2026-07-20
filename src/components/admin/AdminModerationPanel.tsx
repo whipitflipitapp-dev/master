@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 
 import {
   adminAddBannedEmail,
+  adminAddComplimentaryGrant,
   adminBanUser,
   adminListBannedEmails,
+  adminListComplimentaryGrants,
   adminRemoveBannedEmail,
+  adminRemoveComplimentaryGrant,
   adminSearchRecipes,
   adminSearchUsers,
   adminSetRecipeModeration,
@@ -16,11 +19,12 @@ import {
   type AdminRecipeRow,
   type AdminUserRow,
   type BannedEmailRow,
+  type ComplimentaryGrantRow,
   type RecipeModerationStatus,
 } from "@/app/actions/admin-moderation";
 import { planTypeBadgeLabel, type PlanType } from "@/lib/plan";
 
-type Tab = "users" | "recipes" | "emails";
+type Tab = "users" | "recipes" | "emails" | "complimentary";
 
 const PLAN_OPTIONS: PlanType[] = ["free", "pro", "ai_chef"];
 const RECIPE_STATUS_OPTIONS: {
@@ -50,6 +54,13 @@ export function AdminModerationPanel() {
   const [bannedEmails, setBannedEmails] = useState<BannedEmailRow[]>([]);
   const [newBanEmail, setNewBanEmail] = useState("");
   const [newBanReason, setNewBanReason] = useState("");
+
+  const [complimentaryGrants, setComplimentaryGrants] = useState<
+    ComplimentaryGrantRow[]
+  >([]);
+  const [newGrantEmail, setNewGrantEmail] = useState("");
+  const [newGrantPlan, setNewGrantPlan] = useState<PlanType>("pro");
+  const [newGrantNote, setNewGrantNote] = useState("");
 
   const flash = useCallback((ok: boolean, text: string) => {
     if (ok) {
@@ -96,12 +107,26 @@ export function AdminModerationPanel() {
     });
   };
 
+  const loadComplimentaryGrants = () => {
+    startTransition(async () => {
+      const res = await adminListComplimentaryGrants();
+      if (!res.ok) {
+        flash(false, res.error);
+        return;
+      }
+      setComplimentaryGrants(res.rows);
+    });
+  };
+
   const onTabChange = (next: Tab) => {
     setTab(next);
     setMessage(null);
     setError(null);
     if (next === "emails" && bannedEmails.length === 0) {
       loadBannedEmails();
+    }
+    if (next === "complimentary" && complimentaryGrants.length === 0) {
+      loadComplimentaryGrants();
     }
   };
 
@@ -112,6 +137,7 @@ export function AdminModerationPanel() {
           [
             ["users", "Users & plans"],
             ["recipes", "Recipes"],
+            ["complimentary", "Complimentary invites"],
             ["emails", "Banned emails"],
           ] as const
         ).map(([key, label]) => (
@@ -358,6 +384,128 @@ export function AdminModerationPanel() {
           </ul>
         </div>
       ) : null}
+
+      {tab === "complimentary" ? (
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--muted)]">
+            Add a chef or partner email before they sign up. When they create an
+            account with that address, they receive the plan below at no charge (
+            <span className="text-[var(--text)]">complimentary</span> billing — Stripe
+            will not overwrite it). If they already have an account, the plan applies
+            immediately when you add the invite.
+          </p>
+          <form
+            className="flex flex-wrap items-end gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              startTransition(async () => {
+                const res = await adminAddComplimentaryGrant({
+                  email: newGrantEmail,
+                  planType: newGrantPlan,
+                  note: newGrantNote,
+                });
+                if (!res.ok) {
+                  flash(false, res.error);
+                  return;
+                }
+                setNewGrantEmail("");
+                setNewGrantNote("");
+                flash(
+                  true,
+                  res.appliedToExistingUser
+                    ? "Invite added and plan applied to existing account."
+                    : "Invite added — plan will apply when they sign up.",
+                );
+                loadComplimentaryGrants();
+              });
+            }}
+          >
+            <input
+              type="email"
+              required
+              value={newGrantEmail}
+              onChange={(e) => setNewGrantEmail(e.target.value)}
+              placeholder="chef@example.com"
+              className="min-w-[14rem] flex-1 rounded-xl border border-[color-mix(in_srgb,var(--muted)_30%,transparent)] bg-[var(--bg)] px-3 py-2 text-sm"
+            />
+            <select
+              value={newGrantPlan}
+              onChange={(e) => setNewGrantPlan(e.target.value as PlanType)}
+              className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_30%,transparent)] bg-[var(--bg)] px-3 py-2 text-sm"
+            >
+              {PLAN_OPTIONS.filter((p) => p !== "free").map((p) => (
+                <option key={p} value={p}>
+                  {planTypeBadgeLabel(p)}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={newGrantNote}
+              onChange={(e) => setNewGrantNote(e.target.value)}
+              placeholder="Note (optional)"
+              className="min-w-[10rem] flex-1 rounded-xl border border-[color-mix(in_srgb,var(--muted)_30%,transparent)] bg-[var(--bg)] px-3 py-2 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] duration-200 hover:bg-[var(--primary-hover)] active:scale-[0.99] disabled:opacity-60"
+            >
+              Add invite
+            </button>
+          </form>
+          <ul className="divide-y divide-[color-mix(in_srgb,var(--muted)_22%,transparent)] rounded-2xl border border-[color-mix(in_srgb,var(--muted)_22%,transparent)] bg-[color-mix(in_srgb,var(--bg)_92%,var(--card))] px-4 py-1 text-sm">
+            {complimentaryGrants.length === 0 ? (
+              <li className="py-4 text-center text-[var(--muted)]">
+                No complimentary invites yet.
+              </li>
+            ) : (
+              complimentaryGrants.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-center justify-between gap-3 py-3"
+                >
+                  <div>
+                    <p className="font-medium text-[var(--text)]">
+                      {row.email}{" "}
+                      <span className="font-normal text-[var(--muted)]">
+                        · {planTypeBadgeLabel(row.plan_type as PlanType)}
+                      </span>
+                    </p>
+                    {row.note ? (
+                      <p className="text-xs text-[var(--muted)]">{row.note}</p>
+                    ) : null}
+                    <p className="text-[10px] text-[var(--muted)]">
+                      {row.redeemed_at
+                        ? `Used ${new Date(row.redeemed_at).toLocaleDateString()}`
+                        : "Waiting for sign-up"}
+                    </p>
+                  </div>
+                  {!row.redeemed_at ? (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => {
+                        startTransition(async () => {
+                          const res = await adminRemoveComplimentaryGrant(row.id);
+                          flash(
+                            res.ok,
+                            res.ok ? "Invite removed." : res.error,
+                          );
+                          if (res.ok) loadComplimentaryGrants();
+                        });
+                      }}
+                      className="text-xs font-semibold text-[var(--danger)] underline-offset-2 hover:underline disabled:opacity-60"
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -378,6 +526,31 @@ function UserRowActions({
     row.plan_billing_source === "complimentary",
   );
   const [banReason, setBanReason] = useState("");
+  const [planSaveState, setPlanSaveState] = useState<"idle" | "saving" | "saved">(
+    "idle",
+  );
+
+  useEffect(() => {
+    if (planSaveState !== "saved") return;
+    const timer = window.setTimeout(() => setPlanSaveState("idle"), 2200);
+    return () => window.clearTimeout(timer);
+  }, [planSaveState]);
+
+  const planBusy = pending || planSaveState === "saving";
+
+  const savePlanLabel =
+    planSaveState === "saving"
+      ? "Saving…"
+      : planSaveState === "saved"
+        ? "Saved"
+        : "Save plan";
+
+  const savePlanButtonClass =
+    planSaveState === "saved"
+      ? "rounded-lg bg-[var(--success)] px-2.5 py-1 text-[10px] font-semibold text-white shadow-[0_1px_0_rgba(28,25,23,0.08)] ring-2 ring-[color-mix(in_srgb,var(--success)_45%,transparent)] transition-[background-color,transform,box-shadow] duration-200"
+      : planSaveState === "saving"
+        ? "cursor-wait rounded-lg bg-[var(--primary)] px-2.5 py-1 text-[10px] font-semibold text-white opacity-80 shadow-sm transition-opacity duration-200 motion-safe:animate-pulse"
+        : "rounded-lg bg-[var(--primary)] px-2.5 py-1 text-[10px] font-semibold text-white shadow-[0_1px_0_rgba(28,25,23,0.08)] transition-[background-color,transform,box-shadow] duration-200 hover:bg-[var(--primary-hover)] hover:shadow-[var(--shadow-card)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-55";
 
   return (
     <tr className="border-b border-[color-mix(in_srgb,var(--muted)_15%,transparent)] last:border-b-0">
@@ -431,19 +604,27 @@ function UserRowActions({
             </label>
             <button
               type="button"
-              disabled={pending}
+              disabled={planBusy}
+              aria-busy={planSaveState === "saving"}
               onClick={() => {
+                setPlanSaveState("saving");
                 void adminSetUserPlan({
                   userId: row.id,
                   planType: plan,
                   complimentary,
-                }).then((res) =>
-                  onDone(res.ok, res.ok ? "Plan updated." : res.error),
-                );
+                }).then((res) => {
+                  if (res.ok) {
+                    setPlanSaveState("saved");
+                    onDone(true, "Plan updated.");
+                  } else {
+                    setPlanSaveState("idle");
+                    onDone(false, res.error);
+                  }
+                });
               }}
-              className="rounded-lg bg-[var(--text)] px-2 py-1 text-[10px] font-semibold text-[var(--bg)] disabled:opacity-60"
+              className={savePlanButtonClass}
             >
-              Save plan
+              {savePlanLabel}
             </button>
           </div>
           {row.banned_at ? (
