@@ -37,7 +37,7 @@ export function AdminPlanMixChart({ free, pro, aiChef }: AdminPlanMixChartProps)
 
   return (
     <div className="h-[220px] w-full min-w-0 pt-1">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minHeight={220} minWidth={0}>
         <PieChart>
           <Pie
             data={data}

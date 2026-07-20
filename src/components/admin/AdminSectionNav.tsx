@@ -44,7 +44,8 @@ export function AdminSectionNav() {
         }
       },
       {
-        rootMargin: "-9rem 0px -55% 0px",
+        // IntersectionObserver rootMargin only accepts px or % (not rem).
+        rootMargin: "-144px 0px -55% 0px",
         threshold: [0, 0.12, 0.35],
       },
     );

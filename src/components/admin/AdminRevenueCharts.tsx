@@ -53,7 +53,7 @@ export function AdminRevenueCharts({
           </p>
         ) : (
           <div className="mt-2 h-[220px] w-full min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={220} minWidth={0}>
               <LineChart data={dayData} margin={{ top: 8, right: 8, bottom: 4, left: 4 }}>
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -106,7 +106,7 @@ export function AdminRevenueCharts({
           </p>
         ) : (
           <div className="mt-2 h-[240px] w-full min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={220} minWidth={0}>
               <BarChart
                 data={typeData}
                 layout="vertical"

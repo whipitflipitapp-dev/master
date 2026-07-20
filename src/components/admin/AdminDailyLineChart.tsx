@@ -38,7 +38,7 @@ export function AdminDailyLineChart({
 
   return (
     <div className="h-[220px] w-full min-w-0 pt-1">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minHeight={220} minWidth={0}>
         <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
           <CartesianGrid
             strokeDasharray="3 3"
