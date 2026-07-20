@@ -44,7 +44,7 @@ import { parseRecipeVideoUrl } from "@/lib/video-url";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ q?: string; review?: string }>;
+  searchParams: Promise<{ q?: string; review?: string; edit?: string }>;
 };
 
 function summarizeForMeta(text: string, max = 160): string {
