@@ -1,17 +1,19 @@
-import { InstagramEmbed } from "@/components/recipe/InstagramEmbed";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
-import { RecipePhotoCarousel } from "@/components/recipe/RecipePhotoCarousel";
+import {
+  RecipeMediaGallery,
+  type RecipeMediaSlide,
+} from "@/components/recipe/RecipeMediaGallery";
 import type { ParsedRecipeVideo } from "@/lib/video-url";
 
 type RecipeDetailMediaProps = {
   title: string;
   imageUrl: string | null;
-  /** Ordered gallery URLs (first = thumbnail). Falls back to imageUrl when empty. */
   galleryImageUrls?: string[];
   imageAlt: string;
   video: ParsedRecipeVideo | null;
   videoFrameTitle: string;
   tapForSoundHint: string;
+  instagramInAppHint?: string;
 };
 
 function resolveGalleryUrls(
@@ -28,42 +30,27 @@ function resolveGalleryUrls(
   return cover ? [cover] : [];
 }
 
-function RecipePhotosBlock({
-  title,
-  imageUrls,
-  imageAlt,
-}: {
-  title: string;
-  imageUrls: string[];
-  imageAlt: string;
-}) {
-  if (imageUrls.length === 0) {
-    return (
-      <RecipeDetailHero title={title} imageUrl={null} imageAlt={imageAlt} />
-    );
+function buildMediaSlides(
+  video: ParsedRecipeVideo | null,
+  photos: string[],
+  videoFrameTitle: string,
+): RecipeMediaSlide[] {
+  const slides: RecipeMediaSlide[] = [];
+  if (video?.provider === "instagram") {
+    slides.push({
+      kind: "instagram",
+      embedSrc: video.instagram.embedSrc,
+      frameTitle: videoFrameTitle,
+    });
   }
-  if (imageUrls.length === 1) {
-    return (
-      <RecipeDetailHero
-        title={title}
-        imageUrl={imageUrls[0]}
-        imageAlt={imageAlt}
-      />
-    );
+  for (const url of photos) {
+    slides.push({ kind: "image", url });
   }
-  return (
-    <RecipePhotoCarousel
-      title={title}
-      imageUrls={imageUrls}
-      imageAlt={imageAlt}
-    />
-  );
+  return slides;
 }
 
 /**
- * Media stack for recipe detail.
- * Instagram URLs: Reel/Post embed first (retention), then photo gallery / cover.
- * Otherwise: photo gallery or hero. YouTube stays in a later section.
+ * Recipe detail hero: optional Instagram reel/post slide, then swipeable photos.
  */
 export function RecipeDetailMedia({
   title,
@@ -73,31 +60,24 @@ export function RecipeDetailMedia({
   video,
   videoFrameTitle,
   tapForSoundHint,
+  instagramInAppHint,
 }: RecipeDetailMediaProps) {
   const photos = resolveGalleryUrls(galleryImageUrls, imageUrl);
-  const isInstagram = video?.provider === "instagram";
+  const slides = buildMediaSlides(video, photos, videoFrameTitle);
 
-  if (isInstagram && video.provider === "instagram") {
+  if (slides.length === 0) {
     return (
-      <div className="space-y-4">
-        <InstagramEmbed
-          embedSrc={video.instagram.embedSrc}
-          title={videoFrameTitle}
-          priority
-          tapForSoundHint={tapForSoundHint}
-        />
-        {photos.length > 0 ? (
-          <RecipePhotosBlock
-            title={title}
-            imageUrls={photos}
-            imageAlt={imageAlt}
-          />
-        ) : null}
-      </div>
+      <RecipeDetailHero title={title} imageUrl={null} imageAlt={imageAlt} />
     );
   }
 
   return (
-    <RecipePhotosBlock title={title} imageUrls={photos} imageAlt={imageAlt} />
+    <RecipeMediaGallery
+      title={title}
+      imageAlt={imageAlt}
+      slides={slides}
+      tapForSoundHint={tapForSoundHint}
+      instagramInAppHint={instagramInAppHint}
+    />
   );
 }

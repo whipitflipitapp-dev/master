@@ -580,6 +580,10 @@ export default async function RecipeDetailPage(props: Props) {
         video={recipeVideo}
         videoFrameTitle={dictText(dict, "recipe_detail_video_frame_title")}
         tapForSoundHint={dictText(dict, "recipe_detail_video_tap_for_sound")}
+        instagramInAppHint={dictText(
+          dict,
+          "recipe_detail_instagram_in_app_hint",
+        )}
       />
 
       {allergyBanner ? (

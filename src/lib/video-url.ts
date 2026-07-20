@@ -68,11 +68,15 @@ export function parseInstagramPermalink(
     if (!shortcode || shortcode.length > 64) return null;
 
     const permalink = `https://www.instagram.com/${type}/${shortcode}/`;
+    const embedPath =
+      type === "reel"
+        ? `reel/${shortcode}/embed/captioned/`
+        : `${type}/${shortcode}/embed`;
     return {
       type,
       shortcode,
       permalink,
-      embedSrc: `https://www.instagram.com/${type}/${shortcode}/embed`,
+      embedSrc: `https://www.instagram.com/${embedPath}`,
     };
   } catch {
     return null;
@@ -85,6 +89,21 @@ export function isInstagramReelVideoUrl(
 ): boolean {
   if (!raw?.trim()) return false;
   return /instagram\.com\/reel\//i.test(raw.trim());
+}
+
+/** Query params that encourage muted in-frame playback (best-effort; Instagram policy applies). */
+export function buildInstagramEmbedIframeSrc(embedSrc: string): string {
+  try {
+    const url = new URL(embedSrc);
+    url.searchParams.set("autoplay", "1");
+    url.searchParams.set("mute", "1");
+    url.searchParams.set("playsinline", "1");
+    url.searchParams.set("embed_type", "video");
+    return url.toString();
+  } catch {
+    const sep = embedSrc.includes("?") ? "&" : "?";
+    return `${embedSrc}${sep}autoplay=1&mute=1&playsinline=1`;
+  }
 }
 
 /** Detect YouTube or Instagram from a recipe video_url value. */
