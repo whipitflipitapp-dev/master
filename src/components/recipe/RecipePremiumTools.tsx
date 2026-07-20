@@ -1,9 +1,13 @@
 "use client";
 
-import { useActionState, useMemo } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 
 import { updateRecipe } from "@/app/actions/recipes";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
+import {
+  RecipeGalleryReorder,
+  type GalleryReorderItem,
+} from "@/components/recipe/RecipeGalleryReorder";
 import { PREMIUM_RECIPE_TOOLS_PLAN_REQUIRED_ERROR } from "@/lib/premium-recipe-tools-plan-gate";
 import type { PlanType } from "@/lib/plan";
 
@@ -20,6 +24,7 @@ type RecipePremiumToolsProps = {
     videoUrl?: string | null;
   };
   ingredients: RecipeToolIngredient[];
+  galleryPhotos: GalleryReorderItem[];
   planType: PlanType;
   canUseTools: boolean;
   canEdit: boolean;
@@ -43,6 +48,12 @@ type RecipePremiumToolsProps = {
     saved: string;
     ownerOnly: string;
     planRequiredError: string;
+    galleryHeading: string;
+    galleryHint: string;
+    galleryCoverLabel: string;
+    gallerySetCoverLabel: string;
+    galleryMoveEarlier: string;
+    galleryMoveLater: string;
   };
 };
 
@@ -74,6 +85,7 @@ function csvCell(value: string): string {
 export function RecipePremiumTools({
   recipe,
   ingredients,
+  galleryPhotos,
   planType,
   canUseTools,
   canEdit,
@@ -83,6 +95,19 @@ export function RecipePremiumTools({
     error: null,
     success: null,
   });
+
+  const [galleryItems, setGalleryItems] = useState<GalleryReorderItem[]>(
+    galleryPhotos,
+  );
+
+  useEffect(() => {
+    setGalleryItems(galleryPhotos);
+  }, [galleryPhotos]);
+
+  const galleryOrderJson = useMemo(
+    () => JSON.stringify(galleryItems.map((item) => item.imageUrl)),
+    [galleryItems],
+  );
 
   const ingredientText = useMemo(
     () =>
@@ -212,6 +237,32 @@ export function RecipePremiumTools({
         {canEdit ? (
           <form action={action} className="mt-4 space-y-4">
             <input type="hidden" name="recipe_id" value={recipe.id} />
+            {galleryItems.length > 0 ? (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+                <h4 className="text-sm font-semibold text-[var(--text)]">
+                  {labels.galleryHeading}
+                </h4>
+                <div className="mt-3">
+                  <RecipeGalleryReorder
+                    items={galleryItems}
+                    onChange={setGalleryItems}
+                    disabled={pending}
+                    hint={labels.galleryHint}
+                    coverLabel={labels.galleryCoverLabel}
+                    setCoverLabel={labels.gallerySetCoverLabel}
+                    moveEarlierLabel={labels.galleryMoveEarlier}
+                    moveLaterLabel={labels.galleryMoveLater}
+                    allowRemove={false}
+                  />
+                </div>
+                <input
+                  type="hidden"
+                  name="gallery_image_urls_order"
+                  value={galleryOrderJson}
+                  readOnly
+                />
+              </div>
+            ) : null}
             <label className="block text-sm font-semibold text-[var(--text)]">
               {labels.titleLabel}
               <input

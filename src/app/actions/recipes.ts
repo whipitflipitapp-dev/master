@@ -106,6 +106,99 @@ function parseRecipeGalleryJsonField(raw: unknown): string[] {
   }
 }
 
+async function applyRecipeGalleryOrder(
+  supabase: SupabaseClient,
+  recipeId: string,
+  userId: string,
+  orderedUrls: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: rows, error: fetchErr } = await supabase
+    .from("recipe_images")
+    .select("image_url")
+    .eq("recipe_id", recipeId);
+
+  if (fetchErr) {
+    logServerError("recipes.gallery_order_fetch", fetchErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
+  }
+
+  const existing = (rows ?? [])
+    .map((r) => (r.image_url ?? "").trim())
+    .filter(Boolean);
+
+  if (existing.length === 0 && orderedUrls.length > 0) {
+    const { data: recipeRow } = await supabase
+      .from("recipes")
+      .select("image_url")
+      .eq("id", recipeId)
+      .eq("created_by", userId)
+      .maybeSingle();
+    const legacy = (recipeRow?.image_url ?? "").trim();
+    if (legacy && orderedUrls.length === 1 && orderedUrls[0] === legacy) {
+      const { error: insertErr } = await supabase.from("recipe_images").insert({
+        recipe_id: recipeId,
+        image_url: legacy,
+        sort_order: 0,
+      });
+      if (insertErr) {
+        logServerError("recipes.gallery_legacy_backfill", insertErr);
+        return { ok: false, error: GENERIC_SERVER_ERROR };
+      }
+      return { ok: true };
+    }
+  }
+
+  const existingSet = new Set(existing);
+  if (orderedUrls.length !== existingSet.size) {
+    return {
+      ok: false,
+      error: "Photo gallery must include every existing image (reorder only).",
+    };
+  }
+  for (const url of orderedUrls) {
+    if (!existingSet.has(url)) {
+      return {
+        ok: false,
+        error: "Photo gallery order includes an unknown image.",
+      };
+    }
+  }
+
+  const { error: deleteErr } = await supabase
+    .from("recipe_images")
+    .delete()
+    .eq("recipe_id", recipeId);
+  if (deleteErr) {
+    logServerError("recipes.gallery_order_delete", deleteErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
+  }
+
+  const { error: insertErr } = await supabase.from("recipe_images").insert(
+    orderedUrls.map((image_url, sort_order) => ({
+      recipe_id: recipeId,
+      image_url,
+      sort_order,
+    })),
+  );
+  if (insertErr) {
+    logServerError("recipes.gallery_order_insert", insertErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
+  }
+
+  const coverUrl = orderedUrls[0] ?? null;
+  const { error: coverErr } = await supabase
+    .from("recipes")
+    .update({ image_url: coverUrl })
+    .eq("id", recipeId)
+    .eq("created_by", userId);
+  if (coverErr) {
+    logServerError("recipes.gallery_cover_update", coverErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
+  }
+
+  return { ok: true };
+}
+
 function isMonthlyRecipeLimitRpcError(error: { message?: string } | null): boolean {
   return error?.message === "monthly_recipe_limit";
 }
@@ -1494,6 +1587,21 @@ export async function updateRecipe(
   if (riErr) {
     logServerError("recipes.update_recipe_ingredients", riErr);
     return { error: GENERIC_SERVER_ERROR, success: null };
+  }
+
+  const galleryOrderUrls = parseRecipeGalleryJsonField(
+    formData.get("gallery_image_urls_order"),
+  );
+  if (galleryOrderUrls.length > 0) {
+    const galleryResult = await applyRecipeGalleryOrder(
+      supabase,
+      recipeId,
+      ctx.user.id,
+      galleryOrderUrls,
+    );
+    if (!galleryResult.ok) {
+      return { error: galleryResult.error, success: null };
+    }
   }
 
   await logEvent(supabase, {

@@ -77,13 +77,18 @@ async function loadRecipe(
 
   const { data: galleryRows } = await supabase
     .from("recipe_images")
-    .select("image_url,sort_order")
+    .select("id,image_url,sort_order")
     .eq("recipe_id", id)
     .order("sort_order", { ascending: true });
 
-  const galleryImageUrls = (galleryRows ?? [])
-    .map((row: { image_url: string | null }) => row.image_url?.trim() ?? "")
-    .filter((url: string) => url.length > 0);
+  const galleryPhotos = (galleryRows ?? [])
+    .map((row: { id: string; image_url: string | null }) => ({
+      id: row.id,
+      imageUrl: row.image_url?.trim() ?? "",
+    }))
+    .filter((row) => row.imageUrl.length > 0);
+
+  const galleryImageUrls = galleryPhotos.map((row) => row.imageUrl);
 
   const { data: whipFlipCountRaw, error: whipFlipErr } = await supabase.rpc(
     "recipe_whip_flip_count",
@@ -375,6 +380,7 @@ async function loadRecipe(
     recipeExperience,
     whipFlipCount,
     galleryImageUrls,
+    galleryPhotos,
   };
 }
 
@@ -470,6 +476,7 @@ export default async function RecipeDetailPage(props: Props) {
     recipeExperience,
     whipFlipCount,
     galleryImageUrls,
+    galleryPhotos,
   } = payload;
   const showReviewPendingBanner =
     sp.review === "pending" ||
@@ -499,6 +506,18 @@ export default async function RecipeDetailPage(props: Props) {
   )
     .map((url) => resolveRecipeDisplayImageUrl(recipe.id, url) ?? url.trim())
     .filter((url) => url.length > 0);
+
+  const galleryPhotosForEdit =
+    galleryPhotos.length > 0
+      ? galleryPhotos
+      : recipe.image_url?.trim()
+        ? [
+            {
+              id: `legacy-${recipe.id}`,
+              imageUrl: recipe.image_url.trim(),
+            },
+          ]
+        : [];
   const recipeVideo = parseRecipeVideoUrl(recipe.video_url);
   const wineUnlocked = planForWine
     ? winePairingsUnlockedForPlan(planForWine)
@@ -691,6 +710,7 @@ export default async function RecipeDetailPage(props: Props) {
           instructions: recipe.instructions,
           videoUrl: recipe.video_url,
         }}
+        galleryPhotos={galleryPhotosForEdit}
         ingredients={detailIngredients}
         planType={premiumToolsPlan}
         canUseTools={premiumToolsUnlocked}
@@ -715,6 +735,12 @@ export default async function RecipeDetailPage(props: Props) {
           saved: dictText(dict, "recipe_tools_saved"),
           ownerOnly: dictText(dict, "recipe_tools_owner_only"),
           planRequiredError: dictText(dict, "recipe_tools_plan_required_error"),
+          galleryHeading: dictText(dict, "recipe_tools_gallery_heading"),
+          galleryHint: dictText(dict, "recipe_tools_gallery_hint"),
+          galleryCoverLabel: dictText(dict, "recipe_tools_gallery_cover"),
+          gallerySetCoverLabel: dictText(dict, "recipe_tools_gallery_set_cover"),
+          galleryMoveEarlier: dictText(dict, "recipe_tools_gallery_move_earlier"),
+          galleryMoveLater: dictText(dict, "recipe_tools_gallery_move_later"),
         }}
       />
 

@@ -349,6 +349,41 @@ export function AddRecipeForm({
     });
   }, []);
 
+  const reorderSelectedPhotos = useCallback((fromIndex: number, toIndex: number) => {
+    setSelectedPhotos((prev) => {
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= prev.length ||
+        toIndex >= prev.length
+      ) {
+        return prev;
+      }
+      const next = [...prev];
+      const [item] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, item);
+      return next;
+    });
+  }, []);
+
+  const setPhotoAsCover = useCallback(
+    (index: number) => {
+      if (index <= 0) return;
+      reorderSelectedPhotos(index, 0);
+    },
+    [reorderSelectedPhotos],
+  );
+
+  const movePhotoBy = useCallback(
+    (index: number, delta: -1 | 1) => {
+      reorderSelectedPhotos(index, index + delta);
+    },
+    [reorderSelectedPhotos],
+  );
+
+  const [dragPhotoIndex, setDragPhotoIndex] = useState<number | null>(null);
+
   const resetDraftFields = useCallback(() => {
     setTitleDraft("");
     setIngredientDraft("");
@@ -633,8 +668,10 @@ export function AddRecipeForm({
           </span>
         </div>
         <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
-          PNG or JPEG, up to {Math.round(RECIPE_IMAGE_MAX_BYTES / (1024 * 1024))}MB each. The first
-          photo is the card thumbnail. Paste a video link below — no video uploads.
+          PNG or JPEG, up to {Math.round(RECIPE_IMAGE_MAX_BYTES / (1024 * 1024))}MB each. Drag
+          photos to reorder, or use the buttons — the{" "}
+          <span className="font-medium text-[var(--text)]">first photo</span> is the browse-card
+          thumbnail. Paste a video link below — no video uploads.
         </p>
         <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
           Drafts save recipe text and selections on this device. Image files are not saved and must
@@ -673,7 +710,24 @@ export function AddRecipeForm({
               {selectedPhotos.map((photo, index) => (
                 <li
                   key={photo.previewUrl}
-                  className="relative aspect-[4/3] overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--muted)_30%,transparent)] bg-[color-mix(in_srgb,var(--bg)_94%,transparent)] shadow-[var(--shadow-card)]"
+                  draggable={!capped && !busy}
+                  onDragStart={() => setDragPhotoIndex(index)}
+                  onDragEnd={() => setDragPhotoIndex(null)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragPhotoIndex !== null) {
+                      reorderSelectedPhotos(dragPhotoIndex, index);
+                    }
+                    setDragPhotoIndex(null);
+                  }}
+                  className={`relative aspect-[4/3] overflow-hidden rounded-xl border bg-[color-mix(in_srgb,var(--bg)_94%,transparent)] shadow-[var(--shadow-card)] ${
+                    dragPhotoIndex === index
+                      ? "border-[var(--primary)] ring-2 ring-[var(--primary)]/35"
+                      : "border-[color-mix(in_srgb,var(--muted)_30%,transparent)]"
+                  } ${!capped && !busy ? "cursor-grab active:cursor-grabbing" : ""}`}
                 >
                   <Image
                     src={photo.previewUrl}
@@ -684,23 +738,61 @@ export function AddRecipeForm({
                     }
                     fill
                     sizes="(max-width: 640px) 45vw, 12rem"
-                    className="object-cover"
+                    className="pointer-events-none object-cover"
                     unoptimized
                   />
                   {index === 0 ? (
-                    <span className="absolute left-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                      Thumbnail
+                    <span className="absolute left-2 top-2 rounded-md bg-[var(--primary)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm">
+                      Cover
                     </span>
-                  ) : null}
+                  ) : (
+                    <span className="absolute left-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white">
+                      {index + 1}
+                    </span>
+                  )}
                   <button
                     type="button"
                     aria-label={`Remove photo ${index + 1}`}
-                    disabled={capped}
+                    disabled={capped || busy}
                     className="absolute right-2 top-2 rounded-lg bg-black/55 px-2 py-1 text-[length:var(--text-caption)] font-medium text-white disabled:opacity-50"
                     onClick={() => removeSelectedPhotoAt(index)}
                   >
                     Remove
                   </button>
+                  <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-1 bg-gradient-to-t from-black/75 via-black/45 to-transparent px-2 pb-2 pt-8">
+                    {index > 0 ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled={capped || busy}
+                          onClick={() => setPhotoAsCover(index)}
+                          className="rounded-md bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-[var(--text)] hover:bg-white disabled:opacity-50"
+                        >
+                          Set cover
+                        </button>
+                        <button
+                          type="button"
+                          disabled={capped || busy}
+                          aria-label={`Move photo ${index + 1} earlier`}
+                          onClick={() => movePhotoBy(index, -1)}
+                          className="rounded-md bg-white/90 px-2 py-0.5 text-xs font-semibold text-[var(--text)] hover:bg-white disabled:opacity-50"
+                        >
+                          ←
+                        </button>
+                      </>
+                    ) : null}
+                    {index < selectedPhotos.length - 1 ? (
+                      <button
+                        type="button"
+                        disabled={capped || busy}
+                        aria-label={`Move photo ${index + 1} later`}
+                        onClick={() => movePhotoBy(index, 1)}
+                        className="rounded-md bg-white/90 px-2 py-0.5 text-xs font-semibold text-[var(--text)] hover:bg-white disabled:opacity-50"
+                      >
+                        →
+                      </button>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>
