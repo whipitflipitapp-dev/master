@@ -3,6 +3,73 @@ export function normalizeIngredientToken(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/**
+ * Split recipe ingredient textarea into lines. Prefer newlines (one ingredient per line).
+ * Commas inside parentheses stay on one line; comma-split only for single-line lists.
+ */
+export function splitRecipeIngredientInput(text: string): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  if (/\r?\n/.test(trimmed)) {
+    return trimmed
+      .split(/\r?\n+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+  }
+
+  return splitOnCommasOutsideParentheses(trimmed);
+}
+
+function splitOnCommasOutsideParentheses(text: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text[i];
+    if (c === "(") depth += 1;
+    else if (c === ")") depth = Math.max(0, depth - 1);
+    else if ((c === "," || c === ";") && depth === 0) {
+      const piece = text.slice(start, i).trim();
+      if (piece) parts.push(piece);
+      start = i + 1;
+    }
+  }
+  const tail = text.slice(start).trim();
+  if (tail) parts.push(tail);
+  return parts;
+}
+
+/**
+ * Lines that are usually parsing artifacts, not purchasable items (cost + display).
+ */
+export function isIngredientLineNoise(name: string): boolean {
+  const key = normalizeIngredientToken(name);
+  if (!key || key.length < 2) return true;
+  if (/^[\)\(,.\-]+$/.test(key)) return true;
+  if (key.length <= 3 && !/^[a-z]{2,3}$/i.test(key)) return true;
+
+  const noise = [
+    /^to taste$/,
+    /^for serving$/,
+    /^optional$/,
+    /^as needed$/,
+    /^finely chopped$/,
+    /^roughly chopped$/,
+    /^pitted and diced$/,
+    /^peeled and diced$/,
+    /^chopped\)?$/,
+    /^\)?$/,
+    /^diced$/,
+    /^sliced$/,
+    /^minced$/,
+    /^grated$/,
+    /^crumbled$/,
+    /^halved$/,
+  ];
+  return noise.some((re) => re.test(key));
+}
+
 /** Escape `%`, `_`, and `\` for use inside PostgreSQL ILIKE patterns wrapped with `%`. */
 export function escapeIlikePercentPattern(token: string): string {
   return token
@@ -39,22 +106,21 @@ export function ingredientCanonicalName(rawLine: string): string {
 }
 
 /**
- * Split like {@link parseIngredientInput} (comma, newline, semicolon).
+ * Split user ingredient input into lines for recipe save / pantry overlap.
  * Dedupes by canonical name; preserves first-seen order for sort_order.
  */
 export function parseIngredientLinesForRecipe(text: string): {
   raw: string;
   canonical: string;
 }[] {
-  const parts = text
-    .split(/[\n,;]+/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+  const parts = splitRecipeIngredientInput(text);
   const seen = new Set<string>();
   const out: { raw: string; canonical: string }[] = [];
   for (const raw of parts) {
     const canonical = ingredientCanonicalName(raw);
-    if (!canonical || seen.has(canonical)) continue;
+    if (!canonical || seen.has(canonical) || isIngredientLineNoise(canonical)) {
+      continue;
+    }
     seen.add(canonical);
     out.push({ raw, canonical });
   }

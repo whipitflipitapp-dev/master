@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  isIngredientLineNoise,
   normalizeIngredientToken,
   parseIngredientLinesForRecipe,
 } from "@/lib/ingredients";
@@ -807,6 +808,7 @@ export async function matchRecipesForPantry(
     const missingIngredients = [...ids]
       .filter((id) => !userUnion.has(id))
       .map((id) => ingName.get(id)!)
+      .filter((name) => !isIngredientLineNoise(name))
       .sort((a, b) => a.localeCompare(b));
     matches.push({
       recipeId: r.id,

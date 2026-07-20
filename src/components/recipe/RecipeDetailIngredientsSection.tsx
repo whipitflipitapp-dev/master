@@ -6,6 +6,7 @@ import {
   estimateMissingIngredientsCostCents,
   formatEstimatedMissingCostDisplay,
 } from "@/lib/ingredient-cost-estimates";
+import { isIngredientLineNoise } from "@/lib/ingredients";
 
 export type RecipeDetailIngredient = {
   ingredientId: string;
@@ -36,9 +37,14 @@ export function RecipeDetailIngredientsSection({
     () => new Set(initialHaveIngredientIds),
   );
 
+  const displayIngredients = useMemo(
+    () => ingredients.filter((ing) => !isIngredientLineNoise(ing.name)),
+    [ingredients],
+  );
+
   const { missingNames, estimatedCents } = useMemo(() => {
     const missing: string[] = [];
-    for (const ing of ingredients) {
+    for (const ing of displayIngredients) {
       if (!haveIds.has(ing.ingredientId)) {
         missing.push(ing.name);
       }
@@ -47,7 +53,7 @@ export function RecipeDetailIngredientsSection({
       missingNames: missing,
       estimatedCents: estimateMissingIngredientsCostCents(missing),
     };
-  }, [ingredients, haveIds]);
+  }, [displayIngredients, haveIds]);
 
   const toggleHave = (ingredientId: string, checked: boolean) => {
     setHaveIds((prev) => {
@@ -73,7 +79,7 @@ export function RecipeDetailIngredientsSection({
         {labels.ingredientsHint}
       </p>
       <ul className="mt-4 space-y-3">
-        {ingredients.map((ing, idx) => (
+        {displayIngredients.map((ing, idx) => (
           <li
             key={`${ing.sortOrder}-${ing.ingredientId}-${idx}`}
             className="flex gap-3 rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-4 py-3 shadow-[0_1px_0_rgba(28,25,23,0.03)]"

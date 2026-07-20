@@ -1,4 +1,7 @@
-import { normalizeIngredientToken } from "@/lib/ingredients";
+import {
+  isIngredientLineNoise,
+  normalizeIngredientToken,
+} from "@/lib/ingredients";
 
 /**
  * Static US retail **average** prices for recipe-affordability sorting (not live quotes).
@@ -11,7 +14,7 @@ import { normalizeIngredientToken } from "@/lib/ingredients";
  * - Quantities on recipe rows are ignored (same limitation as overlap matching).
  */
 
-export const DEFAULT_INGREDIENT_COST_CENTS = 350;
+export const DEFAULT_INGREDIENT_COST_CENTS = 175;
 
 /** Per-ingredient recipe-portion estimates (USD cents). */
 const INGREDIENT_COST_CENTS: Record<string, number> = {
@@ -97,6 +100,18 @@ const INGREDIENT_COST_CENTS: Record<string, number> = {
   yogurt: 100,
   bacon: 350,
   sausage: 400,
+  "romaine lettuce": 110,
+  "hard-boiled eggs": 120,
+  "hard boiled eggs": 120,
+  "blue cheese": 220,
+  chives: 70,
+  "green onion": 65,
+  "green onions": 80,
+  "red wine vinegar": 45,
+  mustard: 35,
+  "dijon mustard": 40,
+  "cherry tomatoes": 130,
+  rotisserie: 650,
   wine: 300,
   beer: 200,
   stock: 170,
@@ -108,19 +123,23 @@ type CategoryRule = { test: RegExp; cents: number };
 /** First matching rule wins; order = more specific → broader. */
 const CATEGORY_RULES: CategoryRule[] = [
   {
-    test: /\b(rib|steak|brisket|lamb chop|pork chop|sausage|bacon|ground beef|ground turkey)\b/i,
+    test: /\b(rib rack|beef rib|spare rib|brisket|lamb chop|pork chop|ground beef|ground turkey)\b/i,
     cents: 900,
   },
+  { test: /\bbacon\b/i, cents: 350 },
+  { test: /\bsausage\b/i, cents: 400 },
   {
-    test: /\b(salmon|tuna|cod|shrimp|prawn|scallop|fish fillet|fillet)\b/i,
+    test: /\b(salmon|tuna|cod|shrimp|prawn|scallop)\b/i,
     cents: 1100,
   },
   {
-    test: /\b(chicken|turkey|duck|thigh|breast|wing|drumstick)\b/i,
+    test: /\b(chicken|turkey|duck|thigh|breast|wing|drumstick|rotisserie)\b/i,
     cents: 600,
   },
   { test: /\b(egg|tofu|tempeh)\b/i, cents: 150 },
   { test: /\b(cheese|cream|butter|milk|yogurt|mozzarella|cheddar|feta)\b/i, cents: 180 },
+  { test: /\bvinegar\b/i, cents: 45 },
+  { test: /\b(mustard|mayonnaise|ketchup)\b/i, cents: 50 },
   {
     test: /\b(wine|beer|liqueur|brandy|sherry)\b/i,
     cents: 350,
@@ -130,7 +149,7 @@ const CATEGORY_RULES: CategoryRule[] = [
     cents: 170,
   },
   {
-    test: /\b(oil|vinegar|sauce|paste|mustard|mayonnaise|ketchup)\b/i,
+    test: /\b(oil|sauce|paste)\b/i,
     cents: 80,
   },
   {
@@ -147,15 +166,31 @@ function costKey(name: string): string {
   return normalizeIngredientToken(name);
 }
 
+function lookupDictionaryCostCents(key: string): number | undefined {
+  const exact = INGREDIENT_COST_CENTS[key];
+  if (exact !== undefined) return exact;
+
+  let bestLen = 0;
+  let bestCents: number | undefined;
+  for (const [dictKey, cents] of Object.entries(INGREDIENT_COST_CENTS)) {
+    if (dictKey.length < 3) continue;
+    if (key.includes(dictKey) && dictKey.length > bestLen) {
+      bestLen = dictKey.length;
+      bestCents = cents;
+    }
+  }
+  return bestCents;
+}
+
 /**
  * Estimated cost in USD cents for one recipe-sized portion of an ingredient.
  */
 export function estimateIngredientCostCents(ingredientName: string): number {
   const key = costKey(ingredientName);
-  if (!key) return 0;
+  if (!key || isIngredientLineNoise(key)) return 0;
 
-  const exact = INGREDIENT_COST_CENTS[key];
-  if (exact !== undefined) return exact;
+  const fromDict = lookupDictionaryCostCents(key);
+  if (fromDict !== undefined) return fromDict;
 
   for (const rule of CATEGORY_RULES) {
     if (rule.test.test(key)) return rule.cents;
