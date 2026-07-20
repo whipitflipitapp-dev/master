@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
+import { RecipeUploadBadge } from "@/components/creator/RecipeUploadBadge";
 import { RecipeDetailIngredientsSection } from "@/components/recipe/RecipeDetailIngredientsSection";
 import { RecipeDetailMedia } from "@/components/recipe/RecipeDetailMedia";
 import { RecipeDetailReelSection } from "@/components/recipe/RecipeDetailReelSection";
@@ -41,6 +42,10 @@ import {
 } from "@/lib/allergy-other";
 import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
 import { parseRecipeVideoUrl } from "@/lib/video-url";
+import {
+  recipeUploadBadgeLabelKey,
+  resolveRecipeUploadBadgeTier,
+} from "@/lib/recipe-upload-badges";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -228,6 +233,7 @@ async function loadRecipe(
   let chefProfileHref: string | null = null;
   let chefDisplayName: string | null = null;
   let chefAvatarUrl: string | null = null;
+  let chefUploadedRecipeCount = 0;
   let uploaderCookbook: {
     id: string;
     title: string;
@@ -251,6 +257,14 @@ async function loadRecipe(
       };
       chefDisplayName = row.display_name?.trim() || null;
       chefAvatarUrl = row.avatar_url?.trim() || null;
+    }
+
+    const { count: chefRecipeCount } = await supabase
+      .from("recipes")
+      .select("*", { count: "exact", head: true })
+      .eq("created_by", createdBy);
+    if (typeof chefRecipeCount === "number" && chefRecipeCount >= 0) {
+      chefUploadedRecipeCount = chefRecipeCount;
     }
 
     const { data: cookbookRows } = await supabase
@@ -379,6 +393,7 @@ async function loadRecipe(
     chefProfileHref,
     chefDisplayName,
     chefAvatarUrl,
+    chefUploadedRecipeCount,
     uploaderCookbook,
     recipeExperience,
     whipFlipCount,
@@ -475,6 +490,7 @@ export default async function RecipeDetailPage(props: Props) {
     chefProfileHref,
     chefDisplayName,
     chefAvatarUrl,
+    chefUploadedRecipeCount,
     uploaderCookbook,
     recipeExperience,
     whipFlipCount,
@@ -541,6 +557,13 @@ export default async function RecipeDetailPage(props: Props) {
   const premiumToolsUnlocked = isProOrAbove(premiumToolsPlan);
   const canEditRecipe =
     currentUserId != null && recipe.created_by === currentUserId;
+  const chefUploadBadgeTier = resolveRecipeUploadBadgeTier(
+    chefUploadedRecipeCount,
+  );
+  const chefUploadBadgeLabel =
+    chefUploadBadgeTier != null
+      ? dictText(dict, recipeUploadBadgeLabelKey(chefUploadBadgeTier))
+      : null;
   const wineTypeLabels = Object.fromEntries(
     CURATED_WINE_TYPES.map((t) => [
       t.slug,
@@ -668,22 +691,32 @@ export default async function RecipeDetailPage(props: Props) {
           </div>
         </div>
         {chefProfileHref ? (
-          <div className="mt-5 flex items-center gap-3">
-            <ChefAvatar
-              avatarUrl={chefAvatarUrl}
-              displayName={chefDisplayName}
-              href={chefProfileHref}
-              size="md"
-            />
-            <p className="text-sm text-[var(--muted)]">
-              <span>{dictText(dict, "recipe_detail_chef_label")} </span>
-              <Link
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex items-center gap-3">
+              <ChefAvatar
+                avatarUrl={chefAvatarUrl}
+                displayName={chefDisplayName}
                 href={chefProfileHref}
-                className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
-              >
-                {chefDisplayName ?? dictText(dict, "recipe_detail_view_profile")}
-              </Link>
-            </p>
+                size="md"
+              />
+              <p className="text-sm text-[var(--muted)]">
+                <span>{dictText(dict, "recipe_detail_chef_label")} </span>
+                <Link
+                  href={chefProfileHref}
+                  className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+                >
+                  {chefDisplayName ??
+                    dictText(dict, "recipe_detail_view_profile")}
+                </Link>
+              </p>
+            </div>
+            {chefUploadBadgeTier && chefUploadBadgeLabel ? (
+              <RecipeUploadBadge
+                tier={chefUploadBadgeTier}
+                label={chefUploadBadgeLabel}
+                size="sm"
+              />
+            ) : null}
           </div>
         ) : null}
       </header>

@@ -4,7 +4,13 @@ import { notFound } from "next/navigation";
 
 import { AffiliateDisclosure } from "@/components/affiliate/AffiliateDisclosure";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
+import { RecipeUploadBadge } from "@/components/creator/RecipeUploadBadge";
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
+import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
+import {
+  recipeUploadBadgeLabelKey,
+  resolveRecipeUploadBadgeTier,
+} from "@/lib/recipe-upload-badges";
 import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -90,8 +96,18 @@ async function loadChefPage(chefId: string) {
     .eq("created_by", chefId)
     .order("title", { ascending: true });
 
+  const { count: recipeCount, error: recipeCountErr } = await supabase
+    .from("recipes")
+    .select("*", { count: "exact", head: true })
+    .eq("created_by", chefId);
+
   if (booksErr) {
     logServerError("chef.cookbooks", booksErr);
+    return { configured: true as const, error: GENERIC_LOAD_ERROR };
+  }
+
+  if (recipeCountErr) {
+    logServerError("chef.recipe_count", recipeCountErr);
     return { configured: true as const, error: GENERIC_LOAD_ERROR };
   }
 
@@ -100,6 +116,8 @@ async function loadChefPage(chefId: string) {
     error: null as string | null,
     header,
     cookbooks: books ?? [],
+    uploadedRecipeCount:
+      typeof recipeCount === "number" && recipeCount >= 0 ? recipeCount : 0,
   };
 }
 
@@ -121,6 +139,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function ChefProfilePage(props: Props) {
   const { id } = await props.params;
+  const locale = await resolveAppLocale();
+  const dict = await getDictionary(locale);
 
   if (!isUuid(id)) {
     notFound();
@@ -150,10 +170,15 @@ export default async function ChefProfilePage(props: Props) {
     );
   }
 
-  const { header, cookbooks } = data;
+  const { header, cookbooks, uploadedRecipeCount } = data;
   const list = cookbooks ?? [];
   const displayName =
     header?.display_name?.trim() || "Chef";
+  const uploadBadgeTier = resolveRecipeUploadBadgeTier(uploadedRecipeCount);
+  const uploadBadgeLabel =
+    uploadBadgeTier != null
+      ? dictText(dict, recipeUploadBadgeLabelKey(uploadBadgeTier))
+      : null;
 
   if (list.length === 0 && !header?.display_name?.trim()) {
     notFound();
@@ -181,6 +206,15 @@ export default async function ChefProfilePage(props: Props) {
             <p className="mt-1 text-sm text-[var(--muted)]">
               Cookbooks &amp; affiliate picks
             </p>
+            {uploadBadgeTier && uploadBadgeLabel ? (
+              <div className="mt-2">
+                <RecipeUploadBadge
+                  tier={uploadBadgeTier}
+                  label={uploadBadgeLabel}
+                  size="sm"
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       </header>

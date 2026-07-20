@@ -3,11 +3,16 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { RecipeUploadQuotaNotice } from "@/components/billing/RecipeUploadQuotaNotice";
+import { RecipeUploadBadge } from "@/components/creator/RecipeUploadBadge";
 import { SuggestionBox } from "@/components/dashboard/SuggestionBox";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import type { CommonJson } from "@/lib/i18n/server";
 import { getRecipeUploadQuotaForUi } from "@/lib/recipe-upload-limit";
+import {
+  recipeUploadBadgeLabelKey,
+  resolveRecipeUploadBadgeTier,
+} from "@/lib/recipe-upload-badges";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { isProOrAbove } from "@/lib/plan";
 import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
@@ -139,6 +144,12 @@ export default async function DashboardPage() {
       typeof row.favorites_count === "number" ? row.favorites_count : 0;
   }
 
+  const uploadBadgeTier = resolveRecipeUploadBadgeTier(authored.length);
+  const uploadBadgeLabel =
+    uploadBadgeTier != null
+      ? dictText(dict, recipeUploadBadgeLabelKey(uploadBadgeTier))
+      : null;
+
   return (
     <ContentPageBackdrop pageKey="/dashboard">
     <main className="mx-auto flex max-w-lg flex-1 flex-col gap-6 px-5 py-8">
@@ -179,6 +190,17 @@ export default async function DashboardPage() {
           </dd>
         </div>
       </dl>
+
+      {uploadBadgeTier && uploadBadgeLabel ? (
+        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]">
+          <p className="text-sm font-semibold text-[var(--text)]">
+            {dictText(dict, "dashboard_creator_badge_heading")}
+          </p>
+          <div className="mt-3">
+            <RecipeUploadBadge tier={uploadBadgeTier} label={uploadBadgeLabel} />
+          </div>
+        </div>
+      ) : null}
 
       <nav className="flex flex-wrap gap-3">
         <Link
