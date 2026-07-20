@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next";
 
 import { InstagramEmbed } from "@/components/recipe/InstagramEmbed";
 
-/** Half of the previous 400px reel column — compact under photos. */
-const COMPACT_REEL_MAX = "min(100%,200px)";
+/** Standard reel column width on recipe detail. */
+const REEL_MAX = "min(100%,400px)";
 
 type RecipeDetailReelSectionProps = {
   videoFrameTitle: string;
@@ -50,7 +50,8 @@ export function RecipeDetailReelSection({
 
   return (
     <section
-      className="mx-auto w-full max-w-[min(100%,200px)] space-y-2"
+      className="mx-auto mt-8 w-full space-y-2"
+      style={{ maxWidth: REEL_MAX }}
       aria-label={videoFrameTitle}
     >
       {hosted ? (
@@ -63,7 +64,7 @@ export function RecipeDetailReelSection({
           >
             <span
               className="relative mx-auto block aspect-[9/16] w-full"
-              style={{ maxWidth: COMPACT_REEL_MAX }}
+              style={{ maxWidth: REEL_MAX }}
             >
               {poster ? (
                 // eslint-disable-next-line @next/next/no-img-element -- reel poster from storage
@@ -103,7 +104,6 @@ export function RecipeDetailReelSection({
           title={videoFrameTitle}
           priority
           variant="reel"
-          compact
           inAppHint={instagramInAppHint}
           tapForSoundHint={instagramTapForSoundHint}
         />

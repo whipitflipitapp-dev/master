@@ -7,6 +7,7 @@ import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
 import { RecipeDetailIngredientsSection } from "@/components/recipe/RecipeDetailIngredientsSection";
 import { RecipeDetailMedia } from "@/components/recipe/RecipeDetailMedia";
+import { RecipeDetailReelSection } from "@/components/recipe/RecipeDetailReelSection";
 import { RecipeExperienceForm } from "@/components/recipe/RecipeExperienceForm";
 import { RecipeExcludeButton } from "@/components/recipe/RecipeExcludeButton";
 import { RecipeFavoriteButton } from "@/components/recipe/RecipeFavoriteButton";
@@ -577,27 +578,6 @@ export default async function RecipeDetailPage(props: Props) {
             ? dictText(dict, "recipe_detail_photo_alt", { title: recipe.title })
             : ""
         }
-        hostedReelUrl={
-          typeof recipe.hosted_reel_url === "string"
-            ? recipe.hosted_reel_url
-            : null
-        }
-        instagramEmbedSrc={
-          recipeVideo?.provider === "instagram"
-            ? recipeVideo.instagram.embedSrc
-            : null
-        }
-        instagramInAppHint={dictText(
-          dict,
-          "recipe_detail_instagram_in_app_hint",
-        )}
-        instagramTapForSoundHint={dictText(
-          dict,
-          "recipe_detail_video_tap_for_sound",
-        )}
-        reelPosterUrl={displayImageUrl}
-        videoFrameTitle={dictText(dict, "recipe_detail_video_frame_title")}
-        hostedReelHint={dictText(dict, "recipe_detail_hosted_reel_hint")}
       />
 
       {allergyBanner ? (
@@ -694,6 +674,30 @@ export default async function RecipeDetailPage(props: Props) {
           </div>
         ) : null}
       </header>
+
+      <RecipeDetailReelSection
+        videoFrameTitle={dictText(dict, "recipe_detail_video_frame_title")}
+        posterUrl={displayImageUrl}
+        hostedReelUrl={
+          typeof recipe.hosted_reel_url === "string"
+            ? recipe.hosted_reel_url
+            : null
+        }
+        hostedReelHint={dictText(dict, "recipe_detail_hosted_reel_hint")}
+        instagramEmbedSrc={
+          recipeVideo?.provider === "instagram"
+            ? recipeVideo.instagram.embedSrc
+            : null
+        }
+        instagramInAppHint={dictText(
+          dict,
+          "recipe_detail_instagram_in_app_hint",
+        )}
+        instagramTapForSoundHint={dictText(
+          dict,
+          "recipe_detail_video_tap_for_sound",
+        )}
+      />
 
       <RecipeDetailIngredientsSection
         ingredients={detailIngredients}
