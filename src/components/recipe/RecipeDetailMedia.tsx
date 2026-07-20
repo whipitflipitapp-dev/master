@@ -1,3 +1,4 @@
+import { InstagramEmbed } from "@/components/recipe/InstagramEmbed";
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
 import { RecipeHostedReelPlayer } from "@/components/recipe/RecipeHostedReelPlayer";
 import {
@@ -11,6 +12,10 @@ type RecipeDetailMediaProps = {
   galleryImageUrls?: string[];
   imageAlt: string;
   hostedReelUrl?: string | null;
+  /** Legacy Instagram reel permalink (when no hosted upload). */
+  instagramEmbedSrc?: string | null;
+  instagramInAppHint?: string;
+  instagramTapForSoundHint?: string;
   /** Optional cover/thumbnail shown until the user presses play. */
   reelPosterUrl?: string | null;
   videoFrameTitle: string;
@@ -35,24 +40,29 @@ function photoSlides(photos: string[]): RecipeMediaSlide[] {
   return photos.map((url) => ({ kind: "image", url }));
 }
 
-/** Recipe detail: hosted reel (Pro upload) + photo gallery below. */
+/** Recipe detail: hosted reel (Pro) or Instagram embed, plus photo gallery below. */
 export function RecipeDetailMedia({
   title,
   imageUrl,
   galleryImageUrls,
   imageAlt,
   hostedReelUrl,
+  instagramEmbedSrc,
+  instagramInAppHint,
+  instagramTapForSoundHint,
   reelPosterUrl,
   videoFrameTitle,
   hostedReelHint,
 }: RecipeDetailMediaProps) {
   const photos = resolveGalleryUrls(galleryImageUrls, imageUrl);
   const hosted = hostedReelUrl?.trim() || null;
+  const instagram =
+    !hosted && instagramEmbedSrc?.trim() ? instagramEmbedSrc.trim() : null;
   const poster =
     reelPosterUrl?.trim() || photos[0]?.trim() || imageUrl?.trim() || null;
 
   const slides = photoSlides(photos);
-  const hasReelBlock = Boolean(hosted);
+  const hasReelBlock = Boolean(hosted || instagram);
 
   if (!hasReelBlock && slides.length === 0) {
     return (
@@ -75,6 +85,15 @@ export function RecipeDetailMedia({
             </p>
           ) : null}
         </div>
+      ) : instagram ? (
+        <InstagramEmbed
+          embedSrc={instagram}
+          title={videoFrameTitle}
+          priority
+          variant="reel"
+          inAppHint={instagramInAppHint}
+          tapForSoundHint={instagramTapForSoundHint}
+        />
       ) : null}
 
       {slides.length === 0 ? null : slides.length === 1 && !hasReelBlock ? (

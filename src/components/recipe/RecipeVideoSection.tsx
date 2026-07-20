@@ -7,7 +7,7 @@ type RecipeVideoSectionProps = {
   tapForSoundHint: string;
 };
 
-/** YouTube video block (Instagram plays in the detail hero via RecipeDetailMedia). */
+/** YouTube video block (Instagram / hosted reels play in RecipeDetailMedia). */
 export function RecipeVideoSection({
   video,
   heading,

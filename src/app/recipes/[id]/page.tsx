@@ -582,6 +582,19 @@ export default async function RecipeDetailPage(props: Props) {
             ? recipe.hosted_reel_url
             : null
         }
+        instagramEmbedSrc={
+          recipeVideo?.provider === "instagram"
+            ? recipeVideo.instagram.embedSrc
+            : null
+        }
+        instagramInAppHint={dictText(
+          dict,
+          "recipe_detail_instagram_in_app_hint",
+        )}
+        instagramTapForSoundHint={dictText(
+          dict,
+          "recipe_detail_video_tap_for_sound",
+        )}
         reelPosterUrl={displayImageUrl}
         videoFrameTitle={dictText(dict, "recipe_detail_video_frame_title")}
         hostedReelHint={dictText(dict, "recipe_detail_hosted_reel_hint")}
