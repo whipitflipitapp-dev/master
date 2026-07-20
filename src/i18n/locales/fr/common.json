@@ -59,7 +59,7 @@
   "recipe_gallery_dots_label": "Aller à une photo",
   "recipe_gallery_dot_aria": "Photo {{index}} sur {{total}}",
   "recipe_gallery_slide_alt": "Photo {{index}} sur {{count}} : {{title}}",
-  "recipe_gallery_swipe_hint": "Glissez ou attendez — les photos avancent toutes les 2 secondes",
+  "recipe_gallery_swipe_hint": "Glissez ou attendez — les photos avancent toutes les 4 secondes",
   "recipe_gallery_video_dot_aria": "Vidéo {{index}} sur {{total}}",
   "recipe_gallery_lightbox_open": "Voir en grand",
   "recipe_gallery_lightbox_open_hint": "Touchez la photo pour la voir en grand",

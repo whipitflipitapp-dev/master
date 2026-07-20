@@ -59,7 +59,7 @@
   "recipe_gallery_dots_label": "Jump to a photo",
   "recipe_gallery_dot_aria": "Photo {{index}} of {{total}}",
   "recipe_gallery_slide_alt": "Photo {{index}} of {{count}}: {{title}}",
-  "recipe_gallery_swipe_hint": "Swipe or wait — photos advance every 2 seconds",
+  "recipe_gallery_swipe_hint": "Swipe or wait — photos advance every 4 seconds",
   "recipe_gallery_video_dot_aria": "Video {{index}} of {{total}}",
   "recipe_gallery_lightbox_open": "View full size",
   "recipe_gallery_lightbox_open_hint": "Tap the photo to view full size",
