@@ -313,6 +313,56 @@ function coerceRecipeBrowseRow(row: unknown): RecipeBrowseRow | null {
  * `recipe_allergens` rows (`.in` on allergen ids only), then skip blocked recipe ids
  * while paginating `recipes`.
  */
+/**
+ * Resolve catalog ingredient id without upsert — RLS allows INSERT/SELECT but not UPDATE on `ingredients`.
+ */
+async function resolveIngredientIdByCanonicalName(
+  supabase: SupabaseClient,
+  canonical: string,
+): Promise<string | null> {
+  const { data: existing, error: selErr } = await supabase
+    .from("ingredients")
+    .select("id")
+    .eq("name", canonical)
+    .maybeSingle();
+
+  if (selErr) {
+    logServerError("recipes.ingredient_lookup", selErr);
+    return null;
+  }
+  if (existing?.id) {
+    return existing.id;
+  }
+
+  const { data: inserted, error: insErr } = await supabase
+    .from("ingredients")
+    .insert({ name: canonical })
+    .select("id")
+    .single();
+
+  if (!insErr && inserted?.id) {
+    return inserted.id;
+  }
+
+  if (insErr?.code === "23505") {
+    const { data: retry, error: retryErr } = await supabase
+      .from("ingredients")
+      .select("id")
+      .eq("name", canonical)
+      .maybeSingle();
+    if (!retryErr && retry?.id) {
+      return retry.id;
+    }
+    if (retryErr) {
+      logServerError("recipes.ingredient_lookup_retry", retryErr);
+    }
+  } else if (insErr) {
+    logServerError("recipes.ingredient_insert", insErr);
+  }
+
+  return null;
+}
+
 async function recipeIdsMatchingTagNames(
   supabase: SupabaseClient,
   tagNames: string[],
@@ -1724,20 +1774,11 @@ export async function updateRecipe(
 
   const ingredientIds: string[] = [];
   for (const entry of ingredientEntries) {
-    const { canonical } = entry;
-    const { data: ingRow, error: ingErr } = await supabase
-      .from("ingredients")
-      .upsert({ name: canonical }, { onConflict: "name" })
-      .select("id")
-      .single();
-
-    if (ingErr || !ingRow) {
-      if (ingErr) {
-        logServerError("recipes.update_ingredient_upsert", ingErr);
-      }
+    const id = await resolveIngredientIdByCanonicalName(supabase, entry.canonical);
+    if (!id) {
       return { error: GENERIC_SERVER_ERROR, success: null };
     }
-    ingredientIds.push(ingRow.id);
+    ingredientIds.push(id);
   }
 
   const { error: deleteIngredientsError } = await supabase

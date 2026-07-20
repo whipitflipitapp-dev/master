@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { updateRecipe } from "@/app/actions/recipes";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
@@ -123,8 +124,14 @@ export function RecipePremiumTools({
   );
   const [reelUploading, setReelUploading] = useState(false);
   const [transitionPending, startTransition] = useTransition();
+  const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const pending = actionPending || transitionPending;
+
+  useEffect(() => {
+    if (!state.success) return;
+    router.refresh();
+  }, [state.success, router]);
 
   const [galleryItems, setGalleryItems] = useState<GalleryReorderItem[]>(
     galleryPhotos,
@@ -275,6 +282,7 @@ export function RecipePremiumTools({
         </h3>
         {canEdit ? (
           <form
+            key={state.success ?? "recipe-edit-form"}
             className="mt-4 space-y-4"
             onSubmit={async (e) => {
               e.preventDefault();
