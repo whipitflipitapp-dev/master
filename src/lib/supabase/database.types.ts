@@ -216,16 +216,19 @@ export interface Database {
           ingredient_id: string;
           quantity: string | null;
           sort_order: number;
+          price_cents: number | null;
         };
         Insert: {
           recipe_id: string;
           ingredient_id: string;
           quantity?: string | null;
           sort_order?: number;
+          price_cents?: number | null;
         };
         Update: {
           quantity?: string | null;
           sort_order?: number;
+          price_cents?: number | null;
         };
       };
       favorites: {

@@ -941,11 +941,13 @@ export function AddRecipeForm({
           rows={6}
           value={ingredientDraft}
           onChange={(e) => setIngredientDraft(e.target.value)}
-          placeholder={"2 cups flour, salt, olive oil\nor one item per line"}
+          placeholder={"2 cups flour\n1 lb large shrimp | $16\nor one item per line"}
           className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/30 focus:ring-2"
         />
         <span className="text-[length:var(--text-caption)] text-[var(--muted)]">
-          Separate with commas, semicolons, or new lines — saved for Help me cook matching.
+          Separate with commas, semicolons, or new lines. Optional price per line (e.g.{" "}
+          <span className="whitespace-nowrap">| $16</span>) improves cost estimates for
+          shoppers.
         </span>
       </div>
 

@@ -97,12 +97,69 @@ export function stripIngredientQuantityPrefix(raw: string): string {
   return t.trim();
 }
 
+/** Strip trailing optional price (e.g. `| $16`, `@ $16.99`, `($12)`). */
+export function parseIngredientLinePriceCents(raw: string): {
+  lineWithoutPrice: string;
+  priceCents: number | null;
+} {
+  let line = raw.trim();
+  let priceCents: number | null = null;
+
+  const patterns = [
+    /\s*[\|\-–—@]\s*\$?\s*(\d+(?:\.\d{1,2})?)\s*$/,
+    /\s*\(\s*\$?\s*(\d+(?:\.\d{1,2})?)\s*\)\s*$/,
+    /\s+\$\s*(\d+(?:\.\d{1,2})?)\s*$/,
+  ] as const;
+
+  for (const re of patterns) {
+    const m = line.match(re);
+    if (!m || m.index == null) continue;
+    const dollars = Number.parseFloat(m[1]!);
+    if (!Number.isFinite(dollars) || dollars < 0 || dollars > 9999) continue;
+    priceCents = Math.round(dollars * 100);
+    line = line.slice(0, m.index).trim();
+    break;
+  }
+
+  return { lineWithoutPrice: line, priceCents };
+}
+
+/** Quantity text before the canonical ingredient name (for display / cost). */
+export function ingredientQuantityFromRaw(raw: string): string | null {
+  const t = raw.trim();
+  const stripped = stripIngredientQuantityPrefix(t);
+  if (stripped === t) return null;
+  const qty = t.slice(0, t.length - stripped.length).trim().replace(/[,|@\-–—]+$/u, "").trim();
+  return qty || null;
+}
+
+/** Rebuild a recipe-ingredients textarea line (quantity + name + optional price). */
+export function formatIngredientLineForRecipeInput(args: {
+  name: string;
+  quantity?: string | null;
+  priceCents?: number | null;
+}): string {
+  const name = args.name.trim();
+  const qty = args.quantity?.trim();
+  let line = qty ? `${qty} ${name}` : name;
+  const cents = args.priceCents;
+  if (cents != null && cents > 0) {
+    const dollars =
+      cents % 100 === 0
+        ? String(cents / 100)
+        : (cents / 100).toFixed(2).replace(/\.?0+$/, "");
+    line = `${line} | $${dollars}`;
+  }
+  return line;
+}
+
 /** Canonical name for database rows — same normalization Help Me Cook matches on. */
 export function ingredientCanonicalName(rawLine: string): string {
-  const stripped = stripIngredientQuantityPrefix(rawLine);
+  const { lineWithoutPrice } = parseIngredientLinePriceCents(rawLine);
+  const stripped = stripIngredientQuantityPrefix(lineWithoutPrice);
   const fromStripped = normalizeIngredientToken(stripped);
   if (fromStripped) return fromStripped;
-  return normalizeIngredientToken(rawLine);
+  return normalizeIngredientToken(lineWithoutPrice);
 }
 
 /**
@@ -112,17 +169,30 @@ export function ingredientCanonicalName(rawLine: string): string {
 export function parseIngredientLinesForRecipe(text: string): {
   raw: string;
   canonical: string;
+  quantity: string | null;
+  priceCents: number | null;
 }[] {
   const parts = splitRecipeIngredientInput(text);
   const seen = new Set<string>();
-  const out: { raw: string; canonical: string }[] = [];
+  const out: {
+    raw: string;
+    canonical: string;
+    quantity: string | null;
+    priceCents: number | null;
+  }[] = [];
   for (const raw of parts) {
+    const { lineWithoutPrice, priceCents } = parseIngredientLinePriceCents(raw);
     const canonical = ingredientCanonicalName(raw);
     if (!canonical || seen.has(canonical) || isIngredientLineNoise(canonical)) {
       continue;
     }
     seen.add(canonical);
-    out.push({ raw, canonical });
+    out.push({
+      raw,
+      canonical,
+      quantity: ingredientQuantityFromRaw(lineWithoutPrice),
+      priceCents,
+    });
   }
   return out;
 }

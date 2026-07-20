@@ -218,7 +218,7 @@
   "help_cook_sort_lowest_cost": "Coût estimé le plus bas",
   "help_cook_sort_highest_cost": "Coût estimé le plus élevé",
   "help_cook_estimated_missing_cost": "{{amount}} manquants",
-  "help_cook_cost_estimate_disclaimer": "Estimations basées sur des formats courants en supermarché aux États-Unis, arrondies à la hausse ; votre magasin peut différer.",
+  "help_cook_cost_estimate_disclaimer": "Utilise vos prix sur les ingrédients quand indiqués ; sinon estimations supermarché US (arrondies à la hausse).",
   "profile_meta_title": "Profil | {{brand}}",
   "profile_meta_desc": "Votre compte, allergies et abonnement.",
   "profile_title": "Profil",

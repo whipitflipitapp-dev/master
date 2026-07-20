@@ -13,6 +13,7 @@ export type RecipeDetailIngredient = {
   name: string;
   quantity: string | null;
   sortOrder: number;
+  priceCents?: number | null;
 };
 
 type RecipeDetailIngredientsSectionProps = {
@@ -43,10 +44,18 @@ export function RecipeDetailIngredientsSection({
   );
 
   const { missingNames, estimatedCents } = useMemo(() => {
-    const missingLines: { name: string; quantity: string | null }[] = [];
+    const missingLines: {
+      name: string;
+      quantity: string | null;
+      priceCents: number | null;
+    }[] = [];
     for (const ing of displayIngredients) {
       if (!haveIds.has(ing.ingredientId)) {
-        missingLines.push({ name: ing.name, quantity: ing.quantity });
+        missingLines.push({
+          name: ing.name,
+          quantity: ing.quantity,
+          priceCents: ing.priceCents ?? null,
+        });
       }
     }
     return {

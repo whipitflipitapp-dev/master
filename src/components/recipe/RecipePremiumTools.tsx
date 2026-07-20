@@ -15,10 +15,12 @@ import { RECIPE_REEL_ACCEPT } from "@/lib/recipe-reel";
 import { validateRecipeReelFileDuration } from "@/lib/recipe-reel-duration-client";
 import { attachHostedReelToFormData } from "@/lib/recipe-reel-upload-client";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { formatIngredientLineForRecipeInput } from "@/lib/ingredients";
 
 type RecipeToolIngredient = {
   name: string;
   quantity: string | null;
+  priceCents?: number | null;
 };
 
 type RecipePremiumToolsProps = {
@@ -140,9 +142,11 @@ export function RecipePremiumTools({
     () =>
       ingredients
         .map((ingredient) =>
-          ingredient.quantity
-            ? `${ingredient.quantity} ${ingredient.name}`
-            : ingredient.name,
+          formatIngredientLineForRecipeInput({
+            name: ingredient.name,
+            quantity: ingredient.quantity,
+            priceCents: ingredient.priceCents,
+          }),
         )
         .join("\n"),
     [ingredients],

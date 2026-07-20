@@ -122,7 +122,7 @@ async function loadRecipe(
 
   const { data: ri } = await supabase
     .from("recipe_ingredients")
-    .select("quantity,sort_order,ingredient_id")
+    .select("quantity,sort_order,ingredient_id,price_cents")
     .eq("recipe_id", id)
     .order("sort_order", { ascending: true });
 
@@ -144,15 +144,18 @@ async function loadRecipe(
     quantity: string | null;
     sort_order: number;
     name: string;
+    price_cents: number | null;
   }[] = (ri ?? []).map(
     (row: {
       quantity: string | null;
       sort_order: number;
       ingredient_id: string;
+      price_cents: number | null;
     }) => ({
       ingredient_id: row.ingredient_id,
       quantity: row.quantity,
       sort_order: row.sort_order,
+      price_cents: row.price_cents,
       name: nameById.get(row.ingredient_id) ?? "unknown",
     }),
   );
@@ -489,6 +492,7 @@ export default async function RecipeDetailPage(props: Props) {
     name: ing.name,
     quantity: ing.quantity,
     sortOrder: ing.sort_order,
+    priceCents: ing.price_cents,
   }));
   const initialHaveIngredientIds = pantryHaveIngredientIds
     ? [...pantryHaveIngredientIds]

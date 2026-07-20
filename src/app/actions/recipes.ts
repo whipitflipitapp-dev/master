@@ -871,7 +871,7 @@ export async function matchRecipesForPantry(
 
   const { data: allRi, error: allRiErr } = await supabase
     .from("recipe_ingredients")
-    .select("recipe_id,ingredient_id,quantity")
+    .select("recipe_id,ingredient_id,quantity,price_cents")
     .in("recipe_id", candidateIds);
 
   if (allRiErr || !allRi) {
@@ -909,22 +909,26 @@ export async function matchRecipesForPantry(
     recipe_id: string;
     ingredient_id: string;
     quantity: string | null;
+    price_cents: number | null;
   };
 
   const recipeIngredientIds = new Map<string, Set<string>>();
-  const recipeIngredientQty = new Map<
+  const recipeIngredientMeta = new Map<
     string,
-    Map<string, string | null>
+    Map<string, { quantity: string | null; priceCents: number | null }>
   >();
   for (const row of allRi as RiRow[]) {
     const nm = ingName.get(row.ingredient_id);
     if (!nm) continue;
     if (!recipeIngredientIds.has(row.recipe_id)) {
       recipeIngredientIds.set(row.recipe_id, new Set());
-      recipeIngredientQty.set(row.recipe_id, new Map());
+      recipeIngredientMeta.set(row.recipe_id, new Map());
     }
     recipeIngredientIds.get(row.recipe_id)!.add(row.ingredient_id);
-    recipeIngredientQty.get(row.recipe_id)!.set(row.ingredient_id, row.quantity);
+    recipeIngredientMeta.get(row.recipe_id)!.set(row.ingredient_id, {
+      quantity: row.quantity,
+      priceCents: row.price_cents,
+    });
   }
 
   const matches: RecipeMatchResult[] = [];
@@ -947,7 +951,7 @@ export async function matchRecipesForPantry(
     const matchPercent = useSingleIngredientOverlap
       ? Math.min(100, Math.round((overlap / denom) * 100))
       : 100;
-    const qtyByIng = recipeIngredientQty.get(r.id);
+    const metaByIng = recipeIngredientMeta.get(r.id);
     const missingIngredients = [...ids]
       .filter((id) => !userUnion.has(id))
       .map((id) => ingName.get(id)!)
@@ -955,10 +959,14 @@ export async function matchRecipesForPantry(
       .sort((a, b) => a.localeCompare(b));
     const missingCostLines = [...ids]
       .filter((id) => !userUnion.has(id))
-      .map((id) => ({
-        name: ingName.get(id)!,
-        quantity: qtyByIng?.get(id) ?? null,
-      }))
+      .map((id) => {
+        const meta = metaByIng?.get(id);
+        return {
+          name: ingName.get(id)!,
+          quantity: meta?.quantity ?? null,
+          priceCents: meta?.priceCents ?? null,
+        };
+      })
       .filter((line) => !isIngredientLineNoise(line.name));
     matches.push({
       recipeId: r.id,
@@ -1336,11 +1344,14 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
       p_video_url: video_url,
       p_difficulty: difficulty,
       p_cook_time_minutes: cook_time_minutes,
-      p_ingredients: ingredientEntries.map(({ canonical }, sort_order) => ({
-        name: canonical,
-        quantity: null,
-        sort_order,
-      })),
+      p_ingredients: ingredientEntries.map(
+        ({ canonical, quantity, priceCents }, sort_order) => ({
+          name: canonical,
+          quantity,
+          price_cents: priceCents,
+          sort_order,
+        }),
+      ),
       p_allergen_ids: allergenIds,
       p_tag_names: tagNames,
     },
@@ -1711,7 +1722,8 @@ export async function updateRecipe(
   }
 
   const ingredientIds: string[] = [];
-  for (const { canonical } of ingredientEntries) {
+  for (const entry of ingredientEntries) {
+    const { canonical } = entry;
     const { data: ingRow, error: ingErr } = await supabase
       .from("ingredients")
       .upsert({ name: canonical }, { onConflict: "name" })
@@ -1738,11 +1750,12 @@ export async function updateRecipe(
   }
 
   const { error: riErr } = await supabase.from("recipe_ingredients").insert(
-    ingredientIds.map((ingredientId, sort) => ({
+    ingredientEntries.map((entry, sort) => ({
       recipe_id: recipeId,
-      ingredient_id: ingredientId,
-      quantity: null,
+      ingredient_id: ingredientIds[sort]!,
+      quantity: entry.quantity,
       sort_order: sort,
+      price_cents: entry.priceCents,
     })),
   );
 

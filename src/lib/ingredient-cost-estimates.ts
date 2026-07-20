@@ -19,7 +19,7 @@ const CHECKOUT_BUFFER = 1.08;
 
 export type IngredientCostInput =
   | string
-  | { name: string; quantity?: string | null };
+  | { name: string; quantity?: string | null; priceCents?: number | null };
 
 /** Per-ingredient baseline (USD cents) when no weight/count is parsed. */
 const INGREDIENT_COST_CENTS: Record<string, number> = {
@@ -330,11 +330,16 @@ export function estimateIngredientCostCents(
 function normalizeCostInput(item: IngredientCostInput): {
   name: string;
   quantity: string | null;
+  priceCents: number | null;
 } {
   if (typeof item === "string") {
-    return { name: item, quantity: null };
+    return { name: item, quantity: null, priceCents: null };
   }
-  return { name: item.name, quantity: item.quantity ?? null };
+  return {
+    name: item.name,
+    quantity: item.quantity ?? null,
+    priceCents: item.priceCents ?? null,
+  };
 }
 
 /** Sum estimates for ingredients the user still needs to buy. */
@@ -343,10 +348,16 @@ export function estimateMissingIngredientsCostCents(
 ): number {
   let total = 0;
   for (const raw of missing) {
-    const { name, quantity } = normalizeCostInput(raw);
-    total += estimateIngredientCostCents(name, quantity);
+    const { name, quantity, priceCents } = normalizeCostInput(raw);
+    if (priceCents != null && priceCents > 0) {
+      total += priceCents;
+      continue;
+    }
+    total += Math.round(
+      estimateIngredientCostCents(name, quantity) * CHECKOUT_BUFFER,
+    );
   }
-  return Math.round(total * CHECKOUT_BUFFER);
+  return total;
 }
 
 /** Rounded-up whole-dollar display (~$24). */
