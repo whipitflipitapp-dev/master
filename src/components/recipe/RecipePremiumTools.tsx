@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -38,6 +39,9 @@ type RecipePremiumToolsProps = {
   planType: PlanType;
   canUseTools: boolean;
   canEdit: boolean;
+  showEditForm: boolean;
+  editRecipeHref: string;
+  doneEditingHref: string;
   labels: {
     heading: string;
     lockedTitle: string;
@@ -47,6 +51,8 @@ type RecipePremiumToolsProps = {
     downloadMarkdown: string;
     downloadCsv: string;
     editHeading: string;
+    editRecipeButton: string;
+    doneEditing: string;
     titleLabel: string;
     ingredientsLabel: string;
     instructionsLabel: string;
@@ -107,6 +113,9 @@ export function RecipePremiumTools({
   planType,
   canUseTools,
   canEdit,
+  showEditForm,
+  editRecipeHref,
+  doneEditingHref,
   labels,
 }: RecipePremiumToolsProps) {
   const [state, formAction, actionPending] = useActionState(updateRecipe, {
@@ -131,7 +140,10 @@ export function RecipePremiumTools({
   useEffect(() => {
     if (!state.success) return;
     router.refresh();
-  }, [state.success, router]);
+    if (showEditForm) {
+      router.replace(doneEditingHref);
+    }
+  }, [state.success, router, showEditForm, doneEditingHref]);
 
   const [galleryItems, setGalleryItems] = useState<GalleryReorderItem[]>(
     galleryPhotos,
@@ -276,11 +288,22 @@ export function RecipePremiumTools({
         </button>
       </div>
 
-      <div className="mt-6 border-t border-[var(--border)] pt-5">
-        <h3 className="text-lg font-semibold text-[var(--text)]">
-          {labels.editHeading}
-        </h3>
-        {canEdit ? (
+      {canEdit ? (
+        <div className="mt-6 border-t border-[var(--border)] pt-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-lg font-semibold text-[var(--text)]">
+              {labels.editHeading}
+            </h3>
+            {showEditForm ? (
+              <Link
+                href={doneEditingHref}
+                className="text-sm font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+              >
+                {labels.doneEditing}
+              </Link>
+            ) : null}
+          </div>
+          {showEditForm ? (
           <form
             key={state.success ?? "recipe-edit-form"}
             className="mt-4 space-y-4"
@@ -497,12 +520,16 @@ export function RecipePremiumTools({
               {pending || reelUploading ? labels.saving : labels.save}
             </button>
           </form>
-        ) : (
-          <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-            {labels.ownerOnly}
-          </p>
-        )}
-      </div>
+          ) : (
+            <Link
+              href={editRecipeHref}
+              className="mt-4 inline-flex rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))]"
+            >
+              {labels.editRecipeButton}
+            </Link>
+          )}
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -485,6 +485,16 @@ export default async function RecipeDetailPage(props: Props) {
     sp.review === "pending" ||
     (recipe as { moderation_status?: string }).moderation_status ===
       "pending_review";
+  const editMode = sp.edit === "1" || sp.edit === "true";
+  const recipeViewParams = new URLSearchParams();
+  if (qRaw) recipeViewParams.set("q", qRaw);
+  const recipeViewQs = recipeViewParams.toString();
+  const recipeViewPath = recipeViewQs
+    ? `/recipes/${recipe.id}?${recipeViewQs}`
+    : `/recipes/${recipe.id}`;
+  const editRecipeParams = new URLSearchParams(recipeViewParams);
+  editRecipeParams.set("edit", "1");
+  const editRecipePath = `/recipes/${recipe.id}?${editRecipeParams.toString()}`;
   const loginNextPath =
     qRaw.length > 0 ? `/recipes/${recipe.id}?q=${encodeURIComponent(qRaw)}` : `/recipes/${recipe.id}`;
   const detailIngredients = ingredientsList.map((ing) => ({
@@ -735,6 +745,7 @@ export default async function RecipeDetailPage(props: Props) {
         </div>
       </section>
 
+      {(premiumToolsUnlocked || canEditRecipe) ? (
       <RecipePremiumTools
         recipe={{
           id: recipe.id,
@@ -748,6 +759,9 @@ export default async function RecipeDetailPage(props: Props) {
         planType={premiumToolsPlan}
         canUseTools={premiumToolsUnlocked}
         canEdit={canEditRecipe}
+        showEditForm={canEditRecipe && editMode && premiumToolsUnlocked}
+        editRecipeHref={editRecipePath}
+        doneEditingHref={recipeViewPath}
         labels={{
           heading: dictText(dict, "recipe_tools_heading"),
           lockedTitle: dictText(dict, "recipe_tools_locked_title"),
@@ -757,6 +771,8 @@ export default async function RecipeDetailPage(props: Props) {
           downloadMarkdown: dictText(dict, "recipe_tools_download_markdown"),
           downloadCsv: dictText(dict, "recipe_tools_download_csv"),
           editHeading: dictText(dict, "recipe_tools_edit_heading"),
+          editRecipeButton: dictText(dict, "recipe_tools_edit_recipe_button"),
+          doneEditing: dictText(dict, "recipe_tools_done_editing"),
           titleLabel: dictText(dict, "recipe_tools_title_label"),
           ingredientsLabel: dictText(dict, "recipe_tools_ingredients_label"),
           instructionsLabel: dictText(dict, "recipe_tools_instructions_label"),
@@ -790,6 +806,7 @@ export default async function RecipeDetailPage(props: Props) {
           uploadRetry: dictText(dict, "add_recipe_upload_retry"),
         }}
       />
+      ) : null}
 
       <RecipeWinePairingsSection
         recipeId={recipe.id}

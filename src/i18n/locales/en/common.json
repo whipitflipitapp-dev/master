@@ -88,6 +88,8 @@
   "recipe_tools_download_markdown": "Download Markdown",
   "recipe_tools_download_csv": "Download CSV",
   "recipe_tools_edit_heading": "Edit recipe",
+  "recipe_tools_edit_recipe_button": "Edit recipe",
+  "recipe_tools_done_editing": "Done editing",
   "recipe_tools_title_label": "Title",
   "recipe_tools_ingredients_label": "Ingredients",
   "recipe_tools_instructions_label": "Instructions",
