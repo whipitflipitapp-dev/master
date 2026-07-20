@@ -44,6 +44,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isProOrAbove } from "@/lib/plan";
 import {
   isRecipeCategory,
+  parseCustomRecipeCategoryInput,
   type RecipeCategory,
 } from "@/lib/recipe-categories";
 import { getExcludedRecipeIdsForUser } from "@/lib/user-excluded-recipes";
@@ -1016,6 +1017,8 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     .getAll("recipe_category")
     .map(String)
     .filter((s) => isRecipeCategory(s));
+  const otherCategoryRaw = String(formData.get("recipe_category_other") ?? "").trim();
+  const customCategoryTags = parseCustomRecipeCategoryInput(otherCategoryRaw);
   const allergenIds = formData.getAll("allergen_id").map(String).filter(Boolean);
 
   if (!title || !instructions) {
@@ -1071,6 +1074,19 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
       recipeId: null,
     };
   }
+  if (otherCategoryRaw && customCategoryTags.length === 0) {
+    return {
+      error:
+        "Enter a valid custom category under Other (up to 48 characters each, comma-separated).",
+      recipeId: null,
+    };
+  }
+  if (categorySlugs.length + customCategoryTags.length > RECIPE_CATEGORY_MAX_COUNT) {
+    return {
+      error: `Choose up to ${RECIPE_CATEGORY_MAX_COUNT} categories total (including Other).`,
+      recipeId: null,
+    };
+  }
   if (allergenIds.length > RECIPE_ALLERGEN_MAX_COUNT) {
     return {
       error: `Choose up to ${RECIPE_ALLERGEN_MAX_COUNT} allergens.`,
@@ -1117,6 +1133,7 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
   const tagNames = [
     ...new Set([
       ...categorySlugs,
+      ...customCategoryTags,
       ...tagRaw
         .split(/[,]+/)
         .map((t) => normalizeIngredientToken(t))

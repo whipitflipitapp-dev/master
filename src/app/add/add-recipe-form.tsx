@@ -33,7 +33,7 @@ const IMAGE_UPLOAD_ERROR =
 const COOK_TIME_MINUTES_MIN = 1;
 const COOK_TIME_MINUTES_MAX = 1440;
 const DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;
-const ADD_RECIPE_DRAFT_VERSION = 1;
+const ADD_RECIPE_DRAFT_VERSION = 2;
 
 type RecipeDifficulty = (typeof DIFFICULTY_VALUES)[number];
 type DraftDifficulty = "" | RecipeDifficulty;
@@ -51,6 +51,7 @@ type AddRecipeDraft = {
   tags: string;
   allergenIds: string[];
   categoryValues: string[];
+  otherCategory: string;
   hadImage: boolean;
 };
 
@@ -86,6 +87,7 @@ function hasRecipeDraftContent(draft: AddRecipeDraft) {
     draft.tags.trim().length > 0 ||
     draft.allergenIds.length > 0 ||
     draft.categoryValues.length > 0 ||
+    draft.otherCategory.trim().length > 0 ||
     draft.hadImage
   );
 }
@@ -151,6 +153,9 @@ export function AddRecipeForm({
   categoryOptions,
   categoriesLabel,
   categoriesHint,
+  otherCategoryLabel,
+  otherCategoryHint,
+  otherCategoryPlaceholder,
   detailsLabel,
   detailsHint,
   difficultyLabel,
@@ -185,6 +190,9 @@ export function AddRecipeForm({
   categoryOptions: CategoryOption[];
   categoriesLabel: string;
   categoriesHint: string;
+  otherCategoryLabel: string;
+  otherCategoryHint: string;
+  otherCategoryPlaceholder: string;
   detailsLabel: string;
   detailsHint: string;
   difficultyLabel: string;
@@ -241,6 +249,8 @@ export function AddRecipeForm({
   const [categoriesSelected, setCategoriesSelected] = useState<Set<string>>(
     () => new Set(),
   );
+  const [otherCategoryEnabled, setOtherCategoryEnabled] = useState(false);
+  const [otherCategoryDraft, setOtherCategoryDraft] = useState("");
   const categoriesLabelId = useId();
   const draftStorageKey = useMemo(() => addRecipeDraftStorageKey(userId), [userId]);
   const validAllergenIds = useMemo(
@@ -288,6 +298,7 @@ export function AddRecipeForm({
       tags: tagsDraft,
       allergenIds: [...allergenSelected].sort(),
       categoryValues: [...categoriesSelected].sort(),
+      otherCategory: otherCategoryDraft,
       hadImage: selectedPhotos.length > 0 || imageReselectNeeded,
     }),
     [
@@ -300,6 +311,7 @@ export function AddRecipeForm({
       tagsDraft,
       allergenSelected,
       categoriesSelected,
+      otherCategoryDraft,
       selectedPhotos,
       imageReselectNeeded,
     ],
@@ -347,6 +359,8 @@ export function AddRecipeForm({
     setTagsDraft("");
     setAllergenSelected(new Set());
     setCategoriesSelected(new Set());
+    setOtherCategoryEnabled(false);
+    setOtherCategoryDraft("");
     setDraftRestored(false);
     setLocalError(null);
     clearSelectedPhotos();
@@ -378,6 +392,7 @@ export function AddRecipeForm({
           categoryValues: stringArrayFromDraft(parsed.categoryValues).filter(
             (value) => validCategoryValues.has(value),
           ),
+          otherCategory: stringFromDraft(parsed.otherCategory),
           hadImage: parsed.hadImage === true,
         };
 
@@ -392,6 +407,9 @@ export function AddRecipeForm({
         setTagsDraft(nextDraft.tags);
         setAllergenSelected(new Set(nextDraft.allergenIds));
         setCategoriesSelected(new Set(nextDraft.categoryValues));
+        const otherCat = nextDraft.otherCategory.trim();
+        setOtherCategoryDraft(nextDraft.otherCategory);
+        setOtherCategoryEnabled(otherCat.length > 0);
         setImageReselectNeeded(nextDraft.hadImage);
         setDraftRestored(true);
       } catch {
@@ -869,6 +887,38 @@ export function AddRecipeForm({
               <span>{c.label}</span>
             </label>
           ))}
+        </div>
+        <div className="mt-3 border-t border-[color-mix(in_srgb,var(--muted)_22%,transparent)] pt-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-[var(--text)]">
+            <input
+              type="checkbox"
+              disabled={busy || capped}
+              checked={otherCategoryEnabled}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setOtherCategoryEnabled(on);
+                if (!on) setOtherCategoryDraft("");
+              }}
+            />
+            {otherCategoryLabel}
+          </label>
+          {otherCategoryEnabled ? (
+            <div className="mt-2 flex flex-col gap-1.5">
+              <input
+                id="recipe_category_other"
+                name="recipe_category_other"
+                type="text"
+                disabled={busy || capped}
+                value={otherCategoryDraft}
+                onChange={(e) => setOtherCategoryDraft(e.target.value)}
+                placeholder={otherCategoryPlaceholder}
+                className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/30 focus:ring-2"
+              />
+              <span className="text-[length:var(--text-caption)] text-[var(--muted)]">
+                {otherCategoryHint}
+              </span>
+            </div>
+          ) : null}
         </div>
       </fieldset>
 

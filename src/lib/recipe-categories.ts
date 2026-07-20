@@ -1,3 +1,5 @@
+import { normalizeIngredientToken } from "@/lib/ingredients";
+
 /** Canonical recipe browse / add-recipe category slugs (stored as `tags.name`). */
 export const RECIPE_CATEGORY_VALUES = [
   "italian",
@@ -41,4 +43,35 @@ export function parseRecipeCategoryParam(
   const v = raw?.trim() ?? "";
   if (!v || !isRecipeCategory(v)) return null;
   return v;
+}
+
+/** Max custom "Other" category labels per recipe (comma-separated in the form). */
+export const RECIPE_CUSTOM_CATEGORY_MAX_COUNT = 3;
+
+/** Max length per custom category label after normalization. */
+export const RECIPE_CUSTOM_CATEGORY_MAX_LEN = 48;
+
+/** Parse free-text "Other" categories (comma-separated) into tag names. */
+export function parseCustomRecipeCategoryInput(raw: string): string[] {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return [];
+  }
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of trimmed.split(/[,]+/)) {
+    const token = normalizeIngredientToken(part);
+    if (!token || token.length > RECIPE_CUSTOM_CATEGORY_MAX_LEN) {
+      continue;
+    }
+    if (seen.has(token)) {
+      continue;
+    }
+    seen.add(token);
+    out.push(token);
+    if (out.length >= RECIPE_CUSTOM_CATEGORY_MAX_COUNT) {
+      break;
+    }
+  }
+  return out;
 }

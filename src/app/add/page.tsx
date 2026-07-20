@@ -148,6 +148,12 @@ export default async function AddRecipePage({
         categoryOptions={categoryOptions}
         categoriesLabel={dictText(dict, "add_recipe_categories_label")}
         categoriesHint={dictText(dict, "add_recipe_categories_hint")}
+        otherCategoryLabel={dictText(dict, "add_recipe_other_category_label")}
+        otherCategoryHint={dictText(dict, "add_recipe_other_category_hint")}
+        otherCategoryPlaceholder={dictText(
+          dict,
+          "add_recipe_other_category_placeholder",
+        )}
         detailsLabel={dictText(dict, "add_recipe_details_label")}
         detailsHint={dictText(dict, "add_recipe_details_hint")}
         difficultyLabel={dictText(dict, "add_recipe_difficulty_label")}
