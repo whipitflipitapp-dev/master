@@ -68,7 +68,7 @@ async function loadRecipe(
   const { data: recipe, error: rErr } = await supabase
     .from("recipes")
     .select(
-      "id,title,instructions,image_url,video_url,favorites_count,difficulty,cook_time_minutes,created_at,created_by,moderation_status,moderation_reason",
+      "id,title,instructions,image_url,video_url,hosted_reel_url,favorites_count,difficulty,cook_time_minutes,created_at,created_by,moderation_status,moderation_reason",
     )
     .eq("id", id)
     .maybeSingle();
@@ -577,13 +577,14 @@ export default async function RecipeDetailPage(props: Props) {
             ? dictText(dict, "recipe_detail_photo_alt", { title: recipe.title })
             : ""
         }
-        video={recipeVideo}
+        hostedReelUrl={
+          typeof recipe.hosted_reel_url === "string"
+            ? recipe.hosted_reel_url
+            : null
+        }
+        reelPosterUrl={displayImageUrl}
         videoFrameTitle={dictText(dict, "recipe_detail_video_frame_title")}
-        tapForSoundHint={dictText(dict, "recipe_detail_video_tap_for_sound")}
-        instagramInAppHint={dictText(
-          dict,
-          "recipe_detail_instagram_in_app_hint",
-        )}
+        hostedReelHint={dictText(dict, "recipe_detail_hosted_reel_hint")}
       />
 
       {allergyBanner ? (
@@ -713,6 +714,7 @@ export default async function RecipeDetailPage(props: Props) {
           title: recipe.title,
           instructions: recipe.instructions,
           videoUrl: recipe.video_url,
+          hostedReelUrl: recipe.hosted_reel_url,
         }}
         galleryPhotos={galleryPhotosForEdit}
         ingredients={detailIngredients}
@@ -745,6 +747,20 @@ export default async function RecipeDetailPage(props: Props) {
           gallerySetCoverLabel: dictText(dict, "recipe_tools_gallery_set_cover"),
           galleryMoveEarlier: dictText(dict, "recipe_tools_gallery_move_earlier"),
           galleryMoveLater: dictText(dict, "recipe_tools_gallery_move_later"),
+          hostedReelLabel: dictText(dict, "add_recipe_hosted_reel_label"),
+          hostedReelHint: dictText(dict, "add_recipe_hosted_reel_hint"),
+          hostedReelCurrent: dictText(dict, "recipe_tools_hosted_reel_current"),
+          uploadProgressTitle: dictText(dict, "add_recipe_save_progress_title"),
+          uploadingReelLabel: dictText(
+            dict,
+            "add_recipe_save_progress_uploading_reel",
+          ),
+          uploadWarning: dictText(
+            dict,
+            "add_recipe_save_progress_upload_warning",
+          ),
+          uploadFailedTitle: dictText(dict, "add_recipe_upload_failed_title"),
+          uploadRetry: dictText(dict, "add_recipe_upload_retry"),
         }}
       />
 

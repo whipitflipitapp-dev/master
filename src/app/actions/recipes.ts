@@ -22,6 +22,14 @@ import {
   resolveRecipeDisplayImageUrl,
 } from "@/lib/demo-recipe-cover-images";
 import {
+  HOSTED_REEL_DURATION_REQUIRED_ERROR,
+  HOSTED_REEL_PLAN_REQUIRED_ERROR,
+  RECIPE_REEL_BUCKET,
+  parseHostedReelDurationFormField,
+  validateRecipeReelDurationSeconds,
+  validateStoredRecipeReelUrl,
+} from "@/lib/recipe-reel";
+import {
   RECIPE_IMAGE_BUCKET,
   RECIPE_GALLERY_MAX_IMAGES,
   validateRecipeImageUploadMeta,
@@ -82,6 +90,21 @@ async function cleanupUploadedRecipeImage(
 
   if (error) {
     logServerError("recipes.cleanup_uploaded_image", error);
+  }
+}
+
+async function cleanupUploadedRecipeReel(
+  supabase: SupabaseClient,
+  objectPath: string | null,
+) {
+  if (!objectPath) return;
+
+  const { error } = await supabase.storage
+    .from(RECIPE_REEL_BUCKET)
+    .remove([objectPath]);
+
+  if (error) {
+    logServerError("recipes.cleanup_uploaded_reel", error);
   }
 }
 
@@ -1055,6 +1078,44 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     return { error: gate.message, recipeId: null };
   }
 
+  const hostedReelUrlInput = String(formData.get("hosted_reel_url") ?? "").trim();
+  const hostedReelPathInput = String(
+    formData.get("hosted_reel_object_path") ?? "",
+  ).trim();
+  let pendingHostedReelPath: string | null = null;
+
+  const projectOriginEarly = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (hostedReelUrlInput || hostedReelPathInput) {
+    if (!isProOrAbove(gate.plan)) {
+      return { error: HOSTED_REEL_PLAN_REQUIRED_ERROR, recipeId: null };
+    }
+    if (!projectOriginEarly) {
+      return { error: "Supabase is not configured.", recipeId: null };
+    }
+    const reelCheck = validateStoredRecipeReelUrl({
+      reelUrlRaw: hostedReelUrlInput,
+      objectPathRaw: hostedReelPathInput,
+      userId: user.id,
+      supabaseProjectOrigin: projectOriginEarly,
+    });
+    if (!reelCheck.ok) {
+      return { error: reelCheck.message, recipeId: null };
+    }
+    if (reelCheck.url) {
+      pendingHostedReelPath = reelCheck.objectPath;
+      const durationSec = parseHostedReelDurationFormField(
+        formData.get("hosted_reel_duration_seconds"),
+      );
+      if (durationSec == null) {
+        return { error: HOSTED_REEL_DURATION_REQUIRED_ERROR, recipeId: null };
+      }
+      const durationErr = validateRecipeReelDurationSeconds(durationSec);
+      if (durationErr) {
+        return { error: durationErr, recipeId: null };
+      }
+    }
+  }
+
   for (const value of formData.values()) {
     if (!(value instanceof File) || value.size <= 0) continue;
     const metaErr = validateRecipeImageUploadMeta({
@@ -1098,6 +1159,8 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     return { error: videoNormalized.error, recipeId: null };
   }
   const video_url = videoNormalized.video_url;
+  const hostedReelFinalUrl =
+    hostedReelUrlInput && pendingHostedReelPath ? hostedReelUrlInput : null;
   const ingredientBlock = String(formData.get("ingredients") ?? "");
   const tagRaw = String(formData.get("tags") ?? "");
   const difficultyRaw = String(formData.get("difficulty") ?? "")
@@ -1255,6 +1318,9 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
 
   if (recipeError || !recipeId) {
     await cleanupUploadedRecipeImages(supabase, uploadedGalleryPaths);
+    if (pendingHostedReelPath) {
+      await cleanupUploadedRecipeReel(supabase, pendingHostedReelPath);
+    }
     if (isMonthlyRecipeLimitRpcError(recipeError)) {
       return {
         error: MONTHLY_RECIPE_LIMIT_ERROR,
@@ -1282,11 +1348,28 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     if (galleryErr) {
       logServerError("recipes.insert_recipe_images", galleryErr);
       await cleanupUploadedRecipeImages(supabase, uploadedGalleryPaths);
+      if (pendingHostedReelPath) {
+        await cleanupUploadedRecipeReel(supabase, pendingHostedReelPath);
+      }
       await supabase.from("recipes").delete().eq("id", recipeId);
       return {
         error: GENERIC_SERVER_ERROR,
         recipeId: null,
       };
+    }
+  }
+
+  if (hostedReelFinalUrl) {
+    const { error: reelErr } = await supabase
+      .from("recipes")
+      .update({ hosted_reel_url: hostedReelFinalUrl })
+      .eq("id", recipeId);
+    if (reelErr) {
+      logServerError("recipes.set_hosted_reel", reelErr);
+      await cleanupUploadedRecipeImages(supabase, uploadedGalleryPaths);
+      await cleanupUploadedRecipeReel(supabase, pendingHostedReelPath);
+      await supabase.from("recipes").delete().eq("id", recipeId);
+      return { error: GENERIC_SERVER_ERROR, recipeId: null };
     }
   }
 
@@ -1507,6 +1590,45 @@ export async function updateRecipe(
     return { error: videoNormalized.error, success: null };
   }
   const video_url = videoNormalized.video_url;
+
+  const hostedReelUrlInput = String(formData.get("hosted_reel_url") ?? "").trim();
+  const hostedReelPathInput = String(
+    formData.get("hosted_reel_object_path") ?? "",
+  ).trim();
+  const clearHostedReel =
+    String(formData.get("clear_hosted_reel") ?? "").trim() === "1";
+
+  const projectOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!projectOrigin) {
+    return { error: "Supabase is not configured.", success: null };
+  }
+
+  let hosted_reel_url: string | null | undefined = undefined;
+  if (hostedReelUrlInput || hostedReelPathInput) {
+    const reelCheck = validateStoredRecipeReelUrl({
+      reelUrlRaw: hostedReelUrlInput,
+      objectPathRaw: hostedReelPathInput,
+      userId: ctx.user.id,
+      supabaseProjectOrigin: projectOrigin,
+    });
+    if (!reelCheck.ok) {
+      return { error: reelCheck.message, success: null };
+    }
+    hosted_reel_url = reelCheck.url;
+    const durationSec = parseHostedReelDurationFormField(
+      formData.get("hosted_reel_duration_seconds"),
+    );
+    if (durationSec == null) {
+      return { error: HOSTED_REEL_DURATION_REQUIRED_ERROR, success: null };
+    }
+    const durationErr = validateRecipeReelDurationSeconds(durationSec);
+    if (durationErr) {
+      return { error: durationErr, success: null };
+    }
+  } else if (clearHostedReel) {
+    hosted_reel_url = null;
+  }
+
   const ingredientEntries = parseIngredientLinesForRecipe(ingredientBlock);
 
   if (!recipeId) {
@@ -1537,9 +1659,19 @@ export async function updateRecipe(
     return { error: "You can only edit your own recipes.", success: null };
   }
 
+  const recipePatch: {
+    title: string;
+    instructions: string;
+    video_url: string | null;
+    hosted_reel_url?: string | null;
+  } = { title, instructions, video_url };
+  if (hosted_reel_url !== undefined) {
+    recipePatch.hosted_reel_url = hosted_reel_url;
+  }
+
   const { error: recipeError } = await supabase
     .from("recipes")
-    .update({ title, instructions, video_url })
+    .update(recipePatch)
     .eq("id", recipeId)
     .eq("created_by", ctx.user.id);
 

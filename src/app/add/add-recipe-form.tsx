@@ -6,8 +6,9 @@ import { useCallback, useEffect, useId, useMemo, useState } from "react";
 
 import { createRecipeFromForm } from "@/app/actions/recipes";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
+import { RecipeUploadProgressPanel } from "@/components/recipe/RecipeUploadProgressPanel";
 import { suggestAllergenIdsFromText } from "@/lib/allergen-detect";
-import type { PlanType } from "@/lib/plan";
+import { type PlanType } from "@/lib/plan";
 import {
   RECIPE_GALLERY_MAX_IMAGES,
   RECIPE_IMAGE_ACCEPT,
@@ -16,6 +17,13 @@ import {
   recipeStorageExtensionFromMime,
   validateRecipeImageFile,
 } from "@/lib/recipe-image";
+import { RECIPE_REEL_ACCEPT } from "@/lib/recipe-reel";
+import { attachHostedReelToFormData } from "@/lib/recipe-reel-upload-client";
+import { validateRecipeReelFileDuration } from "@/lib/recipe-reel-duration-client";
+import {
+  combineUploadProgress,
+  uploadStorageObjectWithProgress,
+} from "@/lib/supabase/storage-upload-with-progress";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type SelectedRecipePhoto = {
@@ -37,7 +45,13 @@ const ADD_RECIPE_DRAFT_VERSION = 2;
 
 type RecipeDifficulty = (typeof DIFFICULTY_VALUES)[number];
 type DraftDifficulty = "" | RecipeDifficulty;
-type SavePhase = "idle" | "checking" | "uploading" | "saving" | "finishing";
+type SavePhase =
+  | "idle"
+  | "checking"
+  | "uploading"
+  | "uploading_reel"
+  | "saving"
+  | "finishing";
 
 type AddRecipeDraft = {
   version: typeof ADD_RECIPE_DRAFT_VERSION;
@@ -92,61 +106,6 @@ function hasRecipeDraftContent(draft: AddRecipeDraft) {
   );
 }
 
-function RecipeSaveProgress({
-  title,
-  phaseLabel,
-  note,
-}: {
-  title: string;
-  phaseLabel: string;
-  note: string;
-}) {
-  return (
-    <section
-      aria-busy="true"
-      aria-live="polite"
-      className="overflow-hidden rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--primary-muted)_74%,var(--card)),var(--card))] p-4 shadow-[var(--shadow-card)]"
-      role="status"
-    >
-      <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-        <div
-          aria-hidden="true"
-          className="relative h-24 w-28 shrink-0 overflow-hidden rounded-3xl bg-[color-mix(in_srgb,var(--primary-muted)_70%,white)]"
-        >
-          <div className="absolute left-1/2 top-3 h-8 w-14 -translate-x-1/2">
-            <span className="absolute left-0 top-3 h-6 w-6 rounded-full border border-white/80 bg-white shadow-sm" />
-            <span className="absolute left-4 top-0 h-8 w-8 rounded-full border border-white/80 bg-white shadow-sm" />
-            <span className="absolute right-0 top-3 h-6 w-6 rounded-full border border-white/80 bg-white shadow-sm" />
-          </div>
-          <div className="absolute left-1/2 top-10 h-9 w-10 -translate-x-1/2 rounded-full bg-[color-mix(in_srgb,var(--accent)_28%,white)] shadow-sm" />
-          <div className="absolute left-1/2 top-[3.65rem] h-6 w-14 -translate-x-1/2 rounded-t-full bg-[var(--primary)]" />
-          <div className="absolute bottom-5 left-1/2 h-8 w-16 -translate-x-1/2 rounded-b-2xl rounded-t-lg border border-[color-mix(in_srgb,var(--text)_18%,transparent)] bg-[color-mix(in_srgb,var(--text)_82%,var(--primary))] shadow-md" />
-          <div className="absolute bottom-[3.05rem] left-1/2 h-2 w-20 -translate-x-1/2 rounded-full bg-[color-mix(in_srgb,var(--text)_75%,var(--primary))]" />
-          <span className="recipe-save-steam absolute bottom-14 left-9 h-5 w-2 rounded-full bg-white/80" />
-          <span className="recipe-save-steam absolute bottom-14 left-14 h-6 w-2 rounded-full bg-white/80 [animation-delay:180ms]" />
-          <span className="recipe-save-steam absolute bottom-14 left-[4.4rem] h-5 w-2 rounded-full bg-white/80 [animation-delay:360ms]" />
-          <div className="recipe-save-ladle absolute bottom-9 right-4 h-9 w-1 origin-bottom rounded-full bg-[color-mix(in_srgb,var(--text)_70%,white)]">
-            <span className="absolute -left-2 -top-2 h-4 w-5 rounded-full border-2 border-[color-mix(in_srgb,var(--text)_70%,white)]" />
-          </div>
-        </div>
-
-        <div className="w-full min-w-0">
-          <p className="text-sm font-semibold text-[var(--text)]">{title}</p>
-          <p className="mt-1 text-[length:var(--text-meta)] text-[var(--primary)]">
-            {phaseLabel}
-          </p>
-          <p className="mt-1 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
-            {note}
-          </p>
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--primary)_16%,var(--border))]">
-            <span className="recipe-save-progress block h-full w-1/3 rounded-full bg-[linear-gradient(90deg,var(--primary),var(--accent),var(--primary))]" />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function AddRecipeForm({
   userId,
   allergens,
@@ -173,12 +132,18 @@ export function AddRecipeForm({
   saveProgressUploadingImageLabel,
   saveProgressSavingRecipeLabel,
   saveProgressFinishingLabel,
-  saveProgressNote,
+  saveProgressUploadingReelLabel,
+  saveProgressUploadWarning,
+  uploadFailedTitle,
+  uploadRetryLabel,
   saveButtonLabel,
   savingButtonLabel,
   videoUrlLabel,
   videoUrlHint,
   videoUrlPlaceholder,
+  canUploadHostedReel,
+  hostedReelLabel,
+  hostedReelHint,
   initialError,
   atLimit,
   limitNotice,
@@ -210,12 +175,18 @@ export function AddRecipeForm({
   saveProgressUploadingImageLabel: string;
   saveProgressSavingRecipeLabel: string;
   saveProgressFinishingLabel: string;
-  saveProgressNote: string;
+  saveProgressUploadingReelLabel: string;
+  saveProgressUploadWarning: string;
+  uploadFailedTitle: string;
+  uploadRetryLabel: string;
   saveButtonLabel: string;
   savingButtonLabel: string;
   videoUrlLabel: string;
   videoUrlHint: string;
   videoUrlPlaceholder: string;
+  canUploadHostedReel: boolean;
+  hostedReelLabel: string;
+  hostedReelHint: string;
   /** Already decoded route error query (if present). */
   initialError: string | null;
   /** Free tier reached monthly recipe cap (server); disables submit. */
@@ -233,6 +204,12 @@ export function AddRecipeForm({
   const [localError, setLocalError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [savePhase, setSavePhase] = useState<SavePhase>("idle");
+  const [uploadProgressPercent, setUploadProgressPercent] = useState<
+    number | null
+  >(null);
+  const [uploadFailureMessage, setUploadFailureMessage] = useState<
+    string | null
+  >(null);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [imageReselectNeeded, setImageReselectNeeded] = useState(false);
@@ -240,6 +217,10 @@ export function AddRecipeForm({
   const [ingredientDraft, setIngredientDraft] = useState("");
   const [instructionsDraft, setInstructionsDraft] = useState("");
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
+  const [selectedReelFile, setSelectedReelFile] = useState<File | null>(null);
+  const [selectedReelDurationSeconds, setSelectedReelDurationSeconds] =
+    useState<number | null>(null);
+  const [reelProbeError, setReelProbeError] = useState<string | null>(null);
   const [difficultyDraft, setDifficultyDraft] = useState<DraftDifficulty>("");
   const [cookTimeMinutesDraft, setCookTimeMinutesDraft] = useState("");
   const [tagsDraft, setTagsDraft] = useState("");
@@ -271,18 +252,38 @@ export function AddRecipeForm({
     return suggestionIds.map((id) => idToName.get(id)).filter(Boolean) as string[];
   }, [suggestionIds, allergens]);
 
-  const busy = submitting;
+  const capped = Boolean(atLimit);
+  const busy = submitting || capped;
   const savePhaseLabel =
     savePhase === "checking"
       ? saveProgressCheckingAccountLabel
       : savePhase === "uploading"
         ? saveProgressUploadingImageLabel
-        : savePhase === "saving"
-          ? saveProgressSavingRecipeLabel
-          : savePhase === "finishing"
-            ? saveProgressFinishingLabel
-            : saveProgressSavingRecipeLabel;
-  const capped = Boolean(atLimit);
+        : savePhase === "uploading_reel"
+          ? saveProgressUploadingReelLabel
+          : savePhase === "saving"
+            ? saveProgressSavingRecipeLabel
+            : savePhase === "finishing"
+              ? saveProgressFinishingLabel
+              : saveProgressSavingRecipeLabel;
+  const showUploadProgress = submitting && !uploadFailureMessage;
+
+  useEffect(() => {
+    if (!submitting) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [submitting]);
+
+  function clearUploadFailure() {
+    setUploadFailureMessage(null);
+    setLocalError(null);
+    setUploadProgressPercent(null);
+  }
+
   const pitchPlan = planForPitch ?? "free";
   const allergensPresentLabelId = useId();
   const currentDraft = useMemo<AddRecipeDraft>(
@@ -534,13 +535,16 @@ export function AddRecipeForm({
 
   async function handleSubmit(ev: React.FormEvent<HTMLFormElement>) {
     ev.preventDefault();
-    if (capped || busy) return;
+    if (capped || submitting) return;
     setLocalError(null);
+    setUploadFailureMessage(null);
+    setUploadProgressPercent(null);
     setSubmitting(true);
     setSavePhase("checking");
 
     const form = ev.currentTarget;
     const formData = new FormData(form);
+    let uploadFailed = false;
 
     try {
       const {
@@ -552,35 +556,72 @@ export function AddRecipeForm({
         return;
       }
 
-      if (selectedPhotos.length > 0) {
-        setSavePhase("uploading");
+      if (selectedPhotos.length > 0 || (canUploadHostedReel && selectedReelFile)) {
+        setSavePhase(
+          selectedPhotos.length > 0 ? "uploading" : "uploading_reel",
+        );
         const publicUrls: string[] = [];
         const objectPaths: string[] = [];
+
+        const uploadSizes = [
+          ...selectedPhotos.map((p) => p.file.size),
+          ...(canUploadHostedReel && selectedReelFile
+            ? [selectedReelFile.size]
+            : []),
+        ];
+        let uploadFileIndex = 0;
 
         for (const photo of selectedPhotos) {
           const mimeErr = validateRecipeImageFile(photo.file);
           if (mimeErr) {
-            setLocalError(mimeErr);
+            setUploadFailureMessage(mimeErr);
+            uploadFailed = true;
             return;
           }
           const ext = recipeStorageExtensionFromMime(photo.file.type);
           if (!ext) {
-            setLocalError("Only PNG or JPEG images are allowed.");
+            setUploadFailureMessage("Only PNG or JPEG images are allowed.");
+            uploadFailed = true;
             return;
           }
 
           const objectPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
-          const { error: uploadError } = await supabase.storage
-            .from(RECIPE_IMAGE_BUCKET)
-            .upload(objectPath, photo.file, {
-              contentType: photo.file.type,
-              upsert: false,
-            });
+          const uploadResult = await uploadStorageObjectWithProgress({
+            supabase,
+            bucket: RECIPE_IMAGE_BUCKET,
+            objectPath,
+            file: photo.file,
+            onProgress: (progress) => {
+              setUploadProgressPercent(
+                combineUploadProgress({
+                  fileSizes: uploadSizes,
+                  fileIndex: uploadFileIndex,
+                  fileProgress: progress,
+                }),
+              );
+            },
+          });
 
-          if (uploadError) {
-            setLocalError(IMAGE_UPLOAD_ERROR);
+          if (!uploadResult.ok) {
+            setUploadFailureMessage(
+              uploadResult.message || IMAGE_UPLOAD_ERROR,
+            );
+            uploadFailed = true;
             return;
           }
+
+          uploadFileIndex += 1;
+          setUploadProgressPercent(
+            combineUploadProgress({
+              fileSizes: uploadSizes,
+              fileIndex: uploadFileIndex,
+              fileProgress: {
+                loaded: photo.file.size,
+                total: photo.file.size,
+                percent: 100,
+              },
+            }),
+          );
 
           const { data: pub } = supabase.storage
             .from(RECIPE_IMAGE_BUCKET)
@@ -589,8 +630,50 @@ export function AddRecipeForm({
           objectPaths.push(objectPath);
         }
 
-        formData.set("gallery_image_urls", JSON.stringify(publicUrls));
-        formData.set("gallery_image_object_paths", JSON.stringify(objectPaths));
+        if (publicUrls.length > 0) {
+          formData.set("gallery_image_urls", JSON.stringify(publicUrls));
+          formData.set(
+            "gallery_image_object_paths",
+            JSON.stringify(objectPaths),
+          );
+        } else {
+          formData.delete("gallery_image_urls");
+          formData.delete("gallery_image_object_paths");
+          formData.delete("image_url");
+          formData.delete("image_object_path");
+        }
+
+        if (canUploadHostedReel && selectedReelFile) {
+          setSavePhase("uploading_reel");
+          if (selectedReelDurationSeconds == null) {
+            setUploadFailureMessage(
+              "Wait for reel length to finish checking, or choose another file.",
+            );
+            uploadFailed = true;
+            return;
+          }
+          const reelErr = await attachHostedReelToFormData({
+            supabase,
+            userId: user.id,
+            file: selectedReelFile,
+            formData,
+            knownDurationSeconds: selectedReelDurationSeconds,
+            onUploadProgress: (progress) => {
+              setUploadProgressPercent(
+                combineUploadProgress({
+                  fileSizes: uploadSizes,
+                  fileIndex: uploadFileIndex,
+                  fileProgress: progress,
+                }),
+              );
+            },
+          });
+          if (reelErr) {
+            setUploadFailureMessage(reelErr);
+            uploadFailed = true;
+            return;
+          }
+        }
       } else {
         formData.delete("gallery_image_urls");
         formData.delete("gallery_image_object_paths");
@@ -598,6 +681,7 @@ export function AddRecipeForm({
         formData.delete("image_object_path");
       }
 
+      setUploadProgressPercent(null);
       setSavePhase("saving");
       const result = await createRecipeFromForm(formData);
       if (result?.error) {
@@ -615,6 +699,9 @@ export function AddRecipeForm({
     } finally {
       setSubmitting(false);
       setSavePhase("idle");
+      if (!uploadFailed) {
+        setUploadProgressPercent(null);
+      }
     }
   }
 
@@ -671,7 +758,7 @@ export function AddRecipeForm({
           PNG or JPEG, up to {Math.round(RECIPE_IMAGE_MAX_BYTES / (1024 * 1024))}MB each. Drag
           photos to reorder, or use the buttons — the{" "}
           <span className="font-medium text-[var(--text)]">first photo</span> is the browse-card
-          thumbnail. Paste a video link below — no video uploads.
+          thumbnail. Optional YouTube link below. Pro members can upload one in-app reel (max 3 min, 50MB).
         </p>
         <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
           Drafts save recipe text and selections on this device. Image files are not saved and must
@@ -805,11 +892,25 @@ export function AddRecipeForm({
         </div>
       </section>
 
-      {busy ? (
-        <RecipeSaveProgress
+      {showUploadProgress ? (
+        <RecipeUploadProgressPanel
           title={saveProgressTitle}
           phaseLabel={savePhaseLabel}
-          note={saveProgressNote}
+          warningText={saveProgressUploadWarning}
+          progressPercent={uploadProgressPercent}
+        />
+      ) : null}
+
+      {uploadFailureMessage ? (
+        <RecipeUploadProgressPanel
+          title={uploadFailedTitle}
+          phaseLabel={uploadFailedTitle}
+          warningText=""
+          progressPercent={uploadProgressPercent}
+          failed
+          failedMessage={uploadFailureMessage}
+          retryLabel={uploadRetryLabel}
+          onRetry={clearUploadFailure}
         />
       ) : null}
 
@@ -883,6 +984,76 @@ export function AddRecipeForm({
           className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none ring-[var(--primary)]/30 focus:ring-2"
         />
       </div>
+
+      {canUploadHostedReel ? (
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="hosted_reel_file"
+            className="text-sm font-medium text-[var(--text)]"
+          >
+            {hostedReelLabel}
+          </label>
+          <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
+            {hostedReelHint}
+          </p>
+          <input
+            id="hosted_reel_file"
+            type="file"
+            accept={RECIPE_REEL_ACCEPT}
+            disabled={busy || capped}
+            onChange={async (e) => {
+              const file = e.target.files?.[0] ?? null;
+              setSelectedReelFile(file);
+              setSelectedReelDurationSeconds(null);
+              setReelProbeError(null);
+              if (!file) return;
+              const err = await validateRecipeReelFileDuration(file);
+              if (err) {
+                setReelProbeError(err);
+                setSelectedReelFile(null);
+                e.target.value = "";
+                return;
+              }
+              try {
+                const { measureVideoFileDurationSeconds } = await import(
+                  "@/lib/recipe-reel-duration-client"
+                );
+                setSelectedReelDurationSeconds(
+                  await measureVideoFileDurationSeconds(file),
+                );
+              } catch {
+                setReelProbeError(
+                  "Could not read reel length. Try another file.",
+                );
+                setSelectedReelFile(null);
+                e.target.value = "";
+              }
+            }}
+            className="text-sm text-[var(--text)] file:mr-3 file:rounded-lg file:border file:border-[var(--border)] file:bg-[var(--bg)] file:px-3 file:py-1.5 file:text-sm file:font-semibold"
+          />
+          {selectedReelFile ? (
+            <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
+              {selectedReelFile.name}
+              {selectedReelDurationSeconds != null
+                ? ` · ${Math.ceil(selectedReelDurationSeconds)}s`
+                : " · Checking length…"}
+            </p>
+          ) : null}
+          {reelProbeError ? (
+            <p className="text-[length:var(--text-caption)] text-[var(--danger)]" role="alert">
+              {reelProbeError}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
+          <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
+            Pro and AI Chef plans can upload one in-app reel per recipe (MP4,
+            MOV, or WebM, max 3 minutes and 50MB).
+          </p>
+          <UpgradePitch currentPlan={pitchPlan} compact className="mt-3" />
+        </div>
+      )}
 
       <fieldset className="rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4">
         <p className="mb-1 text-sm font-medium text-[var(--text)]">

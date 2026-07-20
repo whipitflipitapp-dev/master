@@ -1,15 +1,20 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 
 import { updateRecipe } from "@/app/actions/recipes";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
+import { RecipeUploadProgressPanel } from "@/components/recipe/RecipeUploadProgressPanel";
 import {
   RecipeGalleryReorder,
   type GalleryReorderItem,
 } from "@/components/recipe/RecipeGalleryReorder";
 import { PREMIUM_RECIPE_TOOLS_PLAN_REQUIRED_ERROR } from "@/lib/premium-recipe-tools-plan-gate";
 import type { PlanType } from "@/lib/plan";
+import { RECIPE_REEL_ACCEPT } from "@/lib/recipe-reel";
+import { validateRecipeReelFileDuration } from "@/lib/recipe-reel-duration-client";
+import { attachHostedReelToFormData } from "@/lib/recipe-reel-upload-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type RecipeToolIngredient = {
   name: string;
@@ -22,6 +27,7 @@ type RecipePremiumToolsProps = {
     title: string;
     instructions: string;
     videoUrl?: string | null;
+    hostedReelUrl?: string | null;
   };
   ingredients: RecipeToolIngredient[];
   galleryPhotos: GalleryReorderItem[];
@@ -54,6 +60,14 @@ type RecipePremiumToolsProps = {
     gallerySetCoverLabel: string;
     galleryMoveEarlier: string;
     galleryMoveLater: string;
+    hostedReelLabel: string;
+    hostedReelHint: string;
+    hostedReelCurrent: string;
+    uploadProgressTitle: string;
+    uploadingReelLabel: string;
+    uploadWarning: string;
+    uploadFailedTitle: string;
+    uploadRetry: string;
   };
 };
 
@@ -91,10 +105,23 @@ export function RecipePremiumTools({
   canEdit,
   labels,
 }: RecipePremiumToolsProps) {
-  const [state, action, pending] = useActionState(updateRecipe, {
+  const [state, formAction, actionPending] = useActionState(updateRecipe, {
     error: null,
     success: null,
   });
+  const [reelFile, setReelFile] = useState<File | null>(null);
+  const [reelDurationSeconds, setReelDurationSeconds] = useState<number | null>(
+    null,
+  );
+  const [reelProbeError, setReelProbeError] = useState<string | null>(null);
+  const [reelUploadError, setReelUploadError] = useState<string | null>(null);
+  const [reelUploadProgress, setReelUploadProgress] = useState<number | null>(
+    null,
+  );
+  const [reelUploading, setReelUploading] = useState(false);
+  const [transitionPending, startTransition] = useTransition();
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const pending = actionPending || transitionPending;
 
   const [galleryItems, setGalleryItems] = useState<GalleryReorderItem[]>(
     galleryPhotos,
@@ -235,8 +262,72 @@ export function RecipePremiumTools({
           {labels.editHeading}
         </h3>
         {canEdit ? (
-          <form action={action} className="mt-4 space-y-4">
+          <form
+            className="mt-4 space-y-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setReelUploadError(null);
+              setReelUploadProgress(null);
+              const formData = new FormData(e.currentTarget);
+              if (reelFile) {
+                if (reelDurationSeconds == null) {
+                  setReelUploadError(
+                    "Wait for reel length to finish checking, or choose another file.",
+                  );
+                  return;
+                }
+                setReelUploading(true);
+                const {
+                  data: { user },
+                } = await supabase.auth.getUser();
+                if (!user) {
+                  setReelUploadError("Sign in required.");
+                  setReelUploading(false);
+                  return;
+                }
+                const reelErr = await attachHostedReelToFormData({
+                  supabase,
+                  userId: user.id,
+                  file: reelFile,
+                  formData,
+                  knownDurationSeconds: reelDurationSeconds,
+                  onUploadProgress: (p) => setReelUploadProgress(p.percent),
+                });
+                setReelUploading(false);
+                if (reelErr) {
+                  setReelUploadError(reelErr);
+                  return;
+                }
+              }
+              startTransition(() => {
+                formAction(formData);
+              });
+            }}
+          >
             <input type="hidden" name="recipe_id" value={recipe.id} />
+            {reelUploading ? (
+              <RecipeUploadProgressPanel
+                title={labels.uploadProgressTitle}
+                phaseLabel={labels.uploadingReelLabel}
+                warningText={labels.uploadWarning}
+                progressPercent={reelUploadProgress}
+              />
+            ) : null}
+            {reelUploadError && !reelUploading ? (
+              <RecipeUploadProgressPanel
+                title={labels.uploadFailedTitle}
+                phaseLabel={labels.uploadFailedTitle}
+                warningText=""
+                progressPercent={reelUploadProgress}
+                failed
+                failedMessage={reelUploadError}
+                retryLabel={labels.uploadRetry}
+                onRetry={() => {
+                  setReelUploadError(null);
+                  setReelUploadProgress(null);
+                }}
+              />
+            ) : null}
             {galleryItems.length > 0 ? (
               <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
                 <h4 className="text-sm font-semibold text-[var(--text)]">
@@ -308,6 +399,64 @@ export function RecipePremiumTools({
                 className="mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)]"
               />
             </label>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+              <p className="text-sm font-semibold text-[var(--text)]">
+                {labels.hostedReelLabel}
+              </p>
+              <p className="mt-1 text-[length:var(--text-caption)] text-[var(--muted)]">
+                {labels.hostedReelHint}
+              </p>
+              {recipe.hostedReelUrl ? (
+                <p className="mt-2 text-[length:var(--text-caption)] text-[var(--text)]">
+                  {labels.hostedReelCurrent}
+                </p>
+              ) : null}
+              <input
+                type="file"
+                accept={RECIPE_REEL_ACCEPT}
+                disabled={pending}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setReelFile(file);
+                  setReelDurationSeconds(null);
+                  setReelProbeError(null);
+                  setReelUploadError(null);
+                  if (!file) return;
+                  const err = await validateRecipeReelFileDuration(file);
+                  if (err) {
+                    setReelProbeError(err);
+                    setReelFile(null);
+                    e.target.value = "";
+                    return;
+                  }
+                  try {
+                    const { measureVideoFileDurationSeconds } = await import(
+                      "@/lib/recipe-reel-duration-client"
+                    );
+                    setReelDurationSeconds(
+                      await measureVideoFileDurationSeconds(file),
+                    );
+                  } catch {
+                    setReelProbeError(
+                      "Could not read reel length. Try another file.",
+                    );
+                    setReelFile(null);
+                    e.target.value = "";
+                  }
+                }}
+                className="mt-3 text-sm text-[var(--text)] file:mr-3 file:rounded-lg file:border file:border-[var(--border)] file:bg-[var(--bg)] file:px-3 file:py-1.5 file:text-sm file:font-semibold"
+              />
+              {reelProbeError ? (
+                <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
+                  {reelProbeError}
+                </p>
+              ) : null}
+            </div>
+            {reelUploadError ? (
+              <p className="text-sm text-[var(--danger)]" role="alert">
+                {reelUploadError}
+              </p>
+            ) : null}
             {errorDisplay ? (
               <p className="text-sm text-[var(--danger)]" role="alert">
                 {errorDisplay}
@@ -320,10 +469,10 @@ export function RecipePremiumTools({
             ) : null}
             <button
               type="submit"
-              disabled={pending}
+              disabled={pending || reelUploading}
               className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--primary-hover)] disabled:opacity-60"
             >
-              {pending ? labels.saving : labels.save}
+              {pending || reelUploading ? labels.saving : labels.save}
             </button>
           </form>
         ) : (

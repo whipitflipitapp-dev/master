@@ -186,12 +186,24 @@ export default async function AddRecipePage({
           dict,
           "add_recipe_save_progress_finishing",
         )}
-        saveProgressNote={dictText(dict, "add_recipe_save_progress_note")}
+        saveProgressUploadingReelLabel={dictText(
+          dict,
+          "add_recipe_save_progress_uploading_reel",
+        )}
+        saveProgressUploadWarning={dictText(
+          dict,
+          "add_recipe_save_progress_upload_warning",
+        )}
+        uploadFailedTitle={dictText(dict, "add_recipe_upload_failed_title")}
+        uploadRetryLabel={dictText(dict, "add_recipe_upload_retry")}
         saveButtonLabel={dictText(dict, "add_recipe_save_button")}
         savingButtonLabel={dictText(dict, "add_recipe_saving_button")}
         videoUrlLabel={dictText(dict, "add_recipe_video_label")}
         videoUrlHint={dictText(dict, "add_recipe_video_hint")}
         videoUrlPlaceholder={dictText(dict, "add_recipe_video_placeholder")}
+        canUploadHostedReel={isProOrAbove(limitState.plan)}
+        hostedReelLabel={dictText(dict, "add_recipe_hosted_reel_label")}
+        hostedReelHint={dictText(dict, "add_recipe_hosted_reel_hint")}
         initialError={decodedError}
         atLimit={atLimit}
         limitNotice={limitNotice}

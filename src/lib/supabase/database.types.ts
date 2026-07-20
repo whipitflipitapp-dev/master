@@ -151,6 +151,7 @@ export interface Database {
           instructions: string;
           image_url: string | null;
           video_url: string | null;
+          hosted_reel_url: string | null;
           favorites_count: number;
           created_by: string | null;
           difficulty: string | null;
@@ -171,6 +172,7 @@ export interface Database {
           instructions?: string;
           image_url?: string | null;
           video_url?: string | null;
+          hosted_reel_url?: string | null;
           favorites_count?: number;
           created_by?: string | null;
           difficulty?: string | null;
@@ -190,6 +192,7 @@ export interface Database {
           instructions?: string;
           image_url?: string | null;
           video_url?: string | null;
+          hosted_reel_url?: string | null;
           difficulty?: string | null;
           cook_time_minutes?: number | null;
           moderation_status?:
@@ -588,6 +591,7 @@ export interface Database {
           title: string;
           image_url: string | null;
           video_url: string | null;
+          hosted_reel_url: string | null;
           favorites_count: number;
           difficulty: string | null;
           cook_time_minutes: number | null;

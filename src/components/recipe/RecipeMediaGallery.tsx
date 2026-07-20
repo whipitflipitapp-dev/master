@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { InstagramEmbed } from "@/components/recipe/InstagramEmbed";
 import { normalizeRecipeCoverImgSrc } from "@/lib/demo-recipe-cover-images";
 
 const BLUR_FALLBACK =
@@ -13,21 +12,16 @@ const BLUR_FALLBACK =
 const AUTO_ADVANCE_MS = 2000;
 const AUTO_PAUSE_AFTER_INTERACTION_MS = 12_000;
 
-export type RecipeMediaSlide =
-  | { kind: "image"; url: string }
-  | { kind: "instagram"; embedSrc: string; frameTitle: string };
+export type RecipeMediaSlide = { kind: "image"; url: string };
 
 type RecipeMediaGalleryProps = {
   title: string;
   imageAlt: string;
   slides: RecipeMediaSlide[];
-  tapForSoundHint?: string;
-  instagramInAppHint?: string;
 };
 
 function imageSlidesOnly(slides: RecipeMediaSlide[]): string[] {
   return slides
-    .filter((s): s is Extract<RecipeMediaSlide, { kind: "image" }> => s.kind === "image")
     .map((s) => normalizeRecipeCoverImgSrc(s.url.trim()))
     .filter(Boolean);
 }
@@ -36,8 +30,6 @@ export function RecipeMediaGallery({
   title,
   imageAlt,
   slides,
-  tapForSoundHint,
-  instagramInAppHint,
 }: RecipeMediaGalleryProps) {
   const { t } = useTranslation("common");
   const regionId = useId();
@@ -72,8 +64,6 @@ export function RecipeMediaGallery({
     const timer = window.setInterval(() => {
       if (Date.now() < autoplayPausedUntil) return;
       if (lightboxImageIndex !== null) return;
-      const slide = slides[safeIndex];
-      if (slide?.kind === "instagram") return;
       setIndex((i) => (i >= count - 1 ? 0 : i + 1));
     }, AUTO_ADVANCE_MS);
     return () => window.clearInterval(timer);
@@ -81,8 +71,6 @@ export function RecipeMediaGallery({
     count,
     autoplayPausedUntil,
     lightboxImageIndex,
-    safeIndex,
-    slides,
   ]);
 
   useEffect(() => {
@@ -99,14 +87,8 @@ export function RecipeMediaGallery({
   }, [lightboxImageIndex]);
 
   const openLightboxForSlide = (slideIndex: number) => {
-    const slide = slides[slideIndex];
-    if (slide?.kind !== "image") return;
     pauseAutoplay();
-    let imageOnlyIndex = 0;
-    for (let i = 0; i < slideIndex; i++) {
-      if (slides[i]?.kind === "image") imageOnlyIndex++;
-    }
-    setLightboxImageIndex(imageOnlyIndex);
+    setLightboxImageIndex(slideIndex);
   };
 
   if (!current) {
@@ -139,19 +121,7 @@ export function RecipeMediaGallery({
           {t("recipe_gallery_heading")}
         </h2>
 
-        {current.kind === "instagram" ? (
-          <div className="px-2 py-3 sm:px-3">
-            <InstagramEmbed
-              embedSrc={current.embedSrc}
-              title={current.frameTitle}
-              priority
-              variant="reel"
-              tapForSoundHint={tapForSoundHint}
-              inAppHint={instagramInAppHint}
-              active
-            />
-          </div>
-        ) : (
+        {current ? (
           <div className="relative aspect-[16/10] w-full">
             <button
               type="button"
@@ -180,7 +150,7 @@ export function RecipeMediaGallery({
               />
             </button>
           </div>
-        )}
+        ) : null}
 
         {showControls ? (
           <div className="flex flex-col gap-2 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] px-3 py-2.5">
@@ -216,21 +186,14 @@ export function RecipeMediaGallery({
             >
               {slides.map((slide, dotIndex) => (
                 <button
-                  key={`${slide.kind}-${dotIndex}`}
+                  key={`${slide.url}-${dotIndex}`}
                   type="button"
                   role="tab"
                   aria-selected={dotIndex === safeIndex}
-                  aria-label={
-                    slide.kind === "instagram"
-                      ? t("recipe_gallery_video_dot_aria", {
-                          index: dotIndex + 1,
-                          total: count,
-                        })
-                      : t("recipe_gallery_dot_aria", {
-                          index: dotIndex + 1,
-                          total: count,
-                        })
-                  }
+                  aria-label={t("recipe_gallery_dot_aria", {
+                    index: dotIndex + 1,
+                    total: count,
+                  })}
                   onClick={() => {
                     pauseAutoplay();
                     setIndex(dotIndex);
@@ -244,11 +207,11 @@ export function RecipeMediaGallery({
               ))}
             </div>
           </div>
-        ) : current.kind === "image" ? (
+        ) : (
           <p className="border-t border-[var(--border)] px-3 py-2 text-center text-[10px] text-[var(--muted)]">
             {t("recipe_gallery_lightbox_open_hint")}
           </p>
-        ) : null}
+        )}
       </section>
 
       {lightboxImageIndex !== null && imageUrls.length > 0 ? (

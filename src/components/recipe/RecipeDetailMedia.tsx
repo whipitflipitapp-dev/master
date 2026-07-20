@@ -1,19 +1,20 @@
 import { RecipeDetailHero } from "@/components/recipe/RecipeDetailHero";
+import { RecipeHostedReelPlayer } from "@/components/recipe/RecipeHostedReelPlayer";
 import {
   RecipeMediaGallery,
   type RecipeMediaSlide,
 } from "@/components/recipe/RecipeMediaGallery";
-import type { ParsedRecipeVideo } from "@/lib/video-url";
 
 type RecipeDetailMediaProps = {
   title: string;
   imageUrl: string | null;
   galleryImageUrls?: string[];
   imageAlt: string;
-  video: ParsedRecipeVideo | null;
+  hostedReelUrl?: string | null;
+  /** Optional cover/thumbnail shown until the user presses play. */
+  reelPosterUrl?: string | null;
   videoFrameTitle: string;
-  tapForSoundHint: string;
-  instagramInAppHint?: string;
+  hostedReelHint?: string;
 };
 
 function resolveGalleryUrls(
@@ -30,54 +31,65 @@ function resolveGalleryUrls(
   return cover ? [cover] : [];
 }
 
-function buildMediaSlides(
-  video: ParsedRecipeVideo | null,
-  photos: string[],
-  videoFrameTitle: string,
-): RecipeMediaSlide[] {
-  const slides: RecipeMediaSlide[] = [];
-  if (video?.provider === "instagram") {
-    slides.push({
-      kind: "instagram",
-      embedSrc: video.instagram.embedSrc,
-      frameTitle: videoFrameTitle,
-    });
-  }
-  for (const url of photos) {
-    slides.push({ kind: "image", url });
-  }
-  return slides;
+function photoSlides(photos: string[]): RecipeMediaSlide[] {
+  return photos.map((url) => ({ kind: "image", url }));
 }
 
-/**
- * Recipe detail hero: optional Instagram reel/post slide, then swipeable photos.
- */
+/** Recipe detail: hosted reel (Pro upload) + photo gallery below. */
 export function RecipeDetailMedia({
   title,
   imageUrl,
   galleryImageUrls,
   imageAlt,
-  video,
+  hostedReelUrl,
+  reelPosterUrl,
   videoFrameTitle,
-  tapForSoundHint,
-  instagramInAppHint,
+  hostedReelHint,
 }: RecipeDetailMediaProps) {
   const photos = resolveGalleryUrls(galleryImageUrls, imageUrl);
-  const slides = buildMediaSlides(video, photos, videoFrameTitle);
+  const hosted = hostedReelUrl?.trim() || null;
+  const poster =
+    reelPosterUrl?.trim() || photos[0]?.trim() || imageUrl?.trim() || null;
 
-  if (slides.length === 0) {
+  const slides = photoSlides(photos);
+  const hasReelBlock = Boolean(hosted);
+
+  if (!hasReelBlock && slides.length === 0) {
     return (
       <RecipeDetailHero title={title} imageUrl={null} imageAlt={imageAlt} />
     );
   }
 
   return (
-    <RecipeMediaGallery
-      title={title}
-      imageAlt={imageAlt}
-      slides={slides}
-      tapForSoundHint={tapForSoundHint}
-      instagramInAppHint={instagramInAppHint}
-    />
+    <div className="flex flex-col gap-4">
+      {hosted ? (
+        <div className="space-y-2">
+          <RecipeHostedReelPlayer
+            src={hosted}
+            title={videoFrameTitle}
+            posterUrl={poster}
+          />
+          {hostedReelHint ? (
+            <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
+              {hostedReelHint}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {slides.length === 0 ? null : slides.length === 1 && !hasReelBlock ? (
+        <RecipeDetailHero
+          title={title}
+          imageUrl={slides[0]!.url}
+          imageAlt={imageAlt}
+        />
+      ) : (
+        <RecipeMediaGallery
+          title={title}
+          imageAlt={imageAlt}
+          slides={slides}
+        />
+      )}
+    </div>
   );
 }

@@ -152,8 +152,14 @@ export function normalizeRecipeVideoUrlInput(
   if (!parsed) {
     return {
       ok: false,
+      error: "Paste a YouTube watch link (youtube.com or youtu.be).",
+    };
+  }
+  if (parsed.provider === "instagram") {
+    return {
+      ok: false,
       error:
-        "Paste a YouTube link or an Instagram Reel/Post URL (instagram.com/reel/, /p/, or /tv/).",
+        "Instagram links are not embedded anymore. Pro members can upload a reel (max 3 minutes) on the recipe form.",
     };
   }
   return { ok: true, video_url: parsed.canonicalUrl };
