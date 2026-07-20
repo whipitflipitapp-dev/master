@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isProOrAbove, parsePlanType, type PlanType } from "@/lib/plan";
 
 /** Free-tier cap on user-created recipes per UTC calendar month (see `checkMonthlyRecipeUploadAllowed`). */
-export const FREE_MONTHLY_RECIPE_UPLOAD_CAP = 3;
+export const FREE_MONTHLY_RECIPE_UPLOAD_CAP = 6;
 
 /**
  * Monthly upload limits use **UTC calendar months**: from 00:00:00.000 UTC on the first day

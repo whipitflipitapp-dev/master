@@ -75,6 +75,16 @@ async function loadRecipe(
 
   if (rErr || !recipe) return null;
 
+  const { data: galleryRows } = await supabase
+    .from("recipe_images")
+    .select("image_url,sort_order")
+    .eq("recipe_id", id)
+    .order("sort_order", { ascending: true });
+
+  const galleryImageUrls = (galleryRows ?? [])
+    .map((row: { image_url: string | null }) => row.image_url?.trim() ?? "")
+    .filter((url: string) => url.length > 0);
+
   const { data: whipFlipCountRaw, error: whipFlipErr } = await supabase.rpc(
     "recipe_whip_flip_count",
     { p_recipe_id: id },
@@ -359,6 +369,7 @@ async function loadRecipe(
     uploaderCookbook,
     recipeExperience,
     whipFlipCount,
+    galleryImageUrls,
   };
 }
 
@@ -453,6 +464,7 @@ export default async function RecipeDetailPage(props: Props) {
     uploaderCookbook,
     recipeExperience,
     whipFlipCount,
+    galleryImageUrls,
   } = payload;
   const loginNextPath =
     qRaw.length > 0 ? `/recipes/${recipe.id}?q=${encodeURIComponent(qRaw)}` : `/recipes/${recipe.id}`;
@@ -469,6 +481,15 @@ export default async function RecipeDetailPage(props: Props) {
     recipe.id,
     recipe.image_url,
   );
+  const galleryDisplayUrls = (
+    galleryImageUrls.length > 0
+      ? galleryImageUrls
+      : recipe.image_url
+        ? [recipe.image_url]
+        : []
+  )
+    .map((url) => resolveRecipeDisplayImageUrl(recipe.id, url) ?? url.trim())
+    .filter((url) => url.length > 0);
   const recipeVideo = parseRecipeVideoUrl(recipe.video_url);
   const wineUnlocked = planForWine
     ? winePairingsUnlockedForPlan(planForWine)
@@ -522,6 +543,7 @@ export default async function RecipeDetailPage(props: Props) {
       <RecipeDetailMedia
         title={recipe.title}
         imageUrl={displayImageUrl}
+        galleryImageUrls={galleryDisplayUrls}
         imageAlt={
           displayImageUrl
             ? dictText(dict, "recipe_detail_photo_alt", { title: recipe.title })

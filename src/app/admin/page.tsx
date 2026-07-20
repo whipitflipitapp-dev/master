@@ -1,13 +1,18 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { AdminDailyLineChart } from "@/components/admin/AdminDailyLineChart";
+import { AdminPlanMixChart } from "@/components/admin/AdminPlanMixChart";
+import { AdminRevenueCharts } from "@/components/admin/AdminRevenueCharts";
 import { AdminSignupsChart } from "@/components/admin/AdminSignupsChart";
+import { formatUsdFromCents } from "@/lib/admin/format-usd";
 import {
   parseAdminAffiliateLinkTypes,
   parseAdminMetricsOverview,
   parseAdminRecentEvents,
 } from "@/lib/admin/metrics-types";
 import { requireAdminSession } from "@/lib/admin/require-admin-session";
+import { fetchAdminStripeBusinessMetrics } from "@/lib/admin/stripe-metrics";
 import { logServerError } from "@/lib/server-error";
 
 export const metadata: Metadata = {
@@ -50,7 +55,7 @@ export default async function AdminPage({
   sinceDate.setUTCDate(sinceDate.getUTCDate() - 7);
   const sinceIso = sinceDate.toISOString();
 
-  const [overviewRes, eventsRes, affiliateLinkTypesRes, suggestionsRes] =
+  const [overviewRes, eventsRes, affiliateLinkTypesRes, suggestionsRes, stripeMetrics] =
     await Promise.all([
       supabase.rpc("admin_metrics_overview", { p_since: sinceIso }),
       supabase.rpc("admin_recent_events", {
@@ -65,6 +70,7 @@ export default async function AdminPage({
         )
         .order("created_at", { ascending: false })
         .limit(SUGGESTIONS_LIMIT),
+      fetchAdminStripeBusinessMetrics(supabase),
     ]);
 
   const metrics = parseAdminMetricsOverview(overviewRes.data);
@@ -91,64 +97,312 @@ export default async function AdminPage({
   const nextPage = recentEvents.length === EVENTS_PAGE_SIZE ? page + 1 : null;
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
-      <p className="text-sm text-[var(--muted)]">
-        Metrics use admin-only database functions (no service role in the
-        browser). Events in cards are from the last 7 days (UTC window).
-      </p>
+    <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8">
+      <header className="max-w-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">
+          Business command center
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          Revenue from Stripe (live API). Product metrics from admin-only database
+          RPCs — last 7 days for activity cards unless noted. No service role keys in
+          the browser.
+        </p>
+        <nav className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-[var(--primary)]">
+          <a href="#revenue" className="underline-offset-4 hover:underline">
+            Revenue
+          </a>
+          <a href="#subscribers" className="underline-offset-4 hover:underline">
+            Subscribers
+          </a>
+          <a href="#growth" className="underline-offset-4 hover:underline">
+            Growth
+          </a>
+          <a href="#engagement" className="underline-offset-4 hover:underline">
+            Engagement
+          </a>
+          <a href="#support" className="underline-offset-4 hover:underline">
+            Support
+          </a>
+          <a href="#events-log" className="underline-offset-4 hover:underline">
+            Event log
+          </a>
+        </nav>
+      </header>
+
+      <section id="revenue" className="mt-10 scroll-mt-6">
+        <h2 className="text-lg font-semibold text-[var(--text)]">
+          Revenue & subscriptions
+        </h2>
+        {!stripeMetrics.configured ? (
+          <p className="mt-3 rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4 text-sm text-[var(--muted)]">
+            {stripeMetrics.error ??
+              "Add STRIPE_SECRET_KEY on the server to load MRR, cash collected, and revenue-by-product charts."}
+          </p>
+        ) : stripeMetrics.error ? (
+          <p className="mt-3 rounded-xl border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] p-4 text-sm text-[var(--danger)]">
+            Stripe metrics unavailable: {stripeMetrics.error}
+          </p>
+        ) : (
+          <>
+            <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">MRR (estimated)</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums text-[var(--text)]">
+                  {formatUsdFromCents(stripeMetrics.mrrCents)}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">ARR (MRR × 12)</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums text-[var(--text)]">
+                  {formatUsdFromCents(stripeMetrics.arrCents)}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Net collected (30d)</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums text-[var(--text)]">
+                  {formatUsdFromCents(stripeMetrics.netCollected30dCents)}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Refunds 30d: {formatUsdFromCents(stripeMetrics.refunds30dCents)}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Cash collected (30d)</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums text-[var(--text)]">
+                  {formatUsdFromCents(stripeMetrics.grossCollected30dCents)}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  7d: {formatUsdFromCents(stripeMetrics.grossCollected7dCents)} · 90d:{" "}
+                  {formatUsdFromCents(stripeMetrics.grossCollected90dCents)}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Active subscriptions</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums text-[var(--text)]">
+                  {stripeMetrics.activeSubscriptions}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Trialing {stripeMetrics.trialingSubscriptions} · Past due{" "}
+                  {stripeMetrics.pastDueSubscriptions}
+                </p>
+              </li>
+            </ul>
+
+            <div className="mt-6 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4 shadow-sm">
+              <AdminRevenueCharts
+                revenueByDay30d={stripeMetrics.revenueByDay30d}
+                revenueByType={stripeMetrics.revenueByType}
+              />
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] shadow-sm">
+              <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+                <thead className="border-b border-[color-mix(in_srgb,var(--muted)_35%,transparent)] text-[var(--muted)]">
+                  <tr>
+                    <th className="px-4 py-2.5 font-semibold">Revenue type</th>
+                    <th className="px-4 py-2.5 font-semibold">30d collected</th>
+                    <th className="px-4 py-2.5 font-semibold">MRR</th>
+                    <th className="px-4 py-2.5 font-semibold">Active subs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stripeMetrics.revenueByType.map((row) => (
+                    <tr
+                      key={row.key}
+                      className="border-b border-[color-mix(in_srgb,var(--muted)_18%,transparent)] last:border-b-0"
+                    >
+                      <td className="px-4 py-2 text-[var(--text)]">{row.label}</td>
+                      <td className="px-4 py-2 tabular-nums text-[var(--text)]">
+                        {formatUsdFromCents(row.collected30dCents)}
+                      </td>
+                      <td className="px-4 py-2 tabular-nums text-[var(--text)]">
+                        {formatUsdFromCents(row.mrrCents)}
+                      </td>
+                      <td className="px-4 py-2 tabular-nums text-[var(--muted)]">
+                        {row.activeSubscriptions}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              {stripeMetrics.ledgerPowered ? (
+                <>
+                  Cash totals use the billing_events webhook ledger (
+                  {stripeMetrics.ledgerEntryCount} entries). MRR still reads live
+                  subscriptions from Stripe.
+                </>
+              ) : (
+                <>
+                  Ledger empty — cash totals fall back to Stripe invoice API. After{" "}
+                  <code className="text-[10px]">db push</code>, enable webhook events{" "}
+                  <code className="text-[10px]">invoice.paid</code>,{" "}
+                  <code className="text-[10px]">refund.created</code>, and{" "}
+                  <code className="text-[10px]">charge.refunded</code>.
+                </>
+              )}{" "}
+              Affiliate commissions are not in these totals.
+            </p>
+          </>
+        )}
+      </section>
 
       {overviewError ? (
-        <p className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4 text-sm text-[var(--text)]">
-          Could not load metrics. Apply latest Supabase migrations if this is a
-          new environment.
+        <p className="mt-8 rounded-xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] p-4 text-sm text-[var(--text)]">
+          Could not load product metrics. Apply latest Supabase migrations if this
+          is a new environment.
         </p>
       ) : metrics ? (
         <>
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2">
-            <li className={cardClass()}>
-              <p className="text-sm text-[var(--muted)]">Profiles</p>
-              <p className="mt-2 text-3xl font-bold tabular-nums text-[var(--text)]">
-                {metrics.profile_count}
-              </p>
-            </li>
-            <li className={cardClass()}>
-              <p className="text-sm text-[var(--muted)]">Recipes</p>
-              <p className="mt-2 text-3xl font-bold tabular-nums text-[var(--text)]">
-                {metrics.recipe_count}
-              </p>
-            </li>
-            <li className={cardClass()}>
-              <p className="text-sm text-[var(--muted)]">Favorites (all users)</p>
-              <p className="mt-2 text-3xl font-bold tabular-nums text-[var(--text)]">
-                {metrics.favorites_total}
-              </p>
-            </li>
-            <li className={cardClass()}>
-              <p className="text-sm text-[var(--muted)]">
-                Events (last 7 days)
-              </p>
-              <p className="mt-2 text-3xl font-bold tabular-nums text-[var(--text)]">
-                {metrics.events_since_count}
-              </p>
-            </li>
-            <li className={cardClass()}>
-              <p className="text-sm text-[var(--muted)]">
-                Affiliate clicks (7 days)
-              </p>
-              <p className="mt-2 text-3xl font-bold tabular-nums text-[var(--text)]">
-                {metrics.affiliate_clicks_since}
-              </p>
-            </li>
-          </ul>
+          <section id="subscribers" className="mt-12 scroll-mt-6">
+            <h2 className="text-lg font-semibold text-[var(--text)]">
+              Subscribers & plan mix (database)
+            </h2>
+            <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Free</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">{metrics.plan_free_count}</p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Pro</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">{metrics.plan_pro_count}</p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">AI Chef</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">
+                  {metrics.plan_ai_chef_count}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Stripe customers</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">
+                  {metrics.stripe_customer_count}
+                </p>
+              </li>
+            </ul>
+            <div className="mt-4 max-w-md rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 shadow-sm">
+              <AdminPlanMixChart
+                free={metrics.plan_free_count}
+                pro={metrics.plan_pro_count}
+                aiChef={metrics.plan_ai_chef_count}
+              />
+            </div>
+          </section>
 
-          <section className="mt-8" aria-labelledby="event-types-heading">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <h2
+          <section id="growth" className="mt-12 scroll-mt-6">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Product & growth</h2>
+            <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Profiles (all time)</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">{metrics.profile_count}</p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Recipes (all time)</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">{metrics.recipe_count}</p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Recipes added (7d)</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">
+                  {metrics.recipes_created_since}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Instagram Reel recipes</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">
+                  {metrics.instagram_reel_recipe_count}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Favorites (all users)</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">
+                  {metrics.favorites_total}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Checkouts started (7d)</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">
+                  {metrics.checkout_started_since}
+                </p>
+              </li>
+            </ul>
+
+            <div className="mt-8 grid gap-6 lg:grid-cols-2">
+              <div>
+                <h3 className="text-base font-semibold text-[var(--text)]">
+                  User signups (~30 days)
+                </h3>
+                <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 shadow-sm">
+                  <AdminSignupsChart data={metrics.user_signups_by_day} />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-[var(--text)]">
+                  Recipes created (~30 days)
+                </h3>
+                <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 shadow-sm">
+                  <AdminDailyLineChart
+                    data={metrics.recipes_created_by_day}
+                    seriesName="Recipes"
+                    emptyMessage="No new recipes in this window."
+                    stroke="var(--accent)"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="engagement" className="mt-12 scroll-mt-6">
+            <h2 className="text-lg font-semibold text-[var(--text)]">
+              Engagement & monetization adjacency
+            </h2>
+            <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Recipe views (7d)</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">
+                  {metrics.recipe_views_since}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Telemetry events (7d)</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">
+                  {metrics.events_since_count}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">Affiliate clicks (7d)</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">
+                  {metrics.affiliate_clicks_since}
+                </p>
+              </li>
+              <li className={cardClass()}>
+                <p className="text-sm text-[var(--muted)]">AI tool uses (7d)</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums">
+                  {metrics.ai_events_since}
+                </p>
+              </li>
+            </ul>
+
+            <div className="mt-6">
+              <h3 className="text-base font-semibold text-[var(--text)]">
+                Recipe views (~30 days)
+              </h3>
+              <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 shadow-sm">
+                <AdminDailyLineChart
+                  data={metrics.recipe_views_by_day}
+                  seriesName="Views"
+                  emptyMessage="No recipe views logged yet."
+                />
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-end justify-between gap-3">
+              <h3
                 id="event-types-heading"
                 className="text-base font-semibold text-[var(--text)]"
               >
                 Event types (last 7 days)
-              </h2>
+              </h3>
               <Link
                 href={`/api/admin/export/events?since=${exportSince}`}
                 className="text-xs font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
@@ -173,6 +427,30 @@ export default async function AdminPage({
                     <span className="tabular-nums text-[var(--muted)]">
                       {row.count}
                     </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <h3
+              id="ai-event-types-heading"
+              className="mt-8 text-base font-semibold text-[var(--text)]"
+            >
+              AI usage by tool (last 7 days)
+            </h3>
+            {metrics.ai_event_types_since.length === 0 ? (
+              <p className="mt-3 text-sm text-[var(--muted)]">No AI events in this window.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-[color-mix(in_srgb,var(--muted)_28%,transparent)] rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-4 py-1 text-sm shadow-sm">
+                {metrics.ai_event_types_since.map((row) => (
+                  <li
+                    key={row.event_type}
+                    className="flex items-center justify-between gap-4 py-2.5"
+                  >
+                    <span className="truncate font-medium text-[var(--text)]">
+                      {row.event_type}
+                    </span>
+                    <span className="tabular-nums text-[var(--muted)]">{row.count}</span>
                   </li>
                 ))}
               </ul>
@@ -215,18 +493,6 @@ export default async function AdminPage({
               </ul>
             )}
           </section>
-
-          <section className="mt-8" aria-labelledby="signups-heading">
-            <h2
-              id="signups-heading"
-              className="text-base font-semibold text-[var(--text)]"
-            >
-              User signups (approx. last 30 days)
-            </h2>
-            <div className="mt-3 rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] px-3 py-2 shadow-sm">
-              <AdminSignupsChart data={metrics.user_signups_by_day} />
-            </div>
-          </section>
         </>
       ) : (
         <p className="mt-4 text-sm text-[var(--muted)]">
@@ -235,7 +501,7 @@ export default async function AdminPage({
         </p>
       )}
 
-      <section className="mt-10" aria-labelledby="suggestions-heading">
+      <section id="support" className="mt-10 scroll-mt-6" aria-labelledby="suggestions-heading">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2
@@ -246,6 +512,15 @@ export default async function AdminPage({
             </h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
               Latest user suggestions with submitter snapshots.
+              {metrics ? (
+                <>
+                  {" "}
+                  <span className="tabular-nums">
+                    {metrics.suggestions_open_count} new · {metrics.suggestions_total_count}{" "}
+                    total
+                  </span>
+                </>
+              ) : null}
             </p>
           </div>
           <span className="text-xs font-medium text-[var(--muted)]">
@@ -311,7 +586,7 @@ export default async function AdminPage({
         )}
       </section>
 
-      <section className="mt-10" aria-labelledby="recent-events-heading">
+      <section id="events-log" className="mt-10 scroll-mt-6" aria-labelledby="recent-events-heading">
         <h2
           id="recent-events-heading"
           className="text-base font-semibold text-[var(--text)]"

@@ -22,9 +22,9 @@ import {
 } from "@/lib/demo-recipe-cover-images";
 import {
   RECIPE_IMAGE_BUCKET,
-  validateRecipeImageObjectPath,
+  RECIPE_GALLERY_MAX_IMAGES,
   validateRecipeImageUploadMeta,
-  validateStoredRecipeImageUrl,
+  validateStoredRecipeGalleryUrls,
 } from "@/lib/recipe-image";
 import { estimateMissingIngredientsCostCents } from "@/lib/ingredient-cost-estimates";
 import {
@@ -77,6 +77,27 @@ async function cleanupUploadedRecipeImage(
 
   if (error) {
     logServerError("recipes.cleanup_uploaded_image", error);
+  }
+}
+
+async function cleanupUploadedRecipeImages(
+  supabase: SupabaseClient,
+  objectPaths: string[],
+) {
+  for (const path of objectPaths) {
+    await cleanupUploadedRecipeImage(supabase, path);
+  }
+}
+
+function parseRecipeGalleryJsonField(raw: unknown): string[] {
+  const text = String(raw ?? "").trim();
+  if (!text) return [];
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((v) => String(v).trim()).filter(Boolean);
+  } catch {
+    return [];
   }
 }
 
@@ -943,7 +964,24 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
 
   const title = String(formData.get("title") ?? "").trim();
   const instructions = String(formData.get("instructions") ?? "").trim();
-  const imageUrlRaw = String(formData.get("image_url") ?? "").trim();
+  const galleryUrlsRaw = parseRecipeGalleryJsonField(formData.get("gallery_image_urls"));
+  const galleryPathsRaw = parseRecipeGalleryJsonField(
+    formData.get("gallery_image_object_paths"),
+  );
+  const legacyImageUrl = String(formData.get("image_url") ?? "").trim();
+  const legacyObjectPath = String(formData.get("image_object_path") ?? "").trim();
+  const galleryUrlsInput =
+    galleryUrlsRaw.length > 0
+      ? galleryUrlsRaw
+      : legacyImageUrl
+        ? [legacyImageUrl]
+        : [];
+  const galleryPathsInput =
+    galleryPathsRaw.length > 0
+      ? galleryPathsRaw
+      : legacyObjectPath
+        ? [legacyObjectPath]
+        : [];
   const videoUrlRaw = String(formData.get("video_url") ?? "").trim();
   const videoNormalized = normalizeRecipeVideoUrlInput(videoUrlRaw);
   if (!videoNormalized.ok) {
@@ -1035,42 +1073,30 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     };
   }
 
-  const uploadedImagePathCheck = validateRecipeImageObjectPath({
-    objectPathRaw: String(formData.get("image_object_path") ?? "").trim(),
-    userId: user.id,
-  });
-  if (!uploadedImagePathCheck.ok) {
-    return { error: uploadedImagePathCheck.message, recipeId: null };
-  }
-  const uploadedImageObjectPath = uploadedImagePathCheck.objectPath;
+  const uploadedGalleryPaths: string[] = [];
 
   const projectOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!projectOrigin) {
-    await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
+    await cleanupUploadedRecipeImages(supabase, galleryPathsInput);
     return { error: "Supabase is not configured.", recipeId: null };
   }
 
-  const imageCheck = validateStoredRecipeImageUrl({
-    imageUrlRaw,
+  const galleryCheck = validateStoredRecipeGalleryUrls({
+    urlsRaw: galleryUrlsInput,
+    objectPathsRaw: galleryPathsInput,
     userId: user.id,
     supabaseProjectOrigin: projectOrigin,
     rejectPlainDataUrls: process.env.NODE_ENV === "production",
+    maxImages: RECIPE_GALLERY_MAX_IMAGES,
   });
-  if (!imageCheck.ok) {
-    await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
-    return { error: imageCheck.message, recipeId: null };
+  if (!galleryCheck.ok) {
+    await cleanupUploadedRecipeImages(supabase, galleryPathsInput);
+    return { error: galleryCheck.message, recipeId: null };
   }
 
-  if (uploadedImageObjectPath) {
-    if (!imageCheck.url || !("objectPath" in imageCheck)) {
-      await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
-      return { error: "Invalid recipe image URL.", recipeId: null };
-    }
-    if (imageCheck.objectPath !== uploadedImageObjectPath) {
-      await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
-      return { error: "Recipe image URL does not match the uploaded image.", recipeId: null };
-    }
-  }
+  uploadedGalleryPaths.push(...galleryCheck.entries.map((e) => e.objectPath));
+  const coverImageUrl =
+    galleryCheck.entries.length > 0 ? galleryCheck.entries[0].url : null;
 
   const tagNames = [
     ...new Set([
@@ -1087,7 +1113,7 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     {
       p_title: title,
       p_instructions: instructions,
-      p_image_url: imageCheck.url,
+      p_image_url: coverImageUrl,
       p_video_url: video_url,
       p_difficulty: difficulty,
       p_cook_time_minutes: cook_time_minutes,
@@ -1102,7 +1128,7 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
   );
 
   if (recipeError || !recipeId) {
-    await cleanupUploadedRecipeImage(supabase, uploadedImageObjectPath);
+    await cleanupUploadedRecipeImages(supabase, uploadedGalleryPaths);
     if (isMonthlyRecipeLimitRpcError(recipeError)) {
       return {
         error: MONTHLY_RECIPE_LIMIT_ERROR,
@@ -1117,6 +1143,25 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
       error: GENERIC_SERVER_ERROR,
       recipeId: null,
     };
+  }
+
+  if (galleryCheck.entries.length > 0) {
+    const { error: galleryErr } = await supabase.from("recipe_images").insert(
+      galleryCheck.entries.map((entry, sort_order) => ({
+        recipe_id: recipeId,
+        image_url: entry.url,
+        sort_order,
+      })),
+    );
+    if (galleryErr) {
+      logServerError("recipes.insert_recipe_images", galleryErr);
+      await cleanupUploadedRecipeImages(supabase, uploadedGalleryPaths);
+      await supabase.from("recipes").delete().eq("id", recipeId);
+      return {
+        error: GENERIC_SERVER_ERROR,
+        recipeId: null,
+      };
+    }
   }
 
   await logEvent(supabase, {

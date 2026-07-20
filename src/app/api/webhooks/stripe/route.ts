@@ -10,6 +10,11 @@ import {
   type PaidTier,
 } from "@/lib/stripe";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service";
+import {
+  recordChargeRefundedLedgerFallback,
+  recordInvoicePaidLedgerEntry,
+  recordRefundLedgerEntry,
+} from "@/lib/billing/billing-ledger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -310,8 +315,38 @@ export async function POST(req: NextRequest) {
         );
         break;
       }
+      case "invoice.paid": {
+        const ledger = await recordInvoicePaidLedgerEntry({
+          stripeEventId: event.id,
+          invoice: event.data.object as Stripe.Invoice,
+        });
+        if (!ledger.ok) {
+          result = ledger;
+        }
+        break;
+      }
+      case "refund.created": {
+        const ledger = await recordRefundLedgerEntry({
+          stripeEventId: event.id,
+          refund: event.data.object as Stripe.Refund,
+          stripe,
+        });
+        if (!ledger.ok) {
+          result = ledger;
+        }
+        break;
+      }
+      case "charge.refunded": {
+        const ledger = await recordChargeRefundedLedgerFallback({
+          stripeEventId: event.id,
+          charge: event.data.object as Stripe.Charge,
+        });
+        if (!ledger.ok) {
+          result = ledger;
+        }
+        break;
+      }
       default: {
-        // Ignore other event types — Stripe will keep redelivering until 2xx.
         break;
       }
     }

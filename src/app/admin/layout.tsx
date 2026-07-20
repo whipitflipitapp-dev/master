@@ -13,7 +13,7 @@ export default async function AdminLayout({
         <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
           Admin
         </p>
-        <h1 className="text-lg font-bold text-[var(--text)]">Dashboard</h1>
+        <h1 className="text-lg font-bold text-[var(--text)]">Operations</h1>
       </div>
       {children}
     </div>

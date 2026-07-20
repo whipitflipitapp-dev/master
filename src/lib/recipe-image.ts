@@ -2,6 +2,9 @@ export const RECIPE_IMAGE_BUCKET = "recipe-images";
 
 export const RECIPE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
+/** Max photos per recipe (gallery + list thumbnail uses the first). */
+export const RECIPE_GALLERY_MAX_IMAGES = 50;
+
 export const RECIPE_IMAGE_ACCEPT = "image/png,image/jpeg";
 
 const ALLOWED_MIMES = new Set(["image/png", "image/jpeg"]);
@@ -168,4 +171,59 @@ export function validateStoredRecipeImageUrl(args: {
   }
 
   return { ok: true, url: trimmed, objectPath: pathCheck.objectPath! };
+}
+
+export type ValidatedRecipeGalleryEntry = {
+  url: string;
+  objectPath: string;
+};
+
+/**
+ * Validates an ordered list of stored gallery URLs (same rules as cover image).
+ */
+export function validateStoredRecipeGalleryUrls(args: {
+  urlsRaw: string[];
+  objectPathsRaw: string[];
+  userId: string;
+  supabaseProjectOrigin: string;
+  rejectPlainDataUrls: boolean;
+  maxImages?: number;
+}):
+  | { ok: true; entries: ValidatedRecipeGalleryEntry[] }
+  | { ok: false; message: string } {
+  const max = args.maxImages ?? RECIPE_GALLERY_MAX_IMAGES;
+  const urls = args.urlsRaw.map((u) => u.trim()).filter(Boolean);
+  const paths = args.objectPathsRaw.map((p) => p.trim()).filter(Boolean);
+
+  if (urls.length === 0) {
+    return { ok: true, entries: [] };
+  }
+  if (urls.length > max) {
+    return { ok: false, message: `Add up to ${max} photos per recipe.` };
+  }
+  if (paths.length !== urls.length) {
+    return { ok: false, message: "Gallery upload metadata does not match photos." };
+  }
+
+  const entries: ValidatedRecipeGalleryEntry[] = [];
+  for (let i = 0; i < urls.length; i += 1) {
+    const checked = validateStoredRecipeImageUrl({
+      imageUrlRaw: urls[i],
+      userId: args.userId,
+      supabaseProjectOrigin: args.supabaseProjectOrigin,
+      rejectPlainDataUrls: args.rejectPlainDataUrls,
+    });
+    if (!checked.ok) {
+      return checked;
+    }
+    if (!checked.url || !("objectPath" in checked)) {
+      return { ok: false, message: "Invalid recipe photo URL." };
+    }
+    if (checked.objectPath !== paths[i]) {
+      return { ok: false, message: "Recipe photo URL does not match the uploaded file." };
+    }
+    entries.push({ url: checked.url, objectPath: checked.objectPath });
+  }
+
+  return { ok: true, entries };
 }

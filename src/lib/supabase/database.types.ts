@@ -151,6 +151,61 @@ export interface Database {
         };
         Update: Record<string, never>;
       };
+      recipe_images: {
+        Row: {
+          id: string;
+          recipe_id: string;
+          image_url: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          recipe_id: string;
+          image_url: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          image_url?: string;
+          sort_order?: number;
+        };
+      };
+      billing_events: {
+        Row: {
+          id: string;
+          stripe_event_id: string;
+          kind: "invoice_paid" | "refund_created";
+          amount_cents: number;
+          currency: string;
+          revenue_type: string;
+          stripe_price_id: string | null;
+          stripe_customer_id: string | null;
+          stripe_invoice_id: string | null;
+          stripe_charge_id: string | null;
+          stripe_refund_id: string | null;
+          user_id: string | null;
+          occurred_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          stripe_event_id: string;
+          kind: "invoice_paid" | "refund_created";
+          amount_cents: number;
+          currency?: string;
+          revenue_type?: string;
+          stripe_price_id?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_invoice_id?: string | null;
+          stripe_charge_id?: string | null;
+          stripe_refund_id?: string | null;
+          user_id?: string | null;
+          occurred_at: string;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+      };
       user_excluded_recipes: {
         Row: {
           user_id: string;
@@ -371,6 +426,10 @@ export interface Database {
         Returns: Json;
       };
       admin_affiliate_link_types_recent: {
+        Args: { p_since?: string };
+        Returns: Json;
+      };
+      admin_billing_ledger_summary: {
         Args: { p_since?: string };
         Returns: Json;
       };

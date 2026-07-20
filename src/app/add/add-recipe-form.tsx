@@ -9,6 +9,7 @@ import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { suggestAllergenIdsFromText } from "@/lib/allergen-detect";
 import type { PlanType } from "@/lib/plan";
 import {
+  RECIPE_GALLERY_MAX_IMAGES,
   RECIPE_IMAGE_ACCEPT,
   RECIPE_IMAGE_BUCKET,
   RECIPE_IMAGE_MAX_BYTES,
@@ -17,13 +18,18 @@ import {
 } from "@/lib/recipe-image";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
+type SelectedRecipePhoto = {
+  file: File;
+  previewUrl: string;
+};
+
 type Allergen = { id: string; name: string };
 
 type CategoryOption = { value: string; label: string };
 
 const GENERIC_SAVE_ERROR = "Could not save this recipe. Please try again.";
 const IMAGE_UPLOAD_ERROR =
-  "Could not upload the recipe image. Check the file and try again.";
+  "Could not upload recipe photos. Check the files and try again.";
 const COOK_TIME_MINUTES_MIN = 1;
 const COOK_TIME_MINUTES_MAX = 1440;
 const DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;
@@ -213,8 +219,9 @@ export function AddRecipeForm({
   planForPitch?: PlanType;
 }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [selectedPhotos, setSelectedPhotos] = useState<SelectedRecipePhoto[]>(
+    [],
+  );
   const [localError, setLocalError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [savePhase, setSavePhase] = useState<SavePhase>("idle");
@@ -281,7 +288,7 @@ export function AddRecipeForm({
       tags: tagsDraft,
       allergenIds: [...allergenSelected].sort(),
       categoryValues: [...categoriesSelected].sort(),
-      hadImage: file !== null || imageReselectNeeded,
+      hadImage: selectedPhotos.length > 0 || imageReselectNeeded,
     }),
     [
       titleDraft,
@@ -293,7 +300,7 @@ export function AddRecipeForm({
       tagsDraft,
       allergenSelected,
       categoriesSelected,
-      file,
+      selectedPhotos,
       imageReselectNeeded,
     ],
   );
@@ -307,12 +314,26 @@ export function AddRecipeForm({
     }
   }, [draftStorageKey]);
 
-  const clearSelectedImage = useCallback(() => {
-    setFile(null);
+  const clearSelectedPhotos = useCallback(() => {
+    setSelectedPhotos((prev) => {
+      for (const photo of prev) {
+        if (photo.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(photo.previewUrl);
+        }
+      }
+      return [];
+    });
     setImageReselectNeeded(false);
-    setPreview((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return null;
+  }, []);
+
+  const removeSelectedPhotoAt = useCallback((index: number) => {
+    setSelectedPhotos((prev) => {
+      const next = [...prev];
+      const removed = next.splice(index, 1)[0];
+      if (removed?.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(removed.previewUrl);
+      }
+      return next;
     });
   }, []);
 
@@ -328,8 +349,8 @@ export function AddRecipeForm({
     setCategoriesSelected(new Set());
     setDraftRestored(false);
     setLocalError(null);
-    clearSelectedImage();
-  }, [clearSelectedImage]);
+    clearSelectedPhotos();
+  }, [clearSelectedPhotos]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -406,33 +427,48 @@ export function AddRecipeForm({
 
   useEffect(() => {
     return () => {
-      if (preview?.startsWith("blob:")) {
-        URL.revokeObjectURL(preview);
+      for (const photo of selectedPhotos) {
+        if (photo.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(photo.previewUrl);
+        }
       }
     };
-  }, [preview]);
+  }, [selectedPhotos]);
 
   function handleFileChange(ev: React.ChangeEvent<HTMLInputElement>) {
     setLocalError(null);
-    const next = ev.target.files?.[0];
+    const picked = ev.target.files ? [...ev.target.files] : [];
     ev.target.value = "";
-    if (!next) {
-      clearSelectedImage();
+    if (picked.length === 0) {
       return;
     }
 
-    const err = validateRecipeImageFile(next);
-    if (err) {
-      setLocalError(err);
-      clearSelectedImage();
-      return;
-    }
-
-    setFile(next);
-    setImageReselectNeeded(false);
-    setPreview((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(next);
+    setSelectedPhotos((prev) => {
+      const room = RECIPE_GALLERY_MAX_IMAGES - prev.length;
+      if (room <= 0) {
+        setLocalError(`You can add up to ${RECIPE_GALLERY_MAX_IMAGES} photos per recipe.`);
+        return prev;
+      }
+      const toAdd = picked.slice(0, room);
+      if (picked.length > room) {
+        setLocalError(`Only ${room} more photo(s) fit (max ${RECIPE_GALLERY_MAX_IMAGES}).`);
+      }
+      const next: SelectedRecipePhoto[] = [...prev];
+      for (const file of toAdd) {
+        const err = validateRecipeImageFile(file);
+        if (err) {
+          setLocalError(err);
+          continue;
+        }
+        next.push({
+          file,
+          previewUrl: URL.createObjectURL(file),
+        });
+      }
+      if (next.length > prev.length) {
+        setImageReselectNeeded(false);
+      }
+      return next;
     });
   }
 
@@ -463,36 +499,48 @@ export function AddRecipeForm({
         return;
       }
 
-      if (file) {
+      if (selectedPhotos.length > 0) {
         setSavePhase("uploading");
-        const mimeErr = validateRecipeImageFile(file);
-        if (mimeErr) {
-          setLocalError(mimeErr);
-          return;
-        }
-        const ext = recipeStorageExtensionFromMime(file.type);
-        if (!ext) {
-          setLocalError("Only PNG or JPEG images are allowed.");
-          return;
+        const publicUrls: string[] = [];
+        const objectPaths: string[] = [];
+
+        for (const photo of selectedPhotos) {
+          const mimeErr = validateRecipeImageFile(photo.file);
+          if (mimeErr) {
+            setLocalError(mimeErr);
+            return;
+          }
+          const ext = recipeStorageExtensionFromMime(photo.file.type);
+          if (!ext) {
+            setLocalError("Only PNG or JPEG images are allowed.");
+            return;
+          }
+
+          const objectPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from(RECIPE_IMAGE_BUCKET)
+            .upload(objectPath, photo.file, {
+              contentType: photo.file.type,
+              upsert: false,
+            });
+
+          if (uploadError) {
+            setLocalError(IMAGE_UPLOAD_ERROR);
+            return;
+          }
+
+          const { data: pub } = supabase.storage
+            .from(RECIPE_IMAGE_BUCKET)
+            .getPublicUrl(objectPath);
+          publicUrls.push(pub.publicUrl);
+          objectPaths.push(objectPath);
         }
 
-        const objectPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from(RECIPE_IMAGE_BUCKET)
-          .upload(objectPath, file, {
-            contentType: file.type,
-            upsert: false,
-          });
-
-        if (uploadError) {
-          setLocalError(IMAGE_UPLOAD_ERROR);
-          return;
-        }
-
-        const { data: pub } = supabase.storage.from(RECIPE_IMAGE_BUCKET).getPublicUrl(objectPath);
-        formData.set("image_url", pub.publicUrl);
-        formData.set("image_object_path", objectPath);
+        formData.set("gallery_image_urls", JSON.stringify(publicUrls));
+        formData.set("gallery_image_object_paths", JSON.stringify(objectPaths));
       } else {
+        formData.delete("gallery_image_urls");
+        formData.delete("gallery_image_object_paths");
         formData.delete("image_url");
         formData.delete("image_object_path");
       }
@@ -560,69 +608,88 @@ export function AddRecipeForm({
       <section className="flex flex-col gap-2 rounded-[var(--radius-card)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-[length:var(--text-meta)] font-semibold text-[var(--text)]">
-            Recipe photo
+            Recipe photos
           </h2>
-          <span className="text-[length:var(--text-caption)] text-[var(--muted)]">Optional</span>
+          <span className="text-[length:var(--text-caption)] text-[var(--muted)]">
+            Optional · up to {RECIPE_GALLERY_MAX_IMAGES}
+          </span>
         </div>
         <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
-          PNG or JPEG, up to {Math.round(RECIPE_IMAGE_MAX_BYTES / (1024 * 1024))}MB. Paste a video link
-          below — no video uploads.
+          PNG or JPEG, up to {Math.round(RECIPE_IMAGE_MAX_BYTES / (1024 * 1024))}MB each. The first
+          photo is the card thumbnail. Paste a video link below — no video uploads.
         </p>
         <p className="text-[length:var(--text-caption)] text-[var(--muted)]">
-          Drafts save recipe text and selections on this device. Image files
-          are not saved and must be reselected after a reload.
+          Drafts save recipe text and selections on this device. Image files are not saved and must
+          be reselected after a reload.
         </p>
         {imageReselectNeeded ? (
           <p
             className="rounded-lg bg-[color-mix(in_srgb,var(--primary-muted)_52%,transparent)] px-3 py-2 text-[length:var(--text-caption)] text-[var(--text)]"
             role="status"
           >
-            Your draft had a selected image. Choose it again before saving if
-            you still want a photo.
+            Your draft had selected photos. Choose them again before saving if you still want a
+            gallery.
           </p>
         ) : null}
 
-        <div className="mt-3 flex flex-col gap-4 sm:flex-row">
-          <label className="flex min-h-[11rem] max-w-md flex-1 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-4 py-6 text-center transition-[border-color] hover:border-[var(--primary)]">
+        <div className="mt-3 flex flex-col gap-4">
+          <label className="flex min-h-[9rem] max-w-md cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-4 py-5 text-center transition-[border-color] hover:border-[var(--primary)]">
             <input
               type="file"
               accept={RECIPE_IMAGE_ACCEPT}
+              multiple
               className="sr-only"
-              disabled={capped}
+              disabled={capped || selectedPhotos.length >= RECIPE_GALLERY_MAX_IMAGES}
               onChange={handleFileChange}
             />
             <span className="text-sm font-semibold text-[var(--primary)]">
-              Choose image
+              Choose photos
             </span>
             <span className="mt-2 text-[length:var(--text-caption)] text-[var(--muted)]">
-              .png · .jpg · .jpeg — GIF and WebP not supported
+              .png · .jpg · .jpeg — {selectedPhotos.length}/{RECIPE_GALLERY_MAX_IMAGES} selected
             </span>
           </label>
 
-          {preview ? (
-            <div className="relative h-44 w-full max-w-[16rem] overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--muted)_30%,transparent)] bg-[color-mix(in_srgb,var(--bg)_94%,transparent)] shadow-[var(--shadow-card)] sm:h-auto sm:flex-1 sm:self-stretch">
-              <Image
-                src={preview}
-                alt="Recipe preview"
-                fill
-                sizes="(max-width: 640px) 100vw, 16rem"
-                className="object-cover"
-                unoptimized={preview.startsWith("blob:")}
-              />
-              <button
-                type="button"
-                aria-label="Remove selected recipe photo"
-                disabled={capped}
-                className="absolute right-2 top-2 rounded-lg bg-black/55 px-2 py-1 text-[length:var(--text-caption)] font-medium text-white disabled:opacity-50"
-                onClick={clearSelectedImage}
-              >
-                Remove photo
-              </button>
-            </div>
+          {selectedPhotos.length > 0 ? (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {selectedPhotos.map((photo, index) => (
+                <li
+                  key={photo.previewUrl}
+                  className="relative aspect-[4/3] overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--muted)_30%,transparent)] bg-[color-mix(in_srgb,var(--bg)_94%,transparent)] shadow-[var(--shadow-card)]"
+                >
+                  <Image
+                    src={photo.previewUrl}
+                    alt={
+                      index === 0
+                        ? "Recipe thumbnail preview"
+                        : `Recipe photo ${index + 1} preview`
+                    }
+                    fill
+                    sizes="(max-width: 640px) 45vw, 12rem"
+                    className="object-cover"
+                    unoptimized
+                  />
+                  {index === 0 ? (
+                    <span className="absolute left-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                      Thumbnail
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    aria-label={`Remove photo ${index + 1}`}
+                    disabled={capped}
+                    className="absolute right-2 top-2 rounded-lg bg-black/55 px-2 py-1 text-[length:var(--text-caption)] font-medium text-white disabled:opacity-50"
+                    onClick={() => removeSelectedPhotoAt(index)}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <p className="flex flex-1 items-center rounded-xl bg-[color-mix(in_srgb,var(--primary-muted)_52%,transparent)] px-4 py-3 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
-              Recipe cards load faster when you attach a thumbnail — like cookbook covers on Cookpad,
-              minus the glare.
+            <p className="rounded-xl bg-[color-mix(in_srgb,var(--primary-muted)_52%,transparent)] px-4 py-3 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
+              Recipe cards load faster with a thumbnail — add several angles for a swipe gallery on
+              the recipe page.
             </p>
           )}
         </div>
