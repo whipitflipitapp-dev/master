@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const EVENTS_PAGE_SIZE = 50;
+const EVENTS_LOG_LIMIT = 50;
 const SUGGESTIONS_LIMIT = 25;
 
 type AdminSuggestionRow = {
@@ -42,19 +42,8 @@ function cardClass() {
   return adminMetricCardClass();
 }
 
-export default async function AdminPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ ev?: string }>;
-}) {
+export default async function AdminPage() {
   const { supabase } = await requireAdminSession();
-  const sp = await searchParams;
-  const pageRaw = sp.ev ?? "1";
-  const page =
-    Number.isFinite(Number(pageRaw)) && Number(pageRaw) >= 1
-      ? Math.floor(Number(pageRaw))
-      : 1;
-  const offset = (page - 1) * EVENTS_PAGE_SIZE;
 
   const sinceDate = new Date();
   sinceDate.setUTCDate(sinceDate.getUTCDate() - 7);
@@ -64,8 +53,8 @@ export default async function AdminPage({
     await Promise.all([
       supabase.rpc("admin_metrics_overview", { p_since: sinceIso }),
       supabase.rpc("admin_recent_events", {
-        p_limit: EVENTS_PAGE_SIZE,
-        p_offset: offset,
+        p_limit: EVENTS_LOG_LIMIT,
+        p_offset: 0,
       }),
       supabase.rpc("admin_affiliate_link_types_recent", { p_since: sinceIso }),
       supabase
@@ -98,8 +87,6 @@ export default async function AdminPage({
   }
 
   const exportSince = encodeURIComponent(sinceIso);
-  const prevPage = page > 1 ? page - 1 : null;
-  const nextPage = recentEvents.length === EVENTS_PAGE_SIZE ? page + 1 : null;
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-6">
@@ -603,6 +590,10 @@ export default async function AdminPage({
         >
           Recent events
         </h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          Latest {EVENTS_LOG_LIMIT} rows — scroll inside the panel. Use CSV export above
+          for a full dump.
+        </p>
         {eventsError ? (
           <p className="mt-3 text-sm text-[var(--muted)]">
             Could not load recent events.
@@ -610,10 +601,10 @@ export default async function AdminPage({
         ) : recentEvents.length === 0 ? (
           <p className="mt-3 text-sm text-[var(--muted)]">No rows.</p>
         ) : (
-          <>
-            <div className="mt-3 overflow-x-auto rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] shadow-sm">
+          <div className="mt-3 overflow-x-auto rounded-2xl border border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[var(--card)] shadow-sm">
+            <div className="max-h-[min(28rem,55vh)] overflow-y-auto overscroll-y-contain">
               <table className="w-full min-w-[640px] border-collapse text-left text-[length:var(--text-caption)]">
-                <thead className="border-b border-[color-mix(in_srgb,var(--muted)_35%,transparent)] text-[var(--muted)]">
+                <thead className="sticky top-0 z-[1] border-b border-[color-mix(in_srgb,var(--muted)_35%,transparent)] bg-[color-mix(in_srgb,var(--card)_96%,var(--bg))] text-[var(--muted)] shadow-[0_1px_0_color-mix(in_srgb,var(--muted)_22%,transparent)]">
                   <tr>
                     <th className="whitespace-nowrap px-4 py-2.5 font-semibold">
                       Time
@@ -652,29 +643,7 @@ export default async function AdminPage({
                 </tbody>
               </table>
             </div>
-            <div className="mt-4 flex items-center justify-between gap-4 text-sm">
-              {prevPage ? (
-                <Link
-                  href={`/admin?ev=${prevPage}`}
-                  className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
-                >
-                  ← Newer page
-                </Link>
-              ) : (
-                <span />
-              )}
-              {nextPage ? (
-                <Link
-                  href={`/admin?ev=${nextPage}`}
-                  className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
-                >
-                  Older page →
-                </Link>
-              ) : (
-                <span />
-              )}
-            </div>
-          </>
+          </div>
         )}
       </section>
 
