@@ -218,7 +218,7 @@
   "help_cook_sort_lowest_cost": "Lowest estimated cost",
   "help_cook_sort_highest_cost": "Highest estimated cost",
   "help_cook_estimated_missing_cost": "{{amount}} missing",
-  "help_cook_cost_estimate_disclaimer": "Estimated US-average prices; your store and location may differ.",
+  "help_cook_cost_estimate_disclaimer": "Estimates use typical US grocery package sizes and round up; your store may charge more or less.",
   "profile_meta_title": "Profile | {{brand}}",
   "profile_meta_desc": "Your account, allergies, and subscription.",
   "profile_title": "Profile",

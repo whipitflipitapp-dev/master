@@ -43,15 +43,15 @@ export function RecipeDetailIngredientsSection({
   );
 
   const { missingNames, estimatedCents } = useMemo(() => {
-    const missing: string[] = [];
+    const missingLines: { name: string; quantity: string | null }[] = [];
     for (const ing of displayIngredients) {
       if (!haveIds.has(ing.ingredientId)) {
-        missing.push(ing.name);
+        missingLines.push({ name: ing.name, quantity: ing.quantity });
       }
     }
     return {
-      missingNames: missing,
-      estimatedCents: estimateMissingIngredientsCostCents(missing),
+      missingNames: missingLines.map((l) => l.name),
+      estimatedCents: estimateMissingIngredientsCostCents(missingLines),
     };
   }, [displayIngredients, haveIds]);
 

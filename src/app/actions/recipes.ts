@@ -871,7 +871,7 @@ export async function matchRecipesForPantry(
 
   const { data: allRi, error: allRiErr } = await supabase
     .from("recipe_ingredients")
-    .select("recipe_id,ingredient_id")
+    .select("recipe_id,ingredient_id,quantity")
     .in("recipe_id", candidateIds);
 
   if (allRiErr || !allRi) {
@@ -905,14 +905,26 @@ export async function matchRecipesForPantry(
     (namesRows ?? []).map((n: { id: string; name: string }) => [n.id, n.name]),
   );
 
+  type RiRow = {
+    recipe_id: string;
+    ingredient_id: string;
+    quantity: string | null;
+  };
+
   const recipeIngredientIds = new Map<string, Set<string>>();
-  for (const row of allRi as { recipe_id: string; ingredient_id: string }[]) {
+  const recipeIngredientQty = new Map<
+    string,
+    Map<string, string | null>
+  >();
+  for (const row of allRi as RiRow[]) {
     const nm = ingName.get(row.ingredient_id);
     if (!nm) continue;
     if (!recipeIngredientIds.has(row.recipe_id)) {
       recipeIngredientIds.set(row.recipe_id, new Set());
+      recipeIngredientQty.set(row.recipe_id, new Map());
     }
     recipeIngredientIds.get(row.recipe_id)!.add(row.ingredient_id);
+    recipeIngredientQty.get(row.recipe_id)!.set(row.ingredient_id, row.quantity);
   }
 
   const matches: RecipeMatchResult[] = [];
@@ -935,11 +947,19 @@ export async function matchRecipesForPantry(
     const matchPercent = useSingleIngredientOverlap
       ? Math.min(100, Math.round((overlap / denom) * 100))
       : 100;
+    const qtyByIng = recipeIngredientQty.get(r.id);
     const missingIngredients = [...ids]
       .filter((id) => !userUnion.has(id))
       .map((id) => ingName.get(id)!)
       .filter((name) => !isIngredientLineNoise(name))
       .sort((a, b) => a.localeCompare(b));
+    const missingCostLines = [...ids]
+      .filter((id) => !userUnion.has(id))
+      .map((id) => ({
+        name: ingName.get(id)!,
+        quantity: qtyByIng?.get(id) ?? null,
+      }))
+      .filter((line) => !isIngredientLineNoise(line.name));
     matches.push({
       recipeId: r.id,
       title: r.title,
@@ -952,7 +972,7 @@ export async function matchRecipesForPantry(
       recipeIngredientCount: denom,
       matchedIngredientCount: overlap,
       estimatedMissingCostCents:
-        estimateMissingIngredientsCostCents(missingIngredients),
+        estimateMissingIngredientsCostCents(missingCostLines),
     });
   }
 
