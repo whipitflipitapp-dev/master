@@ -3,6 +3,8 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
+
 /**
  * Service-role Supabase client. Bypasses RLS — never expose this client or
  * `SUPABASE_SERVICE_ROLE_KEY` to the browser. Intended ONLY for trusted
@@ -13,7 +15,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * route module at import time).
  */
 export function createSupabaseServiceRoleClient(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const urlRaw = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = urlRaw ? normalizeSupabaseProjectUrl(urlRaw) : "";
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {

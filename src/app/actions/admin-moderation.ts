@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireAdminSession } from "@/lib/admin/require-admin-session";
 import {
   AdminServiceUnavailableError,
   createAdminServiceRoleContext,
@@ -54,7 +55,7 @@ export async function adminSearchUsers(
   query: string,
 ): Promise<{ ok: true; rows: AdminUserRow[] } | { ok: false; error: string }> {
   try {
-    const { supabase } = await createAdminServiceRoleContext();
+    const { supabase } = await requireAdminSession();
     const { data, error } = await supabase.rpc("admin_search_users", {
       p_query: query.trim(),
       p_limit: 40,
@@ -74,7 +75,7 @@ export async function adminSearchRecipes(
   status: string,
 ): Promise<{ ok: true; rows: AdminRecipeRow[] } | { ok: false; error: string }> {
   try {
-    const { supabase } = await createAdminServiceRoleContext();
+    const { supabase } = await requireAdminSession();
     const { data, error } = await supabase.rpc("admin_search_recipes", {
       p_query: query.trim(),
       p_status: status.trim() || null,
