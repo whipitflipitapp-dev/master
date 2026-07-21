@@ -39,6 +39,7 @@ export interface Database {
           ban_reason: string | null;
           banned_by: string | null;
           plan_billing_source: "self" | "complimentary";
+          celebrated_upload_badge_tier: string | null;
         };
         Insert: {
           id: string;
@@ -66,6 +67,7 @@ export interface Database {
           ban_reason?: string | null;
           banned_by?: string | null;
           plan_billing_source?: "self" | "complimentary";
+          celebrated_upload_badge_tier?: string | null;
         };
         Update: {
           display_name?: string | null;
@@ -91,6 +93,7 @@ export interface Database {
           ban_reason?: string | null;
           banned_by?: string | null;
           plan_billing_source?: "self" | "complimentary";
+          celebrated_upload_badge_tier?: string | null;
         };
       };
       banned_emails: {

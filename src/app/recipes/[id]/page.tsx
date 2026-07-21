@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
+import { CreatorBadgeLevelUpCelebration } from "@/components/creator/CreatorBadgeLevelUpCelebration";
 import { RecipeUploadBadge } from "@/components/creator/RecipeUploadBadge";
 import { RecipeDetailIngredientsSection } from "@/components/recipe/RecipeDetailIngredientsSection";
 import { RecipeDetailMedia } from "@/components/recipe/RecipeDetailMedia";
@@ -43,8 +44,10 @@ import {
 import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
 import { parseRecipeVideoUrl } from "@/lib/video-url";
 import {
+  parseCelebratedUploadBadgeTier,
   recipeUploadBadgeLabelKey,
   resolveRecipeUploadBadgeTier,
+  shouldCelebrateUploadBadge,
 } from "@/lib/recipe-upload-badges";
 
 type Props = {
@@ -241,6 +244,7 @@ async function loadRecipe(
     external_link: string;
   } | null = null;
   let recipeExperience: RecipeExperienceRow | null = null;
+  let celebratedUploadBadgeTierRaw: string | null = null;
   const createdBy =
     recipe && "created_by" in recipe && recipe.created_by
       ? (recipe.created_by as string)
@@ -294,6 +298,16 @@ async function loadRecipe(
   }
 
   if (user) {
+    if (createdBy && user.id === createdBy) {
+      const { data: ownerProfile } = await supabase
+        .from("profiles")
+        .select("celebrated_upload_badge_tier")
+        .eq("id", user.id)
+        .maybeSingle();
+      celebratedUploadBadgeTierRaw =
+        ownerProfile?.celebrated_upload_badge_tier ?? null;
+    }
+
     const { data: expRow } = await supabase
       .from("user_recipe_experiences")
       .select("made_recipe, rating, spent_cents, review_text, review_moderation_status")
@@ -399,6 +413,7 @@ async function loadRecipe(
     whipFlipCount,
     galleryImageUrls,
     galleryPhotos,
+    celebratedUploadBadgeTierRaw,
   };
 }
 
@@ -496,6 +511,7 @@ export default async function RecipeDetailPage(props: Props) {
     whipFlipCount,
     galleryImageUrls,
     galleryPhotos,
+    celebratedUploadBadgeTierRaw,
   } = payload;
   const showReviewPendingBanner =
     sp.review === "pending" ||
@@ -564,6 +580,17 @@ export default async function RecipeDetailPage(props: Props) {
     chefUploadBadgeTier != null
       ? dictText(dict, recipeUploadBadgeLabelKey(chefUploadBadgeTier))
       : null;
+  const celebratedUploadBadgeTier = parseCelebratedUploadBadgeTier(
+    celebratedUploadBadgeTierRaw,
+  );
+  const showOwnerBadgeCelebration =
+    canEditRecipe &&
+    chefUploadBadgeTier != null &&
+    chefUploadBadgeLabel != null &&
+    shouldCelebrateUploadBadge(
+      chefUploadBadgeTier,
+      celebratedUploadBadgeTier,
+    );
   const wineTypeLabels = Object.fromEntries(
     CURATED_WINE_TYPES.map((t) => [
       t.slug,
@@ -603,6 +630,17 @@ export default async function RecipeDetailPage(props: Props) {
 
   return (
     <ContentPageBackdrop pageKey={`/recipes/detail|${id}`}>
+    {showOwnerBadgeCelebration && chefUploadBadgeTier && chefUploadBadgeLabel ? (
+      <CreatorBadgeLevelUpCelebration
+        tier={chefUploadBadgeTier}
+        levelLabel={chefUploadBadgeLabel}
+        title={dictText(dict, "creator_badge_celebration_title")}
+        body={dictText(dict, "creator_badge_celebration_body", {
+          level: chefUploadBadgeLabel,
+        })}
+        dismissLabel={dictText(dict, "creator_badge_celebration_dismiss")}
+      />
+    ) : null}
     <article className="mx-auto w-full max-w-2xl flex-1 px-5 pb-12 pt-8">
       <RecipeViewTelemetry recipeId={recipe.id} />
       <RecipeDetailMedia

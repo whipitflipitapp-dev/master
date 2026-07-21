@@ -6,6 +6,43 @@ export type RecipeUploadBadgeTierId =
   | "tier_41_50"
   | "tier_50_plus";
 
+export const RECIPE_UPLOAD_BADGE_TIER_ORDER: readonly RecipeUploadBadgeTierId[] =
+  [
+    "tier_1_5",
+    "tier_6_10",
+    "tier_11_20",
+    "tier_21_40",
+    "tier_41_50",
+    "tier_50_plus",
+  ] as const;
+
+const RECIPE_UPLOAD_BADGE_TIER_SET = new Set<string>(
+  RECIPE_UPLOAD_BADGE_TIER_ORDER,
+);
+
+export function uploadBadgeTierRank(tier: RecipeUploadBadgeTierId): number {
+  return RECIPE_UPLOAD_BADGE_TIER_ORDER.indexOf(tier);
+}
+
+export function parseCelebratedUploadBadgeTier(
+  raw: unknown,
+): RecipeUploadBadgeTierId | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed || !RECIPE_UPLOAD_BADGE_TIER_SET.has(trimmed)) return null;
+  return trimmed as RecipeUploadBadgeTierId;
+}
+
+/** True when the user has reached a badge tier not yet celebrated. */
+export function shouldCelebrateUploadBadge(
+  current: RecipeUploadBadgeTierId | null,
+  celebrated: RecipeUploadBadgeTierId | null,
+): boolean {
+  if (current == null) return false;
+  if (celebrated == null) return true;
+  return uploadBadgeTierRank(current) > uploadBadgeTierRank(celebrated);
+}
+
 /** Creator badge from total published recipes (by `created_by`). */
 export function resolveRecipeUploadBadgeTier(
   uploadedCount: number,

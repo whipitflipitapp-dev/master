@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import {
+  RECIPE_UPLOAD_BADGE_TIER_ORDER,
+  resolveRecipeUploadBadgeTier,
+  type RecipeUploadBadgeTierId,
+} from "@/lib/recipe-upload-badges";
 import { sanitizeOtherAllergenInput } from "@/lib/allergy-other";
 import { validateStoredAvatarUrl } from "@/lib/avatar-image";
 import { displayNameProfanityError } from "@/lib/moderation/profanity";
@@ -222,4 +227,54 @@ export async function saveUserAllergies(
   revalidatePath("/help-me-cook");
   revalidatePath("/recipes");
   return { error: null };
+}
+
+export async function markCelebratedUploadBadgeTier(
+  tier: RecipeUploadBadgeTierId,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { ok: false, error: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login?next=/dashboard");
+  }
+
+  if (!RECIPE_UPLOAD_BADGE_TIER_ORDER.includes(tier)) {
+    return { ok: false, error: GENERIC_SERVER_ERROR };
+  }
+
+  const { count, error: countErr } = await supabase
+    .from("recipes")
+    .select("*", { count: "exact", head: true })
+    .eq("created_by", user.id);
+
+  if (countErr) {
+    logServerError("profile.badge_celebration_count", countErr);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
+  }
+
+  const uploadCount = typeof count === "number" && count >= 0 ? count : 0;
+  const currentTier = resolveRecipeUploadBadgeTier(uploadCount);
+  if (currentTier !== tier) {
+    return { ok: false, error: GENERIC_SERVER_ERROR };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ celebrated_upload_badge_tier: tier })
+    .eq("id", user.id);
+
+  if (error) {
+    logServerError("profile.badge_celebration_update", error);
+    return { ok: false, error: GENERIC_SERVER_ERROR };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/recipes", "layout");
+  return { ok: true };
 }

@@ -174,7 +174,7 @@ export default async function ChefProfilePage(props: Props) {
   const list = cookbooks ?? [];
   const displayName =
     header?.display_name?.trim() || "Chef";
-  const uploadBadgeTier = resolveRecipeUploadBadgeTier(uploadedRecipeCount);
+  const uploadBadgeTier = resolveRecipeUploadBadgeTier(uploadedRecipeCount ?? 0);
   const uploadBadgeLabel =
     uploadBadgeTier != null
       ? dictText(dict, recipeUploadBadgeLabelKey(uploadBadgeTier))

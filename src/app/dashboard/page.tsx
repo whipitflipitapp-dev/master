@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { RecipeUploadQuotaNotice } from "@/components/billing/RecipeUploadQuotaNotice";
+import { CreatorBadgeLevelUpCelebration } from "@/components/creator/CreatorBadgeLevelUpCelebration";
 import { RecipeUploadBadge } from "@/components/creator/RecipeUploadBadge";
 import { SuggestionBox } from "@/components/dashboard/SuggestionBox";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
@@ -10,8 +11,10 @@ import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import type { CommonJson } from "@/lib/i18n/server";
 import { getRecipeUploadQuotaForUi } from "@/lib/recipe-upload-limit";
 import {
+  parseCelebratedUploadBadgeTier,
   recipeUploadBadgeLabelKey,
   resolveRecipeUploadBadgeTier,
+  shouldCelebrateUploadBadge,
 } from "@/lib/recipe-upload-badges";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { isProOrAbove } from "@/lib/plan";
@@ -86,7 +89,7 @@ export default async function DashboardPage() {
     redirect("/login?next=/dashboard");
   }
 
-  const [favCountRes, authoredRes, uploadQuota] = await Promise.all([
+  const [favCountRes, authoredRes, uploadQuota, profileRes] = await Promise.all([
     supabase
       .from("favorites")
       .select("*", { count: "exact", head: true })
@@ -99,6 +102,11 @@ export default async function DashboardPage() {
       .eq("created_by", user.id)
       .order("created_at", { ascending: false }),
     getRecipeUploadQuotaForUi(supabase, user.id),
+    supabase
+      .from("profiles")
+      .select("celebrated_upload_badge_tier")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
 
   if (favCountRes.error) {
@@ -149,9 +157,27 @@ export default async function DashboardPage() {
     uploadBadgeTier != null
       ? dictText(dict, recipeUploadBadgeLabelKey(uploadBadgeTier))
       : null;
+  const celebratedUploadBadgeTier = parseCelebratedUploadBadgeTier(
+    profileRes.data?.celebrated_upload_badge_tier,
+  );
+  const showBadgeCelebration =
+    uploadBadgeTier != null &&
+    uploadBadgeLabel != null &&
+    shouldCelebrateUploadBadge(uploadBadgeTier, celebratedUploadBadgeTier);
 
   return (
     <ContentPageBackdrop pageKey="/dashboard">
+    {showBadgeCelebration ? (
+      <CreatorBadgeLevelUpCelebration
+        tier={uploadBadgeTier}
+        levelLabel={uploadBadgeLabel}
+        title={dictText(dict, "creator_badge_celebration_title")}
+        body={dictText(dict, "creator_badge_celebration_body", {
+          level: uploadBadgeLabel,
+        })}
+        dismissLabel={dictText(dict, "creator_badge_celebration_dismiss")}
+      />
+    ) : null}
     <main className="mx-auto flex max-w-lg flex-1 flex-col gap-6 px-5 py-8">
       <header>
         <h1 className="text-2xl font-bold tracking-tight">
