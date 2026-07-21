@@ -168,6 +168,7 @@ export interface Database {
           moderation_reason: string | null;
           moderated_at: string | null;
           moderated_by: string | null;
+          featured_cookbook_id: string | null;
         };
         Insert: {
           id?: string;
@@ -189,6 +190,7 @@ export interface Database {
           moderation_reason?: string | null;
           moderated_at?: string | null;
           moderated_by?: string | null;
+          featured_cookbook_id?: string | null;
         };
         Update: {
           title?: string;
@@ -206,6 +208,7 @@ export interface Database {
           moderation_reason?: string | null;
           moderated_at?: string | null;
           moderated_by?: string | null;
+          featured_cookbook_id?: string | null;
         };
       };
       ingredients: {

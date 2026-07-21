@@ -14,6 +14,8 @@ import {
   getRecipeUploadQuotaForUi,
 } from "@/lib/recipe-upload-limit";
 import { isProOrAbove } from "@/lib/plan";
+import { canSellCookbooks } from "@/lib/cookbooks-plan-gate";
+import { listAffiliateCookbookPickOptions } from "@/lib/featured-cookbook";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -121,6 +123,10 @@ export default async function AddRecipePage({
     label: dictText(dict, recipeCategoryI18nKey(value)),
   }));
 
+  const cookbookOptions = canSellCookbooks(limitState.plan)
+    ? await listAffiliateCookbookPickOptions(supabase, user.id)
+    : [];
+
   return (
     <ContentPageBackdrop pageKey="/add">
     <main className="mx-auto w-full max-w-lg flex-1 px-5 py-8 pb-14">
@@ -202,6 +208,12 @@ export default async function AddRecipePage({
         videoUrlHint={dictText(dict, "add_recipe_video_hint")}
         videoUrlPlaceholder={dictText(dict, "add_recipe_video_placeholder")}
         canUploadHostedReel={isProOrAbove(limitState.plan)}
+        cookbookOptions={cookbookOptions}
+        featuredCookbookLabel={dictText(dict, "recipe_featured_cookbook_label")}
+        featuredCookbookHint={dictText(dict, "recipe_featured_cookbook_hint")}
+        featuredCookbookNone={dictText(dict, "recipe_featured_cookbook_none")}
+        featuredCookbookManage={dictText(dict, "recipe_featured_cookbook_manage")}
+        featuredCookbookEmpty={dictText(dict, "recipe_featured_cookbook_empty")}
         hostedReelLabel={dictText(dict, "add_recipe_hosted_reel_label")}
         hostedReelHint={dictText(dict, "add_recipe_hosted_reel_hint")}
         initialError={decodedError}

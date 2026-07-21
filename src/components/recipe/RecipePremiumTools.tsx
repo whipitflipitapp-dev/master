@@ -5,6 +5,7 @@ import { useActionState, useEffect, useMemo, useState, useTransition } from "rea
 import { useRouter } from "next/navigation";
 
 import { updateRecipe } from "@/app/actions/recipes";
+import { FeaturedCookbookField } from "@/components/cookbooks/FeaturedCookbookField";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { RecipeUploadProgressPanel } from "@/components/recipe/RecipeUploadProgressPanel";
 import {
@@ -12,7 +13,8 @@ import {
   type GalleryReorderItem,
 } from "@/components/recipe/RecipeGalleryReorder";
 import { PREMIUM_RECIPE_TOOLS_PLAN_REQUIRED_ERROR } from "@/lib/premium-recipe-tools-plan-gate";
-import type { PlanType } from "@/lib/plan";
+import type { CookbookPickOption } from "@/lib/featured-cookbook";
+import { isProOrAbove, type PlanType } from "@/lib/plan";
 import { RECIPE_REEL_ACCEPT } from "@/lib/recipe-reel";
 import { validateRecipeReelFileDuration } from "@/lib/recipe-reel-duration-client";
 import { attachHostedReelToFormData } from "@/lib/recipe-reel-upload-client";
@@ -33,9 +35,11 @@ type RecipePremiumToolsProps = {
     instructions: string;
     videoUrl?: string | null;
     hostedReelUrl?: string | null;
+    featuredCookbookId?: string | null;
   };
-  ingredients: RecipeToolIngredient[];
+  ownerCookbookPickOptions: CookbookPickOption[];
   galleryPhotos: GalleryReorderItem[];
+  ingredients: RecipeToolIngredient[];
   planType: PlanType;
   canUseTools: boolean;
   canEdit: boolean;
@@ -78,6 +82,11 @@ type RecipePremiumToolsProps = {
     uploadWarning: string;
     uploadFailedTitle: string;
     uploadRetry: string;
+    featuredCookbookLabel: string;
+    featuredCookbookHint: string;
+    featuredCookbookNone: string;
+    featuredCookbookManage: string;
+    featuredCookbookEmpty: string;
   };
 };
 
@@ -110,6 +119,7 @@ export function RecipePremiumTools({
   recipe,
   ingredients,
   galleryPhotos,
+  ownerCookbookPickOptions,
   planType,
   canUseTools,
   canEdit,
@@ -428,6 +438,18 @@ export function RecipePremiumTools({
                 className="mt-1.5 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)]"
               />
             </label>
+            {showEditForm && isProOrAbove(planType) ? (
+              <FeaturedCookbookField
+                cookbooks={ownerCookbookPickOptions}
+                defaultValue={recipe.featuredCookbookId}
+                label={labels.featuredCookbookLabel}
+                hint={labels.featuredCookbookHint}
+                noneLabel={labels.featuredCookbookNone}
+                manageHref="/dashboard/cookbooks"
+                manageLabel={labels.featuredCookbookManage}
+                emptyHint={labels.featuredCookbookEmpty}
+              />
+            ) : null}
             <label className="block text-sm font-semibold text-[var(--text)]">
               {labels.videoLabel}
               <span className="mt-1 block text-[length:var(--text-caption)] font-normal text-[var(--muted)]">

@@ -46,6 +46,10 @@ import {
   parseOtherAllergenTokens,
 } from "@/lib/allergy-other";
 import { canSellCookbooks } from "@/lib/cookbooks-plan-gate";
+import {
+  listAffiliateCookbookPickOptions,
+  type CookbookPickOption,
+} from "@/lib/featured-cookbook";
 import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
 import { parseRecipeVideoUrl } from "@/lib/video-url";
 import {
@@ -81,7 +85,7 @@ async function loadRecipe(
   const { data: recipe, error: rErr } = await supabase
     .from("recipes")
     .select(
-      "id,title,instructions,image_url,video_url,hosted_reel_url,favorites_count,difficulty,cook_time_minutes,created_at,created_by,moderation_status,moderation_reason",
+      "id,title,instructions,image_url,video_url,hosted_reel_url,favorites_count,difficulty,cook_time_minutes,created_at,created_by,moderation_status,moderation_reason,featured_cookbook_id",
     )
     .eq("id", id)
     .maybeSingle();
@@ -243,6 +247,7 @@ async function loadRecipe(
   let chefAvatarUrl: string | null = null;
   let chefUploadedRecipeCount = 0;
   let uploaderCookbooks: ChefCookbookPublic[] = [];
+  let ownerCookbookPickOptions: CookbookPickOption[] = [];
   let recipeExperience: RecipeExperienceRow | null = null;
   let celebratedUploadBadgeTierRaw: string | null = null;
   const createdBy =
@@ -271,25 +276,42 @@ async function loadRecipe(
       chefUploadedRecipeCount = chefRecipeCount;
     }
 
-    const [{ data: cookbookRows }, { data: chefPlanRow }] = await Promise.all([
-      supabase
-        .from("cookbooks")
-        .select("id,title,description,cover_image_url,external_link")
-        .eq("created_by", createdBy)
-        .not("external_link", "is", null)
-        .order("title", { ascending: true }),
-      supabase
-        .from("profiles")
-        .select("plan_type")
-        .eq("id", createdBy)
-        .maybeSingle(),
-    ]);
+    const featuredCookbookId =
+      "featured_cookbook_id" in recipe &&
+      typeof recipe.featured_cookbook_id === "string"
+        ? recipe.featured_cookbook_id
+        : null;
+
+    const [{ data: chefPlanRow }, featuredCookbookRes, allCookbooksRes] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("plan_type")
+          .eq("id", createdBy)
+          .maybeSingle(),
+        featuredCookbookId
+          ? supabase
+              .from("cookbooks")
+              .select("id,title,description,cover_image_url,external_link")
+              .eq("id", featuredCookbookId)
+              .eq("created_by", createdBy)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        supabase
+          .from("cookbooks")
+          .select("id,title,description,cover_image_url,external_link")
+          .eq("created_by", createdBy)
+          .not("external_link", "is", null)
+          .order("title", { ascending: true }),
+      ]);
+
     const chefPlan = parsePlanType(chefPlanRow?.plan_type) ?? "free";
-    if (
-      canSellCookbooks(chefPlan) &&
-      Array.isArray(cookbookRows)
-    ) {
-      uploaderCookbooks = cookbookRows as ChefCookbookPublic[];
+    if (canSellCookbooks(chefPlan)) {
+      if (featuredCookbookId && featuredCookbookRes.data) {
+        uploaderCookbooks = [featuredCookbookRes.data as ChefCookbookPublic];
+      } else if (Array.isArray(allCookbooksRes.data)) {
+        uploaderCookbooks = allCookbooksRes.data as ChefCookbookPublic[];
+      }
     }
   }
 
@@ -297,11 +319,18 @@ async function loadRecipe(
     if (createdBy && user.id === createdBy) {
       const { data: ownerProfile } = await supabase
         .from("profiles")
-        .select("celebrated_upload_badge_tier")
+        .select("celebrated_upload_badge_tier, plan_type")
         .eq("id", user.id)
         .maybeSingle();
       celebratedUploadBadgeTierRaw =
         ownerProfile?.celebrated_upload_badge_tier ?? null;
+      const ownerPlan = parsePlanType(ownerProfile?.plan_type) ?? "free";
+      if (canSellCookbooks(ownerPlan)) {
+        ownerCookbookPickOptions = await listAffiliateCookbookPickOptions(
+          supabase,
+          user.id,
+        );
+      }
     }
 
     const { data: expRow } = await supabase
@@ -410,6 +439,7 @@ async function loadRecipe(
     galleryImageUrls,
     galleryPhotos,
     celebratedUploadBadgeTierRaw,
+    ownerCookbookPickOptions,
   };
 }
 
@@ -508,7 +538,13 @@ export default async function RecipeDetailPage(props: Props) {
     galleryImageUrls,
     galleryPhotos,
     celebratedUploadBadgeTierRaw,
+    ownerCookbookPickOptions,
   } = payload;
+  const featuredCookbookIdForEdit =
+    typeof (recipe as { featured_cookbook_id?: string | null })
+      .featured_cookbook_id === "string"
+      ? (recipe as { featured_cookbook_id: string }).featured_cookbook_id
+      : null;
   const chefAffiliateCookbooks = filterAffiliateCookbooks(uploaderCookbooks);
   const showReviewPendingBanner =
     sp.review === "pending" ||
@@ -822,7 +858,9 @@ export default async function RecipeDetailPage(props: Props) {
           instructions: recipe.instructions,
           videoUrl: recipe.video_url,
           hostedReelUrl: recipe.hosted_reel_url,
+          featuredCookbookId: featuredCookbookIdForEdit,
         }}
+        ownerCookbookPickOptions={ownerCookbookPickOptions}
         galleryPhotos={galleryPhotosForEdit}
         ingredients={detailIngredients}
         planType={premiumToolsPlan}
@@ -873,6 +911,23 @@ export default async function RecipeDetailPage(props: Props) {
           ),
           uploadFailedTitle: dictText(dict, "add_recipe_upload_failed_title"),
           uploadRetry: dictText(dict, "add_recipe_upload_retry"),
+          featuredCookbookLabel: dictText(
+            dict,
+            "recipe_featured_cookbook_label",
+          ),
+          featuredCookbookHint: dictText(dict, "recipe_featured_cookbook_hint"),
+          featuredCookbookNone: dictText(
+            dict,
+            "recipe_featured_cookbook_none",
+          ),
+          featuredCookbookManage: dictText(
+            dict,
+            "recipe_featured_cookbook_manage",
+          ),
+          featuredCookbookEmpty: dictText(
+            dict,
+            "recipe_featured_cookbook_empty",
+          ),
         }}
       />
       ) : null}

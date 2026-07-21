@@ -17,6 +17,7 @@ import {
   matchedOtherAllergenTokens,
   parseOtherAllergenTokens,
 } from "@/lib/allergy-other";
+import { resolveFeaturedCookbookIdForUser } from "@/lib/featured-cookbook";
 import {
   DEMO_RECIPE_IDS_ORDERED,
   resolveRecipeDisplayImageUrl,
@@ -1386,6 +1387,20 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
     ]),
   ];
 
+  const featuredResolved = await resolveFeaturedCookbookIdForUser(
+    supabase,
+    user.id,
+    gate.plan,
+    formData.get("featured_cookbook_id"),
+  );
+  if (featuredResolved.error) {
+    await cleanupUploadedRecipeImages(supabase, uploadedGalleryPaths);
+    if (pendingHostedReelPath) {
+      await cleanupUploadedRecipeReel(supabase, pendingHostedReelPath);
+    }
+    return { error: featuredResolved.error, recipeId: null };
+  }
+
   const { data: recipeId, error: recipeError } = await supabase.rpc(
     "create_recipe_atomic",
     {
@@ -1427,6 +1442,17 @@ export async function createRecipe(formData: FormData): Promise<CreateRecipeResu
       error: GENERIC_SERVER_ERROR,
       recipeId: null,
     };
+  }
+
+  if (featuredResolved.id !== null) {
+    const { error: featuredErr } = await supabase
+      .from("recipes")
+      .update({ featured_cookbook_id: featuredResolved.id })
+      .eq("id", recipeId)
+      .eq("created_by", user.id);
+    if (featuredErr) {
+      logServerError("recipes.create_featured_cookbook", featuredErr);
+    }
   }
 
   if (galleryCheck.entries.length > 0) {
@@ -1751,12 +1777,28 @@ export async function updateRecipe(
     return { error: "You can only edit your own recipes.", success: null };
   }
 
+  const featuredResolved = await resolveFeaturedCookbookIdForUser(
+    supabase,
+    ctx.user.id,
+    ctx.profile.plan_type,
+    formData.get("featured_cookbook_id"),
+  );
+  if (featuredResolved.error) {
+    return { error: featuredResolved.error, success: null };
+  }
+
   const recipePatch: {
     title: string;
     instructions: string;
     video_url: string | null;
     hosted_reel_url?: string | null;
-  } = { title, instructions, video_url };
+    featured_cookbook_id: string | null;
+  } = {
+    title,
+    instructions,
+    video_url,
+    featured_cookbook_id: featuredResolved.id,
+  };
   if (hosted_reel_url !== undefined) {
     recipePatch.hosted_reel_url = hosted_reel_url;
   }

@@ -5,10 +5,12 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 
 import { createRecipeFromForm } from "@/app/actions/recipes";
+import { FeaturedCookbookField } from "@/components/cookbooks/FeaturedCookbookField";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { RecipeUploadProgressPanel } from "@/components/recipe/RecipeUploadProgressPanel";
 import { suggestAllergenIdsFromText } from "@/lib/allergen-detect";
-import { type PlanType } from "@/lib/plan";
+import { type PlanType, isProOrAbove } from "@/lib/plan";
+import type { CookbookPickOption } from "@/lib/featured-cookbook";
 import {
   RECIPE_GALLERY_MAX_IMAGES,
   RECIPE_IMAGE_ACCEPT,
@@ -142,6 +144,12 @@ export function AddRecipeForm({
   videoUrlHint,
   videoUrlPlaceholder,
   canUploadHostedReel,
+  cookbookOptions,
+  featuredCookbookLabel,
+  featuredCookbookHint,
+  featuredCookbookNone,
+  featuredCookbookManage,
+  featuredCookbookEmpty,
   hostedReelLabel,
   hostedReelHint,
   initialError,
@@ -185,6 +193,12 @@ export function AddRecipeForm({
   videoUrlHint: string;
   videoUrlPlaceholder: string;
   canUploadHostedReel: boolean;
+  cookbookOptions: CookbookPickOption[];
+  featuredCookbookLabel: string;
+  featuredCookbookHint: string;
+  featuredCookbookNone: string;
+  featuredCookbookManage: string;
+  featuredCookbookEmpty: string;
   hostedReelLabel: string;
   hostedReelHint: string;
   /** Already decoded route error query (if present). */
@@ -1186,6 +1200,18 @@ export function AddRecipeForm({
           ) : null}
         </div>
       </fieldset>
+
+      {isProOrAbove(pitchPlan) ? (
+        <FeaturedCookbookField
+          cookbooks={cookbookOptions}
+          label={featuredCookbookLabel}
+          hint={featuredCookbookHint}
+          noneLabel={featuredCookbookNone}
+          manageHref="/dashboard/cookbooks"
+          manageLabel={featuredCookbookManage}
+          emptyHint={featuredCookbookEmpty}
+        />
+      ) : null}
 
       <div className="flex flex-col gap-2">
         <label htmlFor="tags" className="text-sm font-medium text-[var(--text)]">
