@@ -90,7 +90,7 @@ export default async function DashboardPage() {
     redirect("/login?next=/dashboard");
   }
 
-  const [favCountRes, authoredRes, uploadQuota, profileRes] = await Promise.all([
+  const [favCountRes, authoredRes, uploadQuota, profileRes, cookbooksCountRes] = await Promise.all([
     supabase
       .from("favorites")
       .select("*", { count: "exact", head: true })
@@ -108,6 +108,10 @@ export default async function DashboardPage() {
       .select("celebrated_upload_badge_tier")
       .eq("id", user.id)
       .maybeSingle(),
+    supabase
+      .from("cookbooks")
+      .select("*", { count: "exact", head: true })
+      .eq("created_by", user.id),
   ]);
 
   if (favCountRes.error) {
@@ -144,6 +148,8 @@ export default async function DashboardPage() {
 
   const savedCount =
     typeof favCountRes.count === "number" ? favCountRes.count : 0;
+  const cookbookLinkCount =
+    typeof cookbooksCountRes.count === "number" ? cookbooksCountRes.count : 0;
   const authored = (authoredRes.data ?? []) as DashboardRecipeRow[];
   const canEditUploadedRecipes = isProOrAbove(uploadQuota.plan);
 
@@ -261,6 +267,54 @@ export default async function DashboardPage() {
         </div>
       ) : null}
 
+      <section
+        className="rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--primary)_22%,var(--border))] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]"
+        aria-labelledby="dashboard-cookbooks-heading"
+      >
+        <h2
+          id="dashboard-cookbooks-heading"
+          className="text-lg font-semibold tracking-tight text-[var(--text)]"
+        >
+          {dictText(dict, "dashboard_cookbooks_section_title")}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          {dictText(dict, "dashboard_cookbooks_section_body")}
+        </p>
+        <p className="mt-2 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
+          {dictText(dict, "dashboard_cookbooks_section_disclosure")}
+        </p>
+        {cookbookLinkCount > 0 ? (
+          <p className="mt-3 text-sm font-semibold tabular-nums text-[var(--text)]">
+            {cookbookLinkCount === 1
+              ? dictText(dict, "dashboard_cookbooks_section_links_live_one", {
+                  count: cookbookLinkCount,
+                })
+              : dictText(dict, "dashboard_cookbooks_section_links_live_many", {
+                  count: cookbookLinkCount,
+                })}
+          </p>
+        ) : null}
+        {!canEditUploadedRecipes ? (
+          <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+            {dictText(dict, "cookbooks_upgrade_notice")}
+          </p>
+        ) : null}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href="/dashboard/cookbooks"
+            className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--primary-hover)]"
+          >
+            {dictText(dict, "dashboard_cookbooks_section_manage")}
+          </Link>
+          <Link
+            href={`/chef/${user.id}`}
+            className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))]"
+          >
+            {dictText(dict, "dashboard_cookbooks_section_view_profile")}
+          </Link>
+        </div>
+      </section>
+
       <nav className="flex flex-wrap gap-3">
         <Link
           href="/saved"
@@ -270,7 +324,7 @@ export default async function DashboardPage() {
         </Link>
         <Link
           href="/dashboard/cookbooks"
-          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] shadow-[0_1px_0_rgba(28,25,23,0.04)] hover:border-[color-mix(in_srgb,var(--primary)_30%,var(--border))]"
+          className="rounded-xl border border-[color-mix(in_srgb,var(--primary)_35%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_8%,var(--card))] px-4 py-2.5 text-sm font-semibold text-[var(--text)] shadow-[0_1px_0_rgba(28,25,23,0.04)] hover:border-[color-mix(in_srgb,var(--primary)_45%,var(--border))]"
         >
           {dictText(dict, "dashboard_cookbooks")}
         </Link>

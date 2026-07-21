@@ -77,7 +77,7 @@ export function CookbooksDashboardManager({
         {canManage ? (
           <>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Paste an Amazon or Kindle affiliate product URL and an optional cover image (HTTPS).
+              {t("cookbooks_add_affiliate_intro")}
             </p>
 
             <form action={createAction} className="mt-4 space-y-4">
