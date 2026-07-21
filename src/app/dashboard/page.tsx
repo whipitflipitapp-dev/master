@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { DashboardTopSavedRecipesStat } from "@/components/dashboard/DashboardTopSavedRecipesStat";
 import { RecipeUploadQuotaNotice } from "@/components/billing/RecipeUploadQuotaNotice";
 import { CreatorBadgeLevelUpCelebration } from "@/components/creator/CreatorBadgeLevelUpCelebration";
 import { RecipeUploadBadge } from "@/components/creator/RecipeUploadBadge";
@@ -152,6 +153,32 @@ export default async function DashboardPage() {
       typeof row.favorites_count === "number" ? row.favorites_count : 0;
   }
 
+  const topSavedRecipes = [...authored]
+    .sort((a, b) => {
+      const savesA = a.favorites_count ?? 0;
+      const savesB = b.favorites_count ?? 0;
+      if (savesB !== savesA) return savesB - savesA;
+      return a.title.localeCompare(b.title, locale);
+    })
+    .slice(0, 10)
+    .map((recipe) => {
+      const savesCount = recipe.favorites_count ?? 0;
+      return {
+        id: recipe.id,
+        title: recipe.title,
+        imageUrl: resolveRecipeDisplayImageUrl(recipe.id, recipe.image_url),
+        savesCount,
+        savesLabel:
+          savesCount === 1
+            ? dictText(dict, "dashboard_my_recipes_favorite_one", {
+                count: savesCount,
+              })
+            : dictText(dict, "dashboard_my_recipes_favorite_many", {
+                count: savesCount,
+              }),
+      };
+    });
+
   const uploadBadgeTier = resolveRecipeUploadBadgeTier(authored.length);
   const uploadBadgeLabel =
     uploadBadgeTier != null
@@ -208,13 +235,18 @@ export default async function DashboardPage() {
             {authored.length}
           </dd>
         </div>
-        <div className="flex items-baseline justify-between gap-3">
-          <dt className="text-sm font-semibold text-[var(--text)]">
-            {dictText(dict, "dashboard_stat_saves_on_yours")}
-          </dt>
-          <dd className="text-lg font-bold tabular-nums text-[var(--primary)]">
-            {savesReceivedTotal}
-          </dd>
+        <div className="border-t border-[var(--border)] pt-3">
+          <DashboardTopSavedRecipesStat
+            totalSaves={savesReceivedTotal}
+            recipes={topSavedRecipes}
+            labels={{
+              statLabel: dictText(dict, "dashboard_stat_saves_on_yours"),
+              dialogTitle: dictText(dict, "dashboard_top_saved_title"),
+              dialogSubtitle: dictText(dict, "dashboard_top_saved_subtitle"),
+              empty: dictText(dict, "dashboard_top_saved_empty"),
+              close: dictText(dict, "dashboard_top_saved_close"),
+            }}
+          />
         </div>
       </dl>
 
