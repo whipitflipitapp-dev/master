@@ -1,15 +1,55 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, useTransition, type CSSProperties } from "react";
 
 import { markCelebratedUploadBadgeTier } from "@/app/actions/profile";
-import type { RecipeUploadBadgeTierId } from "@/lib/recipe-upload-badges";
+import {
+  parseCelebratedUploadBadgeTier,
+  shouldCelebrateUploadBadge,
+  uploadBadgeTierRank,
+  type RecipeUploadBadgeTierId,
+} from "@/lib/recipe-upload-badges";
 
 import { RecipeUploadBadge } from "./RecipeUploadBadge";
 
+const LOCAL_CELEBRATED_STORAGE_KEY = "wifif_celebrated_upload_badge_tier";
+
+function readLocalCelebratedTier(): RecipeUploadBadgeTierId | null {
+  try {
+    return parseCelebratedUploadBadgeTier(
+      localStorage.getItem(LOCAL_CELEBRATED_STORAGE_KEY),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalCelebratedTier(tier: RecipeUploadBadgeTierId) {
+  try {
+    localStorage.setItem(LOCAL_CELEBRATED_STORAGE_KEY, tier);
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+/** Highest tier recorded in DB or local dismiss (local wins when ahead). */
+function mergedCelebratedTier(
+  fromServer: RecipeUploadBadgeTierId | null,
+  fromLocal: RecipeUploadBadgeTierId | null,
+): RecipeUploadBadgeTierId | null {
+  if (fromServer == null) return fromLocal;
+  if (fromLocal == null) return fromServer;
+  return uploadBadgeTierRank(fromLocal) >= uploadBadgeTierRank(fromServer)
+    ? fromLocal
+    : fromServer;
+}
+
 type CreatorBadgeLevelUpCelebrationProps = {
   tier: RecipeUploadBadgeTierId;
+  /** Last tier celebrated in the profile (may be null before migration or first visit). */
+  celebratedTier: RecipeUploadBadgeTierId | null;
   levelLabel: string;
   title: string;
   body: string;
@@ -65,15 +105,25 @@ function FireworkBurst({
 /** Full-screen celebration when a creator reaches a new upload-badge tier. */
 export function CreatorBadgeLevelUpCelebration({
   tier,
+  celebratedTier,
   levelLabel,
   title,
   body,
   dismissLabel,
 }: CreatorBadgeLevelUpCelebrationProps) {
-  const [open, setOpen] = useState(true);
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const dismissRef = useRef<HTMLButtonElement>(null);
   const styleId = useId().replace(/:/g, "");
+
+  useEffect(() => {
+    const celebrated = mergedCelebratedTier(
+      celebratedTier,
+      readLocalCelebratedTier(),
+    );
+    setOpen(shouldCelebrateUploadBadge(tier, celebrated));
+  }, [tier, celebratedTier]);
 
   useEffect(() => {
     if (!open) return;
@@ -86,11 +136,15 @@ export function CreatorBadgeLevelUpCelebration({
   }, [open]);
 
   const handleDismiss = useCallback(() => {
+    writeLocalCelebratedTier(tier);
+    setOpen(false);
     startTransition(async () => {
-      await markCelebratedUploadBadgeTier(tier);
-      setOpen(false);
+      const result = await markCelebratedUploadBadgeTier(tier);
+      if (result.ok) {
+        router.refresh();
+      }
     });
-  }, [tier]);
+  }, [tier, router]);
 
   return (
     <>

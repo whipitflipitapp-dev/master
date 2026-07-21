@@ -276,5 +276,6 @@ export async function markCelebratedUploadBadgeTier(
 
   revalidatePath("/dashboard");
   revalidatePath("/recipes", "layout");
+  revalidatePath("/chef", "layout");
   return { ok: true };
 }

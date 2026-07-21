@@ -170,6 +170,7 @@ export default async function DashboardPage() {
     {showBadgeCelebration ? (
       <CreatorBadgeLevelUpCelebration
         tier={uploadBadgeTier}
+        celebratedTier={celebratedUploadBadgeTier}
         levelLabel={uploadBadgeLabel}
         title={dictText(dict, "creator_badge_celebration_title")}
         body={dictText(dict, "creator_badge_celebration_body", {

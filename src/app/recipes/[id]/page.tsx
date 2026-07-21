@@ -633,6 +633,7 @@ export default async function RecipeDetailPage(props: Props) {
     {showOwnerBadgeCelebration && chefUploadBadgeTier && chefUploadBadgeLabel ? (
       <CreatorBadgeLevelUpCelebration
         tier={chefUploadBadgeTier}
+        celebratedTier={celebratedUploadBadgeTier}
         levelLabel={chefUploadBadgeLabel}
         title={dictText(dict, "creator_badge_celebration_title")}
         body={dictText(dict, "creator_badge_celebration_body", {
