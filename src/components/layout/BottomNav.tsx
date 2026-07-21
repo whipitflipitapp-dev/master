@@ -11,6 +11,7 @@ export function BottomNav() {
   const items = [
     { href: "/", key: "nav_home", icon: "🏠" },
     { href: "/recipes", key: "nav_search", icon: "🔍" },
+    { href: "/bookstore", key: "nav_bookstore", icon: "📚" },
     { href: "/add", key: "nav_add", icon: "➕" },
     { href: "/saved", key: "nav_saved", icon: "❤️" },
     { href: "/profile", key: "nav_profile", icon: "👤" },
