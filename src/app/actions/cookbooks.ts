@@ -116,7 +116,9 @@ export async function createCookbook(
 
   revalidatePath("/dashboard/cookbooks");
   revalidatePath("/dashboard");
+  revalidatePath("/profile");
   revalidatePath(`/chef/${user.id}`);
+  revalidatePath("/recipes", "layout");
   return { error: null };
 }
 
@@ -188,7 +190,9 @@ export async function updateCookbook(
   }
 
   revalidatePath("/dashboard/cookbooks");
+  revalidatePath("/profile");
   revalidatePath(`/chef/${user.id}`);
+  revalidatePath("/recipes", "layout");
   return { error: null };
 }
 
@@ -219,5 +223,7 @@ export async function deleteCookbook(formData: FormData): Promise<void> {
 
   revalidatePath("/dashboard/cookbooks");
   revalidatePath("/dashboard");
+  revalidatePath("/profile");
   revalidatePath(`/chef/${user.id}`);
+  revalidatePath("/recipes", "layout");
 }

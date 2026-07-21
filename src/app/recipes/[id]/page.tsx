@@ -2,7 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
+import {
+  ChefCookbooksSection,
+  filterAffiliateCookbooks,
+  type ChefCookbookPublic,
+} from "@/components/cookbooks/ChefCookbooksSection";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
 import { CreatorBadgeLevelUpCelebration } from "@/components/creator/CreatorBadgeLevelUpCelebration";
@@ -28,7 +32,6 @@ import {
 import { CURATED_WINE_TYPES } from "@/lib/wine-types";
 import type { RecipeExperienceRow } from "@/app/actions/recipe-experiences";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
-import { isAmazonAffiliateProductUrl } from "@/lib/amazon-affiliate-url";
 import {
   isProOrAbove,
   winePairingsUnlockedForPlan,
@@ -237,12 +240,7 @@ async function loadRecipe(
   let chefDisplayName: string | null = null;
   let chefAvatarUrl: string | null = null;
   let chefUploadedRecipeCount = 0;
-  let uploaderCookbook: {
-    id: string;
-    title: string;
-    cover_image_url: string | null;
-    external_link: string;
-  } | null = null;
+  let uploaderCookbooks: ChefCookbookPublic[] = [];
   let recipeExperience: RecipeExperienceRow | null = null;
   let celebratedUploadBadgeTierRaw: string | null = null;
   const createdBy =
@@ -273,27 +271,12 @@ async function loadRecipe(
 
     const { data: cookbookRows } = await supabase
       .from("cookbooks")
-      .select("id,title,cover_image_url,external_link")
+      .select("id,title,description,cover_image_url,external_link")
       .eq("created_by", createdBy)
       .not("external_link", "is", null)
-      .order("title", { ascending: true })
-      .limit(1);
-    if (Array.isArray(cookbookRows) && cookbookRows.length > 0) {
-      const row = cookbookRows[0] as {
-        id: string;
-        title: string;
-        cover_image_url: string | null;
-        external_link: string | null;
-      };
-      const link = row.external_link?.trim();
-      if (link && isAmazonAffiliateProductUrl(link)) {
-        uploaderCookbook = {
-          id: row.id,
-          title: row.title,
-          cover_image_url: row.cover_image_url,
-          external_link: link,
-        };
-      }
+      .order("title", { ascending: true });
+    if (Array.isArray(cookbookRows)) {
+      uploaderCookbooks = cookbookRows as ChefCookbookPublic[];
     }
   }
 
@@ -408,7 +391,7 @@ async function loadRecipe(
     chefDisplayName,
     chefAvatarUrl,
     chefUploadedRecipeCount,
-    uploaderCookbook,
+    uploaderCookbooks,
     recipeExperience,
     whipFlipCount,
     galleryImageUrls,
@@ -506,13 +489,14 @@ export default async function RecipeDetailPage(props: Props) {
     chefDisplayName,
     chefAvatarUrl,
     chefUploadedRecipeCount,
-    uploaderCookbook,
+    uploaderCookbooks,
     recipeExperience,
     whipFlipCount,
     galleryImageUrls,
     galleryPhotos,
     celebratedUploadBadgeTierRaw,
   } = payload;
+  const chefAffiliateCookbooks = filterAffiliateCookbooks(uploaderCookbooks);
   const showReviewPendingBanner =
     sp.review === "pending" ||
     (recipe as { moderation_status?: string }).moderation_status ===
@@ -941,54 +925,25 @@ export default async function RecipeDetailPage(props: Props) {
           cancel: dictText(dict, "recipe_detail_wine_cancel"),
         }}
       />
-      {uploaderCookbook ? (
-        <section className="mt-12" aria-labelledby="uploader-cookbook-heading">
-          <h2
-            id="uploader-cookbook-heading"
-            className="text-xl font-semibold tracking-tight text-[var(--text)]"
-          >
-            {dictText(dict, "recipe_detail_section_cookbook")}
-          </h2>
-          <AffiliateOutboundLink
-            href={uploaderCookbook.external_link}
-            recipeId={recipe.id}
-            linkType="cookbook_amazon"
-            className="group mt-4 flex items-center gap-4 overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-200 hover:border-[color-mix(in_srgb,var(--primary)_35%,var(--border))] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.992] md:active:scale-100"
-          >
-            <div className="relative aspect-[3/4] h-24 w-auto shrink-0 overflow-hidden rounded-md bg-[color-mix(in_srgb,var(--muted)_12%,var(--card))]">
-              {uploaderCookbook.cover_image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element -- Amazon / arbitrary HTTPS covers
-                <img
-                  src={uploaderCookbook.cover_image_url}
-                  alt=""
-                  className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:group-hover:scale-100"
-                />
-              ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center text-2xl opacity-[0.35]"
-                  aria-hidden
-                >
-                  📚
-                </div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              {chefDisplayName ? (
-                <p className="text-[length:var(--text-caption)] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                  {dictText(dict, "recipe_detail_cookbook_by", {
-                    name: chefDisplayName,
-                  })}
-                </p>
-              ) : null}
-              <p className="mt-1 line-clamp-2 text-base font-semibold leading-snug text-[var(--text)]">
-                {uploaderCookbook.title}
-              </p>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">
-                {dictText(dict, "recipe_detail_cookbook_cta")}
-              </p>
-            </div>
-          </AffiliateOutboundLink>
-        </section>
+      {chefAffiliateCookbooks.length > 0 ? (
+        <ChefCookbooksSection
+          books={uploaderCookbooks}
+          heading={
+            chefAffiliateCookbooks.length === 1
+              ? dictText(dict, "recipe_detail_section_cookbook")
+              : dictText(dict, "recipe_detail_section_cookbooks")
+          }
+          intro={
+            chefDisplayName
+              ? dictText(dict, "recipe_detail_cookbooks_intro", {
+                  name: chefDisplayName,
+                })
+              : undefined
+          }
+          ctaLabel={dictText(dict, "recipe_detail_cookbook_cta")}
+          recipeId={recipe.id}
+          className="mt-12"
+        />
       ) : null}
 
       <RecipeExperienceForm

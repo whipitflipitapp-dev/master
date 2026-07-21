@@ -5,6 +5,7 @@ import { signOut } from "@/app/actions/auth";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
 import { listExcludedRecipes } from "@/app/actions/excluded-recipes";
 import { listMyRecipeExperiences } from "@/app/actions/recipe-experiences";
+import { ProfileCookbooksSection } from "@/components/profile/ProfileCookbooksSection";
 import { ProfileAllergiesForm } from "@/components/profile/ProfileAllergiesForm";
 import { ProfileExcludedRecipes } from "@/components/profile/ProfileExcludedRecipes";
 import { ProfileWhippedRecipes } from "@/components/profile/ProfileWhippedRecipes";
@@ -14,6 +15,7 @@ import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { ProfilePendingPlanNotice } from "@/components/billing/ProfilePendingPlanNotice";
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { planTypeBadgeLabel, type PlanType } from "@/lib/plan";
+import type { ChefCookbookPublic } from "@/components/cookbooks/ChefCookbooksSection";
 import { getCurrentProfile } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -38,6 +40,7 @@ async function loadProfileContent() {
       firstName: null as string | null,
       allergyOther: null as string | null,
       avatarUrl: null as string | null,
+      cookbooks: [] as ChefCookbookPublic[],
     };
   }
 
@@ -58,21 +61,29 @@ async function loadProfileContent() {
       firstName: null,
       allergyOther: null,
       avatarUrl: null,
+      cookbooks: [] as ChefCookbookPublic[],
     };
   }
 
   const { user, profile } = session;
 
-  const { data: ua } = await supabase
-    .from("user_allergies")
-    .select("allergen_id")
-    .eq("user_id", user.id);
-
-  const { data: nameRow } = await supabase
-    .from("profiles")
-    .select("first_name, allergy_other, avatar_url")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: ua }, { data: nameRow }, { data: cookbookRows }] =
+    await Promise.all([
+    supabase
+      .from("user_allergies")
+      .select("allergen_id")
+      .eq("user_id", user.id),
+    supabase
+      .from("profiles")
+      .select("first_name, allergy_other, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("cookbooks")
+      .select("id,title,description,cover_image_url,external_link")
+      .eq("created_by", user.id)
+      .order("title", { ascending: true }),
+  ]);
 
   const allergyOtherRaw = nameRow?.allergy_other;
   const allergyOther =
@@ -95,6 +106,7 @@ async function loadProfileContent() {
       typeof nameRow?.avatar_url === "string" && nameRow.avatar_url.trim()
         ? nameRow.avatar_url.trim()
         : null,
+    cookbooks: (cookbookRows ?? []) as ChefCookbookPublic[],
   };
 }
 
@@ -125,6 +137,7 @@ export default async function ProfilePage() {
     firstName,
     allergyOther,
     avatarUrl,
+    cookbooks,
   } = await loadProfileContent();
 
   const excludedRecipes =
@@ -258,6 +271,21 @@ export default async function ProfilePage() {
           </form>
         </div>
       )}
+
+      {user ? (
+        <ProfileCookbooksSection
+          userId={user.id}
+          books={cookbooks}
+          labels={{
+            heading: dictText(dict, "profile_cookbooks_heading"),
+            intro: dictText(dict, "profile_cookbooks_intro"),
+            manage: dictText(dict, "profile_cookbooks_manage"),
+            empty: dictText(dict, "profile_cookbooks_empty"),
+            cta: dictText(dict, "recipe_detail_cookbook_cta"),
+            viewPublicProfile: dictText(dict, "profile_cookbooks_view_public"),
+          }}
+        />
+      ) : null}
 
       {user ? (
         <section className="mt-8" aria-labelledby="excluded-recipes-heading">

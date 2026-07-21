@@ -2,10 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { AffiliateDisclosure } from "@/components/affiliate/AffiliateDisclosure";
 import { ChefAvatar } from "@/components/chef/ChefAvatar";
+import { ChefCookbooksSection } from "@/components/cookbooks/ChefCookbooksSection";
 import { RecipeUploadBadge } from "@/components/creator/RecipeUploadBadge";
-import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
 import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import {
   recipeUploadBadgeLabelKey,
@@ -15,51 +14,6 @@ import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type Props = { params: Promise<{ id: string }> };
-
-type CookbookPublic = {
-  id: string;
-  title: string;
-  description: string | null;
-  cover_image_url: string | null;
-  external_link: string | null;
-};
-
-function CookbookCardInner({ book }: { book: CookbookPublic }) {
-  return (
-    <>
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[color-mix(in_srgb,var(--muted)_12%,var(--card))]">
-        {book.cover_image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- Amazon / arbitrary HTTPS covers
-          <img
-            src={book.cover_image_url}
-            alt=""
-            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:group-hover:scale-100"
-          />
-        ) : (
-          <div
-            className="flex h-full w-full items-center justify-center text-4xl opacity-[0.35]"
-            aria-hidden
-          >
-            📚
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[var(--text)]">
-          {book.title}
-        </h3>
-        {book.description ? (
-          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[var(--muted)]">
-            {book.description}
-          </p>
-        ) : null}
-        <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">
-          {book.external_link ? "View on Amazon →" : "Link unavailable"}
-        </p>
-      </div>
-    </>
-  );
-}
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -219,42 +173,13 @@ export default async function ChefProfilePage(props: Props) {
         </div>
       </header>
 
-      <section aria-labelledby="cookbooks-heading">
-        <h2
-          id="cookbooks-heading"
-          className="text-xl font-semibold tracking-tight text-[var(--text)]"
-        >
-          Cookbooks
-        </h2>
-        <AffiliateDisclosure className="mt-3" />
-
-        {list.length === 0 ? (
-          <p className="mt-4 text-sm text-[var(--muted)]">
-            No cookbook links here yet.
-          </p>
-        ) : (
-          <ul className="mt-6 grid gap-5 sm:grid-cols-2">
-            {list.map((book) => (
-              <li key={book.id}>
-                {book.external_link ? (
-                  <AffiliateOutboundLink
-                    href={book.external_link}
-                    recipeId={null}
-                    linkType="cookbook_amazon"
-                    className="group block overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-200 hover:border-[color-mix(in_srgb,var(--primary)_35%,var(--border))] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.992] md:active:scale-100"
-                  >
-                    <CookbookCardInner book={book} />
-                  </AffiliateOutboundLink>
-                ) : (
-                  <div className="block overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-card)]">
-                    <CookbookCardInner book={book} />
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <ChefCookbooksSection
+        books={list}
+        heading={dictText(dict, "chef_profile_cookbooks_heading")}
+        ctaLabel={dictText(dict, "recipe_detail_cookbook_cta")}
+        className=""
+        emptyMessage={dictText(dict, "chef_profile_cookbooks_empty")}
+      />
     </main>
   );
 }
