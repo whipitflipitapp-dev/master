@@ -98,7 +98,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const name = data.header?.display_name?.trim() || "Chef";
   return {
     title: `${name} | Cookbooks | Whip It Flip It`,
-    description: `Cookbooks and affiliate picks from ${name} on Whip It Flip It.`,
+    description: `Cookbooks from ${name} on Whip It Flip It.`,
   };
 }
 
@@ -169,7 +169,7 @@ export default async function ChefProfilePage(props: Props) {
               {displayName}
             </h1>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Cookbooks &amp; affiliate picks
+              Cookbooks
             </p>
             {uploadBadgeTier && uploadBadgeLabel ? (
               <div className="mt-2">
@@ -190,6 +190,7 @@ export default async function ChefProfilePage(props: Props) {
         ctaLabel={dictText(dict, "recipe_detail_cookbook_cta")}
         className=""
         emptyMessage={dictText(dict, "chef_profile_cookbooks_empty")}
+        affiliateFootnote={dictText(dict, "cookbooks_affiliate_footnote")}
       />
     </main>
   );

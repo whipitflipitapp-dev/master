@@ -19,6 +19,7 @@ type ProfileCookbooksSectionProps = {
     emptyProRequired: string;
     cta: string;
     viewPublicProfile: string;
+    affiliateFootnote: string;
   };
 };
 
@@ -37,8 +38,21 @@ export function ProfileCookbooksSection({
           <h2
             id="profile-cookbooks-heading"
             className="text-lg font-semibold text-[var(--text)]"
+            aria-describedby={
+              canSell && affiliateBooks.length > 0
+                ? "cookbook-affiliate-footnote"
+                : undefined
+            }
           >
             {labels.heading}
+            {canSell && affiliateBooks.length > 0 ? (
+              <sup
+                className="ml-0.5 text-[0.65em] font-normal text-[var(--muted)]"
+                aria-hidden
+              >
+                *
+              </sup>
+            ) : null}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
             {canSell ? labels.intro : labels.introProRequired}
@@ -59,6 +73,8 @@ export function ProfileCookbooksSection({
           ctaLabel={labels.cta}
           className="mt-4"
           showDisclosure
+          affiliateFootnote={labels.affiliateFootnote}
+          affiliateMarkOnHeading={false}
           hideHeading
         />
       ) : (

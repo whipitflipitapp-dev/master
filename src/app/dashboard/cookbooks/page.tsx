@@ -4,13 +4,14 @@ import { redirect } from "next/navigation";
 
 import { CookbooksDashboardManager } from "@/components/cookbooks/CookbooksDashboardManager";
 import { ContentPageBackdrop } from "@/components/layout/ContentPageBackdrop";
+import { dictText, getDictionary, resolveAppLocale } from "@/lib/i18n/server";
 import { getCurrentProfile } from "@/lib/profile";
 import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Cookbooks | Dashboard | Whip It Flip It",
-  description: "Manage Amazon and Kindle affiliate cookbook links on your chef profile.",
+  description: "Manage Amazon and Kindle cookbook shop links on your chef profile.",
 };
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,7 @@ export default async function DashboardCookbooksPage() {
 
   const profileCtx = await getCurrentProfile(supabase);
   const planType = profileCtx?.profile.plan_type ?? "free";
+  const dict = await getDictionary(await resolveAppLocale());
 
   const { data: rows, error } = await supabase
     .from("cookbooks")
@@ -78,8 +80,17 @@ export default async function DashboardCookbooksPage() {
           </span>
           Cookbooks
         </p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-[var(--text)]">
+        <h1
+          className="mt-2 text-2xl font-bold tracking-tight text-[var(--text)]"
+          aria-describedby="dashboard-cookbooks-manage-footnote"
+        >
           Cookbooks
+          <sup
+            className="ml-0.5 text-[0.65em] font-normal text-[var(--muted)]"
+            aria-hidden
+          >
+            *
+          </sup>
         </h1>
         <p className="mt-1.5 text-sm text-[var(--muted)]">
           Links shown on your{" "}
@@ -90,6 +101,13 @@ export default async function DashboardCookbooksPage() {
             chef profile
           </Link>
           . Use HTTPS Amazon or shortened amzn URLs only.
+        </p>
+        <p
+          id="dashboard-cookbooks-manage-footnote"
+          className="mt-2 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]"
+          role="note"
+        >
+          {dictText(dict, "cookbooks_affiliate_footnote")}
         </p>
       </header>
 

@@ -89,7 +89,7 @@ export async function resolveFeaturedCookbookIdForUser(
   if (!link || !isAmazonAffiliateProductUrl(link)) {
     return {
       id: null,
-      error: "That cookbook needs a valid Amazon affiliate link first.",
+      error: "That cookbook needs a valid Amazon product link first.",
     };
   }
 

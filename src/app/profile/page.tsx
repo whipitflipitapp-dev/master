@@ -288,6 +288,7 @@ export default async function ProfilePage() {
             emptyProRequired: dictText(dict, "profile_cookbooks_empty_pro_required"),
             cta: dictText(dict, "recipe_detail_cookbook_cta"),
             viewPublicProfile: dictText(dict, "profile_cookbooks_view_public"),
+            affiliateFootnote: dictText(dict, "cookbooks_affiliate_footnote"),
           }}
         />
       ) : null}

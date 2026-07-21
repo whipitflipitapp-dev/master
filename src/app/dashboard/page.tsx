@@ -274,13 +274,24 @@ export default async function DashboardPage() {
         <h2
           id="dashboard-cookbooks-heading"
           className="text-lg font-semibold tracking-tight text-[var(--text)]"
+          aria-describedby="dashboard-cookbooks-affiliate-footnote"
         >
           {dictText(dict, "dashboard_cookbooks_section_title")}
+          <sup
+            className="ml-0.5 text-[0.65em] font-normal text-[var(--muted)]"
+            aria-hidden
+          >
+            *
+          </sup>
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
           {dictText(dict, "dashboard_cookbooks_section_body")}
         </p>
-        <p className="mt-2 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
+        <p
+          id="dashboard-cookbooks-affiliate-footnote"
+          className="mt-2 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]"
+          role="note"
+        >
           {dictText(dict, "dashboard_cookbooks_section_disclosure")}
         </p>
         {cookbookLinkCount > 0 && canEditUploadedRecipes ? (

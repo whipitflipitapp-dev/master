@@ -35,13 +35,13 @@ function validateCookbookFields(input: {
     return `Title must be at most ${TITLE_MAX} characters.`;
   }
   if (!input.affiliateUrl) {
-    return "Add an affiliate product link.";
+    return "Add an Amazon product link.";
   }
   if (input.affiliateUrl.length > URL_MAX) {
-    return "Affiliate link is too long.";
+    return "Product link is too long.";
   }
   if (!isAmazonAffiliateProductUrl(input.affiliateUrl)) {
-    return "Affiliate link must be HTTPS and use an allowed Amazon or amzn host.";
+    return "Product link must be HTTPS and use an allowed Amazon or amzn host.";
   }
   if (input.coverUrl != null) {
     if (input.coverUrl.length > URL_MAX) {

@@ -13,7 +13,7 @@ import { COOKBOOK_PLAN_REQUIRED_ERROR } from "@/lib/cookbooks-plan-gate";
 import { getAmazonAffiliateHostAllowlist } from "@/lib/amazon-affiliate-url";
 import { isProOrAbove, type PlanType } from "@/lib/plan";
 
-const AFFILIATE_HOSTS_HINT_ID = "amazon-affiliate-hosts-hint";
+const AMAZON_LINK_HINT_ID = "amazon-product-link-hint";
 
 export type CookbookRow = {
   id: string;
@@ -27,15 +27,11 @@ function fieldHint() {
   const hosts = getAmazonAffiliateHostAllowlist();
   return (
     <p className="mt-1 text-[length:var(--text-caption)] text-[var(--muted)]">
-      Allowed Amazon hosts include:{" "}
-      <span id={AFFILIATE_HOSTS_HINT_ID} className="break-words font-mono text-[length:var(--text-caption)]">
+      Accepted Amazon domains include{" "}
+      <span id={AMAZON_LINK_HINT_ID} className="break-words font-mono text-[length:var(--text-caption)]">
         {hosts.slice(0, 8).join(", ")}
         {hosts.length > 8 ? ", …" : ""}
       </span>
-      . Add more via{" "}
-      <code className="rounded bg-[color-mix(in_srgb,var(--muted)_14%,transparent)] px-1">
-        NEXT_PUBLIC_AMAZON_AFFILIATE_HOST_ALLOWLIST
-      </code>
       .
     </p>
   );
@@ -100,13 +96,13 @@ export function CookbooksDashboardManager({
               </div>
               <div>
                 <label
-                  htmlFor="cb-affiliate"
+                  htmlFor="cb-amazon-link"
                   className="block text-sm font-semibold text-[var(--text)]"
                 >
-                  Affiliate product URL
+                  {t("cookbooks_amazon_link_label")}
                 </label>
                 <input
-                  id="cb-affiliate"
+                  id="cb-amazon-link"
                   name="affiliate_url"
                   type="url"
                   required
@@ -115,8 +111,11 @@ export function CookbooksDashboardManager({
                   autoComplete="off"
                   className="mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)] shadow-[0_1px_0_rgba(28,25,23,0.04)]"
                   placeholder="https://www.amazon.com/dp/… or https://amzn.to/…"
-                  aria-describedby={AFFILIATE_HOSTS_HINT_ID}
+                  aria-describedby={AMAZON_LINK_HINT_ID}
                 />
+                <p className="mt-1 text-[length:var(--text-caption)] text-[var(--muted)]">
+                  {t("cookbooks_amazon_link_hint")}
+                </p>
                 {fieldHint()}
               </div>
               <div>
@@ -290,7 +289,7 @@ function CookbookEditorRow({ row }: { row: CookbookRow }) {
         </div>
         <div>
           <label className="block text-sm font-semibold text-[var(--text)]">
-            Affiliate product URL
+            {t("cookbooks_amazon_link_label")}
           </label>
           <input
             name="affiliate_url"
@@ -298,9 +297,10 @@ function CookbookEditorRow({ row }: { row: CookbookRow }) {
             required
             maxLength={2048}
             defaultValue={row.external_link ?? ""}
-            aria-describedby={AFFILIATE_HOSTS_HINT_ID}
+            aria-describedby={AMAZON_LINK_HINT_ID}
             className="mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)]"
           />
+          {fieldHint()}
         </div>
         <div>
           <label className="block text-sm font-semibold text-[var(--text)]">

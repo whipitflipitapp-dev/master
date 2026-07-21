@@ -1011,6 +1011,7 @@ export default async function RecipeDetailPage(props: Props) {
           ctaLabel={dictText(dict, "recipe_detail_cookbook_cta")}
           recipeId={recipe.id}
           className="mt-12"
+          affiliateFootnote={dictText(dict, "cookbooks_affiliate_footnote")}
         />
       ) : null}
 

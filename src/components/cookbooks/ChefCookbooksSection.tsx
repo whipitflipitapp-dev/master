@@ -1,4 +1,3 @@
-import { AffiliateDisclosure } from "@/components/affiliate/AffiliateDisclosure";
 import { AffiliateOutboundLink } from "@/components/affiliate/AffiliateOutboundLink";
 import { isAmazonAffiliateProductUrl } from "@/lib/amazon-affiliate-url";
 
@@ -75,9 +74,15 @@ type ChefCookbooksSectionProps = {
   recipeId?: string | null;
   className?: string;
   showDisclosure?: boolean;
+  /** Footnote shown with a * on the heading (e.g. platform commission on cookbook sales). */
+  affiliateFootnote?: string;
+  /** When false, footnote still shows but * is omitted (e.g. parent supplies the heading). */
+  affiliateMarkOnHeading?: boolean;
   hideHeading?: boolean;
   emptyMessage?: string;
 };
+
+const COOKBOOK_AFFILIATE_FOOTNOTE_ID = "cookbook-affiliate-footnote";
 
 export function ChefCookbooksSection({
   books,
@@ -87,10 +92,48 @@ export function ChefCookbooksSection({
   recipeId = null,
   className = "mt-8",
   showDisclosure = true,
+  affiliateFootnote,
+  affiliateMarkOnHeading = true,
   hideHeading = false,
   emptyMessage,
 }: ChefCookbooksSectionProps) {
   const affiliateBooks = filterAffiliateCookbooks(books);
+
+  const showAffiliateNote =
+    showDisclosure && Boolean(affiliateFootnote?.trim());
+  const showAffiliateMark = showAffiliateNote && affiliateMarkOnHeading;
+
+  function headingWithMark(text: string) {
+    if (!showAffiliateMark) {
+      return text;
+    }
+    return (
+      <>
+        {text}
+        <sup
+          className="ml-0.5 text-[0.65em] font-normal text-[var(--muted)]"
+          aria-hidden
+        >
+          *
+        </sup>
+      </>
+    );
+  }
+
+  function affiliateNote() {
+    if (!showAffiliateNote || !affiliateFootnote) {
+      return null;
+    }
+    return (
+      <p
+        id={COOKBOOK_AFFILIATE_FOOTNOTE_ID}
+        className="mt-3 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]"
+        role="note"
+      >
+        {affiliateFootnote}
+      </p>
+    );
+  }
 
   if (affiliateBooks.length === 0) {
     if (!emptyMessage) {
@@ -106,13 +149,17 @@ export function ChefCookbooksSection({
           <h2
             id="chef-cookbooks-heading"
             className="text-xl font-semibold tracking-tight text-[var(--text)]"
+            aria-describedby={
+              showAffiliateMark ? COOKBOOK_AFFILIATE_FOOTNOTE_ID : undefined
+            }
           >
-            {heading}
+            {headingWithMark(heading)}
           </h2>
         )}
         {intro ? (
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{intro}</p>
         ) : null}
+        {affiliateNote()}
         <p className="mt-4 text-sm text-[var(--muted)]">{emptyMessage}</p>
       </section>
     );
@@ -128,14 +175,17 @@ export function ChefCookbooksSection({
         <h2
           id="chef-cookbooks-heading"
           className="text-xl font-semibold tracking-tight text-[var(--text)]"
+          aria-describedby={
+            showAffiliateMark ? COOKBOOK_AFFILIATE_FOOTNOTE_ID : undefined
+          }
         >
-          {heading}
+          {headingWithMark(heading)}
         </h2>
       )}
       {intro ? (
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{intro}</p>
       ) : null}
-      {showDisclosure ? <AffiliateDisclosure className="mt-3" /> : null}
+      {affiliateNote()}
       <ul className="mt-6 grid gap-5 sm:grid-cols-2">
         {affiliateBooks.map((book) => (
           <li key={book.id}>
