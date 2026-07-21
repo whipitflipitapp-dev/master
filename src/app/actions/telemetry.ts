@@ -48,7 +48,11 @@ export async function recordAffiliateClick(input: {
   recipeId?: string | null;
 }): Promise<void> {
   const { linkType } = input;
-  if (linkType !== "wine_buy" && linkType !== "cookbook_amazon") {
+  if (
+    linkType !== "wine_buy" &&
+    linkType !== "cookbook_amazon" &&
+    linkType !== "bookstore_amazon"
+  ) {
     return;
   }
 

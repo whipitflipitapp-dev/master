@@ -215,6 +215,9 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
                 <Link href="/recipes" className={linkClass} onClick={close}>
                   {t("menu_recipes")}
                 </Link>
+                <Link href="/bookstore" className={linkClass} onClick={close}>
+                  {t("menu_bookstore")}
+                </Link>
                 <Link href="/add" className={linkClass} onClick={close}>
                   {t("menu_add_recipe")}
                 </Link>
