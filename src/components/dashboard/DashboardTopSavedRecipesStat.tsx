@@ -56,7 +56,7 @@ export function DashboardTopSavedRecipesStat({
       <button
         type="button"
         onClick={handleOpen}
-        className="-mx-1 flex w-[calc(100%+0.5rem)] items-baseline justify-between gap-3 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_6%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+        className="-mx-1 flex w-full max-w-full items-baseline justify-between gap-3 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_6%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
         aria-haspopup="dialog"
         aria-expanded={open}
       >

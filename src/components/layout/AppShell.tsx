@@ -36,8 +36,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   })();
 
   return (
-    <div className={`flex min-h-dvh flex-col ${bottomShellPad}`}>
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+    <div
+      className={`flex min-h-dvh min-w-0 max-w-full flex-col overflow-x-clip ${bottomShellPad}`}
+    >
+      <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-clip">
+        {children}
+      </div>
       <SiteFooter />
       {!hideMenu ? <MobileSiteMenu showBottomNav={showNav} /> : null}
       {showNav ? <BottomNav /> : null}

@@ -29,7 +29,7 @@ export function HomeInstagramReelsFeed({
       >
         {heading}
       </h2>
-      <ul className="-mx-1 flex list-none gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] snap-x snap-mandatory">
+      <ul className="-mx-1 flex list-none touch-pan-x gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] snap-x snap-mandatory">
         {items.map((item) => {
           const thumb =
             typeof item.imageUrl === "string" && item.imageUrl.trim().length > 0
