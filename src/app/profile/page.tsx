@@ -16,6 +16,7 @@ import { ProfilePendingPlanNotice } from "@/components/billing/ProfilePendingPla
 import { UpgradePitch } from "@/components/billing/UpgradePitch";
 import { planTypeBadgeLabel, type PlanType } from "@/lib/plan";
 import type { ChefCookbookPublic } from "@/components/cookbooks/ChefCookbooksSection";
+import { canSellCookbooks } from "@/lib/cookbooks-plan-gate";
 import { getCurrentProfile } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -161,6 +162,7 @@ export default async function ProfilePage() {
   const pendingPlan = profile?.pending_plan_type ?? null;
   const planChangeEffectiveAt = profile?.plan_change_effective_at ?? null;
   const showUpgradePitch = !!user && plan !== "ai_chef";
+  const canSellCookbooksOnSite = canSellCookbooks(plan);
   const welcomeName =
     firstName ||
     (profile?.display_name?.trim() ? profile.display_name.trim().split(/\s+/)[0] ?? "" : "");
@@ -276,11 +278,14 @@ export default async function ProfilePage() {
         <ProfileCookbooksSection
           userId={user.id}
           books={cookbooks}
+          canSell={canSellCookbooksOnSite}
           labels={{
             heading: dictText(dict, "profile_cookbooks_heading"),
             intro: dictText(dict, "profile_cookbooks_intro"),
+            introProRequired: dictText(dict, "profile_cookbooks_pro_required"),
             manage: dictText(dict, "profile_cookbooks_manage"),
             empty: dictText(dict, "profile_cookbooks_empty"),
+            emptyProRequired: dictText(dict, "profile_cookbooks_empty_pro_required"),
             cta: dictText(dict, "recipe_detail_cookbook_cta"),
             viewPublicProfile: dictText(dict, "profile_cookbooks_view_public"),
           }}

@@ -9,11 +9,14 @@ import {
 type ProfileCookbooksSectionProps = {
   userId: string;
   books: ChefCookbookPublic[];
+  canSell: boolean;
   labels: {
     heading: string;
     intro: string;
+    introProRequired: string;
     manage: string;
     empty: string;
+    emptyProRequired: string;
     cta: string;
     viewPublicProfile: string;
   };
@@ -22,9 +25,10 @@ type ProfileCookbooksSectionProps = {
 export function ProfileCookbooksSection({
   userId,
   books,
+  canSell,
   labels,
 }: ProfileCookbooksSectionProps) {
-  const affiliateBooks = filterAffiliateCookbooks(books);
+  const affiliateBooks = canSell ? filterAffiliateCookbooks(books) : [];
 
   return (
     <section className="mt-8" aria-labelledby="profile-cookbooks-heading">
@@ -37,7 +41,7 @@ export function ProfileCookbooksSection({
             {labels.heading}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-            {labels.intro}
+            {canSell ? labels.intro : labels.introProRequired}
           </p>
         </div>
         <Link
@@ -48,7 +52,7 @@ export function ProfileCookbooksSection({
         </Link>
       </div>
 
-      {affiliateBooks.length > 0 ? (
+      {canSell && affiliateBooks.length > 0 ? (
         <ChefCookbooksSection
           books={books}
           heading={labels.heading}
@@ -59,18 +63,20 @@ export function ProfileCookbooksSection({
         />
       ) : (
         <p className="mt-4 rounded-[var(--radius-card)] border border-dashed border-[var(--border)] bg-[var(--card)] p-4 text-sm leading-relaxed text-[var(--muted)]">
-          {labels.empty}
+          {canSell ? labels.empty : labels.emptyProRequired}
         </p>
       )}
 
-      <p className="mt-3 text-[length:var(--text-caption)] text-[var(--muted)]">
-        <Link
-          href={`/chef/${userId}`}
-          className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
-        >
-          {labels.viewPublicProfile}
-        </Link>
-      </p>
+      {canSell ? (
+        <p className="mt-3 text-[length:var(--text-caption)] text-[var(--muted)]">
+          <Link
+            href={`/chef/${userId}`}
+            className="font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+          >
+            {labels.viewPublicProfile}
+          </Link>
+        </p>
+      ) : null}
     </section>
   );
 }

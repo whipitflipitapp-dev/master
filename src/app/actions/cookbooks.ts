@@ -7,9 +7,8 @@ import {
   isAmazonAffiliateProductUrl,
   isHttpsUrl,
 } from "@/lib/amazon-affiliate-url";
-import { COOKBOOK_PLAN_REQUIRED_ERROR } from "@/lib/cookbooks-plan-gate";
+import { canSellCookbooks, COOKBOOK_PLAN_REQUIRED_ERROR } from "@/lib/cookbooks-plan-gate";
 import { getCurrentProfile } from "@/lib/profile";
-import { isProOrAbove } from "@/lib/plan";
 import { GENERIC_SERVER_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -71,7 +70,7 @@ export async function createCookbook(
   if (!ctx) {
     redirect("/login?next=/dashboard/cookbooks");
   }
-  if (!isProOrAbove(ctx.profile.plan_type)) {
+  if (!canSellCookbooks(ctx.profile.plan_type)) {
     return { error: COOKBOOK_PLAN_REQUIRED_ERROR };
   }
   const user = ctx.user;
@@ -135,7 +134,7 @@ export async function updateCookbook(
   if (!ctx) {
     redirect("/login?next=/dashboard/cookbooks");
   }
-  if (!isProOrAbove(ctx.profile.plan_type)) {
+  if (!canSellCookbooks(ctx.profile.plan_type)) {
     return { error: COOKBOOK_PLAN_REQUIRED_ERROR };
   }
   const user = ctx.user;

@@ -34,6 +34,7 @@ import type { RecipeExperienceRow } from "@/app/actions/recipe-experiences";
 import { resolveRecipeDisplayImageUrl } from "@/lib/demo-recipe-cover-images";
 import {
   isProOrAbove,
+  parsePlanType,
   winePairingsUnlockedForPlan,
   type PlanType,
 } from "@/lib/plan";
@@ -44,6 +45,7 @@ import {
   matchedOtherAllergenTokens,
   parseOtherAllergenTokens,
 } from "@/lib/allergy-other";
+import { canSellCookbooks } from "@/lib/cookbooks-plan-gate";
 import { resolvePantryIngredientTokens } from "@/lib/pantry-ingredient-resolve";
 import { parseRecipeVideoUrl } from "@/lib/video-url";
 import {
@@ -269,13 +271,24 @@ async function loadRecipe(
       chefUploadedRecipeCount = chefRecipeCount;
     }
 
-    const { data: cookbookRows } = await supabase
-      .from("cookbooks")
-      .select("id,title,description,cover_image_url,external_link")
-      .eq("created_by", createdBy)
-      .not("external_link", "is", null)
-      .order("title", { ascending: true });
-    if (Array.isArray(cookbookRows)) {
+    const [{ data: cookbookRows }, { data: chefPlanRow }] = await Promise.all([
+      supabase
+        .from("cookbooks")
+        .select("id,title,description,cover_image_url,external_link")
+        .eq("created_by", createdBy)
+        .not("external_link", "is", null)
+        .order("title", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select("plan_type")
+        .eq("id", createdBy)
+        .maybeSingle(),
+    ]);
+    const chefPlan = parsePlanType(chefPlanRow?.plan_type) ?? "free";
+    if (
+      canSellCookbooks(chefPlan) &&
+      Array.isArray(cookbookRows)
+    ) {
       uploaderCookbooks = cookbookRows as ChefCookbookPublic[];
     }
   }

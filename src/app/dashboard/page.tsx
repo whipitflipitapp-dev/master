@@ -283,7 +283,7 @@ export default async function DashboardPage() {
         <p className="mt-2 text-[length:var(--text-caption)] leading-relaxed text-[var(--muted)]">
           {dictText(dict, "dashboard_cookbooks_section_disclosure")}
         </p>
-        {cookbookLinkCount > 0 ? (
+        {cookbookLinkCount > 0 && canEditUploadedRecipes ? (
           <p className="mt-3 text-sm font-semibold tabular-nums text-[var(--text)]">
             {cookbookLinkCount === 1
               ? dictText(dict, "dashboard_cookbooks_section_links_live_one", {

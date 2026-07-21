@@ -10,6 +10,8 @@ import {
   recipeUploadBadgeLabelKey,
   resolveRecipeUploadBadgeTier,
 } from "@/lib/recipe-upload-badges";
+import { canSellCookbooks } from "@/lib/cookbooks-plan-gate";
+import { parsePlanType } from "@/lib/plan";
 import { GENERIC_LOAD_ERROR, logServerError } from "@/lib/server-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -50,6 +52,15 @@ async function loadChefPage(chefId: string) {
     .eq("created_by", chefId)
     .order("title", { ascending: true });
 
+  const { data: planRow } = await supabase
+    .from("profiles")
+    .select("plan_type")
+    .eq("id", chefId)
+    .maybeSingle();
+
+  const chefPlan = parsePlanType(planRow?.plan_type) ?? "free";
+  const publicCookbooks = canSellCookbooks(chefPlan) ? (books ?? []) : [];
+
   const { count: recipeCount, error: recipeCountErr } = await supabase
     .from("recipes")
     .select("*", { count: "exact", head: true })
@@ -69,7 +80,7 @@ async function loadChefPage(chefId: string) {
     configured: true as const,
     error: null as string | null,
     header,
-    cookbooks: books ?? [],
+    cookbooks: publicCookbooks,
     uploadedRecipeCount:
       typeof recipeCount === "number" && recipeCount >= 0 ? recipeCount : 0,
   };
