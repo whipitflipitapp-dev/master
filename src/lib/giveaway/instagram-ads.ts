@@ -107,6 +107,65 @@ Taco Tuesday counts. Freezer meals count. "Everyone ate it" counts.
 Rules + enter: link in bio
 #dinnerideas #mealprep #busymomlife #familydinners #whipitflipit`;
 
+/** Thanksgiving seasonal campaign — pair with GIVEAWAY_IG_CREATIVES thanksgiving assets. */
+export const GIVEAWAY_IG_THANKSGIVING_ADS = [
+  {
+    id: "thanksgiving-family-table",
+    name: "Holiday meals count",
+    creative: "feedThanksgiving" as const,
+    headline: "Thanksgiving recipes count.",
+    primaryText: `Cooking for the holidays? Your real family recipes belong on Whip It Flip It.
+
+Share 3 meals you actually make — sides, mains, or the stuff everyone asks for every year — plus one short cooking video. You're entered to win from $100 every 60 days.
+
+Help Me Cook also finds recipes from what's already in your fridge (hello, pre-holiday week).
+
+Free account. Rules: WhipItFlipIt.com/giveaway?utm_source=instagram&utm_medium=paid&utm_campaign=thanksgiving_giveaway
+
+No purchase necessary. US 18+. Not affiliated with Instagram/Meta.`,
+    cta: "Learn More",
+  },
+  {
+    id: "thanksgiving-story-prep",
+    name: "Holiday prep / sides",
+    creative: "storyThanksgiving" as const,
+    headline: "Holiday cooking counts.",
+    primaryText: `Stuffing. Green beans. The pan you bring every year.
+
+If you cook for your family during the holidays, share those recipes on Whip It Flip It — 3 recipes + 1 video = entered for $100.
+
+Stuck before the big day? Help Me Cook uses what's on hand.
+
+whipitflipit.com/giveaway`,
+    cta: "Learn More",
+  },
+  {
+    id: "thanksgiving-leftovers",
+    name: "Leftover week meal prep",
+    creative: "feedThanksgivingLeftovers" as const,
+    headline: "Leftover turkey counts too.",
+    primaryText: `The best part of Thanksgiving might be the week after.
+
+Turn leftovers into real recipes — turkey bowls, soup, casserole — and share them on Whip It Flip It. 3 recipes + 1 quick video = entered to win $100 (every 60 days).
+
+Help Me Cook helps other families use what's already in the kitchen.
+
+Full rules: WhipItFlipIt.com/giveaway`,
+    cta: "Sign Up",
+  },
+] as const;
+
+export const GIVEAWAY_IG_THANKSGIVING_ORGANIC = `🦃 Cooking for Thanksgiving (or just trying to survive the week before)?
+
+Your family favorites count — not just "influencer" recipes.
+
+Share 3 real meals + 1 cooking video on Whip It Flip It → enter to win $100 every 60 days.
+
+Help Me Cook: recipes from what's in your fridge 🥘
+Giveaway rules: link in bio
+
+#thanksgivingrecipes #leftoverturkey #familydinner #mealprep #whipitflipit`;
+
 export const GIVEAWAY_IG_REELS = [
   {
     id: "fridge-check",
