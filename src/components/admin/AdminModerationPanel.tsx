@@ -388,11 +388,13 @@ export function AdminModerationPanel() {
       {tab === "complimentary" ? (
         <div className="space-y-4">
           <p className="text-sm text-[var(--muted)]">
-            Add a chef or partner email before they sign up. When they create an
-            account with that address, they receive the plan below at no charge (
-            <span className="text-[var(--text)]">complimentary</span> billing — Stripe
-            will not overwrite it). If they already have an account, the plan applies
-            immediately when you add the invite.
+            Add a chef or partner email before they sign up. They receive an
+            automatic email with a link to create their account. When they sign
+            up with that address (email magic link or Google), they get the plan
+            below at no charge (
+            <span className="text-[var(--text)]">complimentary</span> billing —
+            Stripe will not overwrite it). If they already have an account, the
+            plan applies immediately when you add the invite.
           </p>
           <form
             className="flex flex-wrap items-end gap-2"
@@ -410,12 +412,18 @@ export function AdminModerationPanel() {
                 }
                 setNewGrantEmail("");
                 setNewGrantNote("");
-                flash(
-                  true,
-                  res.appliedToExistingUser
-                    ? "Invite added and plan applied to existing account."
-                    : "Invite added — plan will apply when they sign up.",
-                );
+                let message = res.appliedToExistingUser
+                  ? "Invite added and complimentary plan applied to their existing account."
+                  : "Invite added — complimentary plan will apply when they sign up with this email.";
+                if (res.inviteEmailSent) {
+                  message += " Notification email sent.";
+                } else if (!res.inviteEmailConfigured) {
+                  message +=
+                    " Email not sent — set RESEND_API_KEY and EMAIL_FROM in server env.";
+                } else {
+                  message += " Notification email could not be sent (check server logs).";
+                }
+                flash(true, message);
                 loadComplimentaryGrants();
               });
             }}

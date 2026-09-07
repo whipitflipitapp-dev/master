@@ -1,9 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 
 import { BottomNav } from "@/components/layout/BottomNav";
 import { MobileSiteMenu } from "@/components/layout/MobileSiteMenu";
+import { ProductTourHost } from "@/components/product-tour/ProductTourHost";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -45,6 +47,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SiteFooter />
       {!hideMenu ? <MobileSiteMenu showBottomNav={showNav} /> : null}
       {showNav ? <BottomNav /> : null}
+      <Suspense fallback={null}>
+        <ProductTourHost />
+      </Suspense>
     </div>
   );
 }

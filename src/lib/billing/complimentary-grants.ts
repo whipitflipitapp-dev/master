@@ -1,5 +1,6 @@
 import "server-only";
 
+import { logServerError } from "@/lib/server-error";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service";
 
 /** Apply a pending complimentary-email grant after sign-in / sign-up (service role). */
@@ -15,6 +16,7 @@ export async function redeemComplimentaryGrantForUser(
     { p_user_id: userId },
   );
   if (error) {
+    logServerError("complimentary_grants.redeem", error);
     return false;
   }
   return Boolean(data);

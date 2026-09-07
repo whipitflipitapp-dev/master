@@ -10,6 +10,7 @@ import {
 import { normalizeEmailForBanList } from "@/lib/moderation/access-control";
 import { parsePlanType, type PlanType } from "@/lib/plan";
 import { redeemComplimentaryGrantForUser } from "@/lib/billing/complimentary-grants";
+import { sendComplimentaryInviteEmail } from "@/lib/email/send-complimentary-invite-email";
 
 export type AdminUserRow = {
   id: string;
@@ -300,7 +301,13 @@ export async function adminAddComplimentaryGrant(input: {
   planType: PlanType;
   note: string;
 }): Promise<
-  { ok: true; appliedToExistingUser: boolean } | { ok: false; error: string }
+  | {
+      ok: true;
+      appliedToExistingUser: boolean;
+      inviteEmailSent: boolean;
+      inviteEmailConfigured: boolean;
+    }
+  | { ok: false; error: string }
 > {
   const email = normalizeEmailForBanList(input.email);
   if (!email.includes("@")) {
@@ -336,8 +343,22 @@ export async function adminAddComplimentaryGrant(input: {
       appliedToExistingUser = await redeemComplimentaryGrantForUser(userId);
     }
 
+    const emailResult = await sendComplimentaryInviteEmail({
+      email,
+      planType: plan,
+      forExistingAccount: appliedToExistingUser,
+    });
+
     revalidatePath("/admin");
-    return { ok: true, appliedToExistingUser };
+    const inviteEmailConfigured =
+      emailResult.sent ||
+      ("reason" in emailResult && emailResult.reason !== "not_configured");
+    return {
+      ok: true,
+      appliedToExistingUser,
+      inviteEmailSent: emailResult.sent,
+      inviteEmailConfigured,
+    };
   } catch (err) {
     return actionError(err);
   }

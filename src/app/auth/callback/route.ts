@@ -60,7 +60,10 @@ export async function GET(request: Request) {
       await supabase.auth.signOut();
       return NextResponse.redirect(`${origin}/banned`);
     }
-    await redeemComplimentaryGrantForUser(user.id);
+    const redeemed = await redeemComplimentaryGrantForUser(user.id);
+    if (redeemed && next === "/") {
+      next = "/recipes?tour=1";
+    }
   }
 
   return NextResponse.redirect(`${origin}${next}`);

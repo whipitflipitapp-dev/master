@@ -106,15 +106,6 @@ export async function proxy(request: NextRequest) {
         }
       }
     }
-
-    const { data: ob, error: obErr } = await supabase
-      .from("profiles")
-      .select("onboarding_completed_at")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (!obErr && ob?.onboarding_completed_at == null) {
-      return NextResponse.redirect(new URL("/onboarding", request.url));
-    }
   }
 
   if (isProtectedPath(pathname)) {

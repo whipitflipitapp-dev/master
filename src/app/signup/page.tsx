@@ -23,7 +23,9 @@ export default async function SignupPage({
   const params = await searchParams;
   const initialError = params.error ? decodeURIComponent(params.error) : null;
   const defaultNext =
-    params.next && params.next.startsWith("/") ? params.next : "/onboarding";
+    params.next && params.next.startsWith("/")
+      ? params.next
+      : "/recipes?tour=1";
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 py-10">

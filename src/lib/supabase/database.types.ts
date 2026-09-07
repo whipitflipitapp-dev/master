@@ -40,6 +40,8 @@ export interface Database {
           banned_by: string | null;
           plan_billing_source: "self" | "complimentary";
           celebrated_upload_badge_tier: string | null;
+          product_tour_completed_at: string | null;
+          product_tour_dismiss_count: number;
         };
         Insert: {
           id: string;
@@ -68,6 +70,8 @@ export interface Database {
           banned_by?: string | null;
           plan_billing_source?: "self" | "complimentary";
           celebrated_upload_badge_tier?: string | null;
+          product_tour_completed_at?: string | null;
+          product_tour_dismiss_count?: number;
         };
         Update: {
           display_name?: string | null;
@@ -94,6 +98,8 @@ export interface Database {
           banned_by?: string | null;
           plan_billing_source?: "self" | "complimentary";
           celebrated_upload_badge_tier?: string | null;
+          product_tour_completed_at?: string | null;
+          product_tour_dismiss_count?: number;
         };
       };
       banned_emails: {

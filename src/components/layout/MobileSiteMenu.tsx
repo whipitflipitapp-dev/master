@@ -59,6 +59,7 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [firstName, setFirstName] = useState<string | null>(null);
   const [planTier, setPlanTier] = useState<PlanType | null>(null);
+  const [onboardingDone, setOnboardingDone] = useState(true);
 
   const hide =
     pathname.startsWith("/login") ||
@@ -72,7 +73,7 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
     }
     const { data } = await supabase
       .from("profiles")
-      .select("first_name,display_name,plan_type")
+      .select("first_name,display_name,plan_type,onboarding_completed_at")
       .eq("id", userId)
       .maybeSingle();
     const fromFirst =
@@ -86,6 +87,7 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
     setFirstName(fromFirst || fromDisplay || null);
     const parsed = parsePlanType(data?.plan_type);
     setPlanTier(parsed ?? "free");
+    setOnboardingDone(Boolean(data?.onboarding_completed_at));
   }, []);
 
   useEffect(() => {
@@ -95,6 +97,7 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
         setUser(null);
         setFirstName(null);
         setPlanTier(null);
+        setOnboardingDone(true);
       });
       return;
     }
@@ -106,6 +109,7 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
       } else {
         setFirstName(null);
         setPlanTier(null);
+        setOnboardingDone(true);
       }
     });
     const {
@@ -118,6 +122,7 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
       } else {
         setFirstName(null);
         setPlanTier(null);
+        setOnboardingDone(true);
       }
     });
     return () => {
@@ -149,6 +154,13 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
   const fabBottomClass = showBottomNav
     ? "max-md:bottom-[calc(5rem+0.75rem+env(safe-area-inset-bottom))] md:bottom-[max(1.25rem,env(safe-area-inset-bottom))]"
     : "bottom-[max(1rem,env(safe-area-inset-bottom))]";
+
+  const planLabel =
+    planTier === "ai_chef"
+      ? t("upgrade_tier_ai_chef")
+      : planTier === "pro"
+        ? t("upgrade_tier_pro")
+        : t("menu_plan_free");
 
   return (
     <>
@@ -242,26 +254,52 @@ export function MobileSiteMenu({ showBottomNav }: MobileSiteMenuProps) {
                   <p className="px-3 py-2 text-xs text-[var(--muted)]">…</p>
                 ) : user ? (
                   <>
-                    {firstName ? (
-                      <p className="px-3 pb-1 pt-1 text-[length:var(--text-meta)] font-semibold text-[var(--text)]">
-                        {t("menu_greeting", { firstName })}
-                      </p>
-                    ) : null}
+                    <div className="px-3 pb-2 pt-1">
+                      {firstName ? (
+                        <p className="text-[length:var(--text-meta)] font-semibold text-[var(--text)]">
+                          {t("menu_greeting", { firstName })}
+                        </p>
+                      ) : (
+                        <p className="text-[length:var(--text-meta)] font-semibold text-[var(--text)]">
+                          {t("menu_account")}
+                        </p>
+                      )}
+                      {planTier ? (
+                        <p className="mt-0.5 text-[length:var(--text-caption)] text-[var(--muted)]">
+                          {t("menu_plan_label", { plan: planLabel })}
+                        </p>
+                      ) : null}
+                    </div>
                     <Link href="/profile" className={linkClass} onClick={close}>
                       {t("menu_profile")}
-                    </Link>
-                    <Link href="/dashboard" className={linkClass} onClick={close}>
-                      {t("menu_dashboard")}
-                    </Link>
-                    <Link href="/dashboard/analytics" className={linkClass} onClick={close}>
-                      {t("menu_creator_analytics")}
                     </Link>
                     <Link href="/saved" className={linkClass} onClick={close}>
                       {t("menu_saved")}
                     </Link>
+                    <Link href="/dashboard" className={linkClass} onClick={close}>
+                      {t("menu_dashboard")}
+                    </Link>
+                    <Link href="/dashboard/cookbooks" className={linkClass} onClick={close}>
+                      {t("dashboard_cookbooks")}
+                    </Link>
+                    <Link href="/dashboard/analytics" className={linkClass} onClick={close}>
+                      {t("menu_creator_analytics")}
+                    </Link>
                     <Link href="/grocery-list" className={linkClass} onClick={close}>
                       {t("menu_grocery_list")}
                     </Link>
+                    <Link
+                      href="/recipes?tour=1"
+                      className={linkClass}
+                      onClick={close}
+                    >
+                      {t("menu_how_it_works")}
+                    </Link>
+                    {!onboardingDone ? (
+                      <Link href="/onboarding" className={linkClass} onClick={close}>
+                        {t("menu_personalize_profile")}
+                      </Link>
+                    ) : null}
                     <div className="mt-2 px-1">
                       <button
                         type="button"

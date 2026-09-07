@@ -78,7 +78,11 @@ export function LoginForm({
         setInlineError(error.message);
         return;
       }
-      router.push(`/login?sent=1&next=${encodeURIComponent(nextPath)}`);
+      const sentPath =
+        mode === "signup"
+          ? `/signup?sent=1&next=${encodeURIComponent(nextPath)}`
+          : `/login?sent=1&next=${encodeURIComponent(nextPath)}`;
+      router.push(sentPath);
       router.refresh();
     });
   }
@@ -125,7 +129,9 @@ export function LoginForm({
             className="mt-4 rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] px-3 py-2 text-sm text-[var(--text)]"
             role="status"
           >
-            Check your inbox for the sign-in link. You can close this tab.
+            {mode === "signup"
+              ? t("signup_magic_sent")
+              : t("login_magic_sent")}
           </p>
         ) : null}
 
