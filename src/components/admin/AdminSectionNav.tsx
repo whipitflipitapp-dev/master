@@ -12,6 +12,7 @@ const SECTION_IDS = ADMIN_SECTION_LINKS.map((l) => l.id);
 function sectionTintForId(id: string): AdminSectionTint | null {
   if (id === "events-log") return "events";
   if (id === "moderation") return "moderation";
+  if (id === "giveaway") return "giveaway";
   if (
     id === "revenue" ||
     id === "subscribers" ||

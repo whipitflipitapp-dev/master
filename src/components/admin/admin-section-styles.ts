@@ -4,6 +4,7 @@ export const ADMIN_SECTION_LINKS = [
   { id: "growth", label: "Growth" },
   { id: "engagement", label: "Engagement" },
   { id: "moderation", label: "Moderation" },
+  { id: "giveaway", label: "Giveaway" },
   { id: "support", label: "Support" },
   { id: "events-log", label: "Event log" },
 ] as const;
@@ -14,6 +15,7 @@ export type AdminSectionTint =
   | "growth"
   | "engagement"
   | "moderation"
+  | "giveaway"
   | "support"
   | "events";
 
@@ -28,6 +30,8 @@ const SECTION_TINT: Record<AdminSectionTint, string> = {
     "border-[color-mix(in_srgb,var(--primary)_18%,var(--border))] bg-[color-mix(in_srgb,var(--primary-muted)_55%,var(--bg))]",
   moderation:
     "border-[color-mix(in_srgb,var(--danger)_18%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_5%,var(--bg))]",
+  giveaway:
+    "border-[color-mix(in_srgb,var(--accent)_22%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_7%,var(--bg))]",
   support:
     "border-[color-mix(in_srgb,var(--muted)_28%,var(--border))] bg-[color-mix(in_srgb,var(--card)_85%,var(--bg))]",
   events:

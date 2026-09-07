@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { AdminDailyLineChart } from "@/components/admin/AdminDailyLineChart";
 import { AdminModerationPanel } from "@/components/admin/AdminModerationPanel";
+import { AdminGiveawayPanel } from "@/components/admin/AdminGiveawayPanel";
 import { AdminPlanMixChart } from "@/components/admin/AdminPlanMixChart";
 import { AdminRevenueCharts } from "@/components/admin/AdminRevenueCharts";
 import { AdminSignupsChart } from "@/components/admin/AdminSignupsChart";
@@ -487,6 +488,33 @@ export default async function AdminPage() {
         </p>
         <div className="mt-5">
           <AdminModerationPanel />
+        </div>
+      </section>
+
+      <section
+        id="giveaway"
+        className={`mt-8 ${adminSectionShellClass("giveaway")}`}
+        aria-labelledby="giveaway-heading"
+      >
+        <h2
+          id="giveaway-heading"
+          className="text-lg font-semibold text-[var(--text)]"
+        >
+          Recipe giveaway
+        </h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Create 60-day entry cycles, close them for drawing, and publish winner
+          display names to the public{" "}
+          <Link
+            href="/giveaway"
+            className="font-semibold text-[var(--primary)] underline-offset-2 hover:underline"
+          >
+            /giveaway
+          </Link>{" "}
+          page.
+        </p>
+        <div className="mt-5">
+          <AdminGiveawayPanel />
         </div>
       </section>
 

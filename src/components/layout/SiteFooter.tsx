@@ -44,6 +44,15 @@ export function SiteFooter() {
         <span className="text-[var(--border)]" aria-hidden>
           ·
         </span>
+        <Link
+          href="/giveaway"
+          className="text-[length:var(--text-meta)] font-medium text-[var(--muted)] underline-offset-4 hover:text-[var(--text)] hover:underline"
+        >
+          {t("footer_giveaway")}
+        </Link>
+        <span className="text-[var(--border)]" aria-hidden>
+          ·
+        </span>
         <a
           href={INSTAGRAM_URL}
           target="_blank"

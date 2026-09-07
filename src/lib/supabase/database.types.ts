@@ -153,6 +153,63 @@ export interface Database {
           redeemed_by?: string | null;
         };
       };
+      giveaway_cycles: {
+        Row: {
+          id: string;
+          entry_start: string;
+          entry_end: string;
+          status: "active" | "closed" | "completed";
+          winners_announced_at: string | null;
+          admin_notes: string | null;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          entry_start: string;
+          entry_end: string;
+          status?: "active" | "closed" | "completed";
+          winners_announced_at?: string | null;
+          admin_notes?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          entry_start?: string;
+          entry_end?: string;
+          status?: "active" | "closed" | "completed";
+          winners_announced_at?: string | null;
+          admin_notes?: string | null;
+          created_by?: string | null;
+        };
+      };
+      giveaway_winners: {
+        Row: {
+          id: string;
+          cycle_id: string;
+          display_name: string;
+          prize_amount_cents: number;
+          prize_rank: number;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          cycle_id: string;
+          display_name: string;
+          prize_amount_cents: number;
+          prize_rank: number;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          cycle_id?: string;
+          display_name?: string;
+          prize_amount_cents?: number;
+          prize_rank?: number;
+          created_by?: string | null;
+        };
+      };
       recipes: {
         Row: {
           id: string;
@@ -585,6 +642,10 @@ export interface Database {
       auth_user_id_for_email: {
         Args: { p_email: string };
         Returns: string | null;
+      };
+      giveaway_qualifying_entrant_count: {
+        Args: { p_entry_start: string; p_entry_end: string };
+        Returns: number;
       };
       is_email_banned: {
         Args: { p_email: string };
