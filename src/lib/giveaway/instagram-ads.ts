@@ -6,11 +6,17 @@
  * Creatives (deployed with site):
  * - Feed 1:1  → /marketing/giveaway-ig-feed-family.png
  * - Story 9:16 → /marketing/giveaway-ig-story-family.png
+ * - Thanksgiving feed → /marketing/giveaway-ig-feed-thanksgiving.png
+ * - Thanksgiving story → /marketing/giveaway-ig-story-thanksgiving.png
+ * - Thanksgiving leftovers feed → /marketing/giveaway-ig-feed-thanksgiving-leftovers.png
  */
 
 export const GIVEAWAY_IG_CREATIVES = {
   feedFamily: "/marketing/giveaway-ig-feed-family.png",
   storyFamily: "/marketing/giveaway-ig-story-family.png",
+  feedThanksgiving: "/marketing/giveaway-ig-feed-thanksgiving.png",
+  storyThanksgiving: "/marketing/giveaway-ig-story-thanksgiving.png",
+  feedThanksgivingLeftovers: "/marketing/giveaway-ig-feed-thanksgiving-leftovers.png",
   siteBase: "https://www.whipitflipit.com",
 } as const;
 
