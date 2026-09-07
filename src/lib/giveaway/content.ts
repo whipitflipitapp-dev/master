@@ -3,7 +3,7 @@ export const GIVEAWAY_OFFICIAL_RULES_SECTIONS = [
     id: "sponsor",
     title: "1. Sponsor",
     paragraphs: [
-      "The Whip It Flip It Recipe Giveaway (“Promotion”) is sponsored by Whip It Flip It (“Sponsor,” “we,” “us,” or “our”), operator of WhipItFlipIt.com, a recipe-sharing platform for home cooks and chefs.",
+      "The Whip It Flip It Recipe Giveaway (“Promotion”) is sponsored by Whip It Flip It (“Sponsor,” “we,” “us,” or “our”), operator of WhipItFlipIt.com, a recipe-sharing platform for everyday home cooks and families.",
       "Questions about this Promotion may be sent to whipitflipitapp@gmail.com.",
     ],
   },
@@ -29,7 +29,7 @@ export const GIVEAWAY_OFFICIAL_RULES_SECTIONS = [
     title: "4. How to enter",
     paragraphs: [
       "NO PURCHASE NECESSARY. A purchase or paid subscription will not improve your chances of winning.",
-      "During an Entry Period: (a) create a free WhipItFlipIt.com account; (b) upload three (3) or more original recipes you personally created; (c) include a video on at least one (1) of those recipes showing some or all of the actual cooking process (uploaded reel or approved external video link); and (d) ensure your recipes remain accessible and meet our content guidelines through winner verification.",
+      "During an Entry Period: (a) create a free WhipItFlipIt.com account; (b) upload three (3) or more original recipes you personally created and actually cook for your household (weeknight dinners, meal prep, and simple family meals qualify); (c) include a video on at least one (1) of those recipes showing some or all of the actual cooking process (uploaded reel, phone clip, or approved external video link); and (d) ensure your recipes remain accessible and meet our content guidelines through winner verification.",
       "Limit one (1) entry per person per cycle, regardless of how many qualifying recipes you upload.",
       "Automated, bulk, or fraudulent entries are prohibited.",
     ],
@@ -109,6 +109,18 @@ export const GIVEAWAY_OFFICIAL_RULES_SECTIONS = [
 
 export const GIVEAWAY_FAQ_ITEMS = [
   {
+    id: "who",
+    question: "Who is this giveaway for?",
+    answer:
+      "Everyday home cooks — especially parents and people who meal prep or cook dinner after work. You don't need to be a chef or food influencer. If you make real meals for your family, you belong here.",
+  },
+  {
+    id: "simple",
+    question: "Do my recipes have to be fancy or complex?",
+    answer:
+      "No. Weeknight dinners, sheet-pan meals, slow-cooker recipes, tacos, pasta, meal-prep bowls, and other simple family favorites count. Whip It Flip It includes a range of recipe styles, but Help Me Cook is built for cooks who need ideas from ingredients they already have.",
+  },
+  {
     id: "pay",
     question: "Do I have to pay anything to enter?",
     answer:
@@ -118,7 +130,7 @@ export const GIVEAWAY_FAQ_ITEMS = [
     id: "video",
     question: "What if I don't have a video for all my recipes?",
     answer:
-      "You only need a cooking video on at least one of the three (or more) recipes you upload during the Entry Period. The other recipes can be photo-only.",
+      "You only need a cooking video on at least one of the three (or more) recipes you upload during the Entry Period. A quick phone clip is fine. The other recipes can be photo-only.",
   },
   {
     id: "every-cycle",

@@ -5,43 +5,20 @@ import { GiveawayFaqAccordion } from "@/components/giveaway/GiveawayFaqAccordion
 import { GiveawayOfficialRules } from "@/components/giveaway/GiveawayOfficialRules";
 import {
   GIVEAWAY_CONTACT_EMAIL,
-  GIVEAWAY_CYCLE_DAYS,
-  GIVEAWAY_MIN_RECIPES,
-  GIVEAWAY_MIN_VIDEO_RECIPES,
   GIVEAWAY_PAYOUT_DAYS,
   GIVEAWAY_RULES_LAST_UPDATED,
   GIVEAWAY_SIGNUP_CTA_HREF,
 } from "@/lib/giveaway/constants";
+import {
+  GIVEAWAY_META_DESCRIPTION,
+  GIVEAWAY_PAGE_COPY,
+} from "@/lib/giveaway/page-copy";
 import { fetchGiveawayPublicSnapshot } from "@/lib/giveaway/public-snapshot";
 
 export const metadata: Metadata = {
   title: "Recipe Giveaway & Official Rules | WhipItFlipIt.com",
-  description:
-    "Enter Whip It Flip It's free recipe giveaway: upload original recipes with video for a chance to win from a $100 prize pool every 60 days. No purchase necessary.",
+  description: GIVEAWAY_META_DESCRIPTION,
 };
-
-const ENTRY_STEPS = [
-  {
-    icon: "👤",
-    title: "Create a free account",
-    body: "Sign up at WhipItFlipIt.com with email or Google. No purchase or subscription required.",
-  },
-  {
-    icon: "📝",
-    title: `Upload ${GIVEAWAY_MIN_RECIPES}+ original recipes`,
-    body: `Add at least ${GIVEAWAY_MIN_RECIPES} recipes you actually made during the Entry Period.`,
-  },
-  {
-    icon: "🎬",
-    title: "Include a cooking video",
-    body: `At least ${GIVEAWAY_MIN_VIDEO_RECIPES} recipe must include a video showing some or all of the cooking process (uploaded reel or video link).`,
-  },
-  {
-    icon: "🎉",
-    title: "You're entered automatically",
-    body: "When you meet the requirements, you're in the random drawing at the end of the cycle.",
-  },
-] as const;
 
 function formatCycleDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -55,21 +32,20 @@ function formatCycleDate(iso: string): string {
 export default async function GiveawayPage() {
   const snapshot = await fetchGiveawayPublicSnapshot();
   const cycle = snapshot.currentCycle;
+  const copy = GIVEAWAY_PAGE_COPY;
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-10 px-5 py-8 pb-12">
       {/* 1. Hero */}
       <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-8">
         <p className="text-[length:var(--text-meta)] font-semibold uppercase tracking-wide text-[var(--primary)]">
-          Recipe giveaway
+          {copy.kicker}
         </p>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text)] sm:text-3xl">
-          Submit Recipes. Win Cash. Every {GIVEAWAY_CYCLE_DAYS} Days.
+          {copy.headline}
         </h1>
         <p className="text-sm leading-relaxed text-[var(--muted)]">
-          Whip It Flip It runs a giveaway every {GIVEAWAY_CYCLE_DAYS} days to
-          reward home cooks and chefs who add real, original recipes to the
-          community — not copy-paste content.
+          {copy.intro}
         </p>
         <div
           className="rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--primary-muted)_55%,var(--card))] p-4 shadow-[var(--shadow-card)]"
@@ -83,12 +59,35 @@ export default async function GiveawayPage() {
             {snapshot.prizes[1].amountUsd} prize, and three $
             {snapshot.prizes[2].amountUsd} prizes — five winners total.
           </p>
+          <p className="mt-2 text-[length:var(--text-meta)] text-[var(--muted)]">
+            {copy.prizeNote}
+          </p>
         </div>
+        <aside
+          className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]"
+          aria-labelledby="help-me-cook-callout"
+        >
+          <h2
+            id="help-me-cook-callout"
+            className="text-sm font-semibold text-[var(--text)]"
+          >
+            {copy.helpMeCookTitle}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+            {copy.helpMeCookBody}
+          </p>
+          <Link
+            href={copy.helpMeCookHref}
+            className="mt-3 inline-block text-sm font-semibold text-[var(--primary)] underline-offset-4 hover:underline"
+          >
+            {copy.helpMeCookLinkLabel}
+          </Link>
+        </aside>
         <Link
           href={GIVEAWAY_SIGNUP_CTA_HREF}
           className="inline-flex min-h-[48px] items-center justify-center rounded-[var(--radius-card)] bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-[background-color,transform] hover:bg-[var(--primary-hover)] active:scale-[0.99]"
         >
-          Start submitting recipes
+          {copy.ctaLabel}
         </Link>
       </header>
 
@@ -134,12 +133,13 @@ export default async function GiveawayPage() {
         ) : (
           <p className="mt-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--muted)]">
             The next Entry Period dates will be posted here soon. You can still
-            create an account and upload recipes anytime.
+            create a free account and share the meals you cook for your family
+            anytime.
           </p>
         )}
 
         {snapshot.previousCycleWinners.length > 0 ? (
-          <div className="mt-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[color-mix(in_srgb,var(--success)_6%,var(--card))] p-4">
+          <div className="mt-4 rounded-[var(--radius-card)] border border-[color-mix(in_srgb,var(--success)_20%,var(--border))] bg-[color-mix(in_srgb,var(--success)_6%,var(--card))] p-4">
             <h3 className="text-sm font-semibold text-[var(--text)]">
               Previous cycle winners
               {snapshot.previousCycleLabel
@@ -169,7 +169,7 @@ export default async function GiveawayPage() {
           How to enter
         </h2>
         <ol className="mt-4 flex flex-col gap-3">
-          {ENTRY_STEPS.map((step, index) => (
+          {copy.entrySteps.map((step, index) => (
             <li
               key={step.title}
               className="flex gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-card)]"
@@ -195,8 +195,7 @@ export default async function GiveawayPage() {
           ))}
         </ol>
         <p className="mt-3 text-[length:var(--text-meta)] text-[var(--muted)]">
-          No purchase necessary. Entry is free — just add real, original recipes
-          you&apos;ve actually made.
+          {copy.entryFootnote}
         </p>
       </section>
 
@@ -209,20 +208,12 @@ export default async function GiveawayPage() {
           What counts as &ldquo;original&rdquo;
         </h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-[var(--muted)]">
-          <li>Must be written by you, not AI-generated</li>
-          <li>
-            Must not be copied or paraphrased from another site, cookbook, or
-            video
-          </li>
-          <li>Must not duplicate a recipe already on Whip It Flip It</li>
-          <li>Video must match the recipe you submit</li>
-          <li>
-            We personally review winning entries by hand before confirming any
-            winner
-          </li>
+          {copy.originalityBullets.map((item) => (
+            <li key={item.slice(0, 32)}>{item}</li>
+          ))}
         </ul>
         <p className="mt-3 text-sm text-[var(--muted)]">
-          We&apos;re rewarding real cooking, not copy-paste content.
+          {copy.originalityClosing}
         </p>
       </section>
 
@@ -308,7 +299,7 @@ export default async function GiveawayPage() {
           href={GIVEAWAY_SIGNUP_CTA_HREF}
           className="inline-flex min-h-[48px] items-center justify-center rounded-[var(--radius-card)] bg-[var(--primary)] px-5 py-3 text-center text-sm font-semibold text-white shadow-[var(--shadow-card)] hover:bg-[var(--primary-hover)]"
         >
-          Start submitting recipes
+          {copy.ctaLabel}
         </Link>
       </footer>
     </main>
