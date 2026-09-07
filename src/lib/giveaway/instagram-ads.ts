@@ -2,7 +2,17 @@
  * Instagram / Meta ad copy — everyday family cooks & meal prep (not chef/complex).
  * Use with landing page: https://www.whipitflipit.com/giveaway
  * Append UTMs when launching: ?utm_source=instagram&utm_medium=paid&utm_campaign=family_giveaway
+ *
+ * Creatives (deployed with site):
+ * - Feed 1:1  → /marketing/giveaway-ig-feed-family.png
+ * - Story 9:16 → /marketing/giveaway-ig-story-family.png
  */
+
+export const GIVEAWAY_IG_CREATIVES = {
+  feedFamily: "/marketing/giveaway-ig-feed-family.png",
+  storyFamily: "/marketing/giveaway-ig-story-family.png",
+  siteBase: "https://www.whipitflipit.com",
+} as const;
 
 export const GIVEAWAY_IG_AUDIENCE = {
   positioning:
